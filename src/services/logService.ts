@@ -31,10 +31,10 @@ export class LogService implements ILogService {
 	readonly _serviceBrand: undefined;
 
 	private level: LogLevel = LogLevel.Info;
-	private outputChannel: vscode.OutputChannel;
+	private outputChannel: vscode.LogOutputChannel;
 
 	constructor() {
-		this.outputChannel = vscode.window.createOutputChannel('Claudix');
+		this.outputChannel = vscode.window.createOutputChannel('Claudix', { log: true });
 	}
 
 	setLevel(level: LogLevel): void {
@@ -43,41 +43,38 @@ export class LogService implements ILogService {
 
 	trace(message: string, ...args: any[]): void {
 		if (this.level <= LogLevel.Trace) {
-			this.log('TRACE', message, args);
+			this.outputChannel.trace(message, ...args);
 		}
 	}
 
 	debug(message: string, ...args: any[]): void {
 		if (this.level <= LogLevel.Debug) {
-			this.log('DEBUG', message, args);
+			this.outputChannel.debug(message, ...args);
 		}
 	}
 
 	info(message: string, ...args: any[]): void {
 		if (this.level <= LogLevel.Info) {
-			this.log('INFO', message, args);
+			this.outputChannel.info(message, ...args);
 		}
 	}
 
 	warn(message: string, ...args: any[]): void {
 		if (this.level <= LogLevel.Warning) {
-			this.log('WARN', message, args);
+			this.outputChannel.warn(message, ...args);
 		}
 	}
 
 	error(message: string | Error, ...args: any[]): void {
 		if (this.level <= LogLevel.Error) {
-			const msg = message instanceof Error ? message.message : message;
-			this.log('ERROR', msg, args);
-			if (message instanceof Error && message.stack) {
-				this.outputChannel.appendLine(message.stack);
+			if (message instanceof Error) {
+				this.outputChannel.error(message.message, ...args);
+				if (message.stack) {
+					this.outputChannel.error(message.stack);
+				}
+			} else {
+				this.outputChannel.error(message, ...args);
 			}
 		}
-	}
-
-	private log(level: string, message: string, args: any[]): void {
-		const timestamp = new Date().toISOString();
-		const argsStr = args.length > 0 ? ' ' + JSON.stringify(args) : '';
-		this.outputChannel.appendLine(`[${timestamp}] [${level}] ${message}${argsStr}`);
 	}
 }
