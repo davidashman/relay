@@ -20,7 +20,7 @@
       <!-- <div class="chatContainer"> -->
         <div
           ref="containerEl"
-          :class="['messagesContainer', 'custom-scroll-container', { dimmed: permissionRequestsLen > 0 }]"
+          :class="['messagesContainer', 'custom-scroll-container']"
         >
           <template v-if="messages.length === 0">
             <div v-if="isBusy" class="emptyState">
@@ -44,21 +44,29 @@
                 :context="toolContext"
               />
             <!-- </div> -->
-            <div v-if="isBusy" class="spinnerRow">
+            <PermissionRequestModal
+              v-if="pendingPermission && toolContext"
+              :request="pendingPermission"
+              :context="toolContext"
+              :on-resolve="handleResolvePermission"
+              data-permission-panel="1"
+              class="inlinePermissionModal"
+            />
+            <div v-if="isBusy && !pendingPermission" class="spinnerRow">
               <Spinner :size="16" :permission-mode="permissionMode" :fun-spinner="funSpinner" />
+            </div>
+            <div v-if="queuedMessage" class="queuedMessageRow">
+              <div class="queuedMessageBubble">
+                <span class="queuedMessageLabel">Queued</span>
+                <span class="queuedMessageText">{{ queuedMessage }}</span>
+                <button class="queuedMessageCancel" @click="queuedMessage = ''" title="Cancel">✕</button>
+              </div>
             </div>
             <div ref="endEl" />
           </template>
         </div>
 
         <div class="inputContainer">
-          <PermissionRequestModal
-            v-if="pendingPermission && toolContext"
-            :request="pendingPermission"
-            :context="toolContext"
-            :on-resolve="handleResolvePermission"
-            data-permission-panel="1"
-          />
           <ChatInputBox
             ref="chatInputRef"
             :show-progress="true"
@@ -69,6 +77,7 @@
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
             @submit="handleSubmit"
+            @queue-message="handleQueueMessage"
             @stop="handleStop"
             @add-attachment="handleAddAttachment"
             @remove-attachment="handleRemoveAttachment"
@@ -163,6 +172,21 @@
     return 0;
   });
 
+  // Queued message (submitted while busy)
+  const queuedMessage = ref('');
+
+  function handleQueueMessage(content: string) {
+    queuedMessage.value = content;
+  }
+
+  watch(isBusy, async (busy) => {
+    if (!busy && queuedMessage.value) {
+      const msg = queuedMessage.value;
+      queuedMessage.value = '';
+      await handleSubmit(msg);
+    }
+  });
+
   // DOM refs
   const containerEl = ref<HTMLDivElement | null>(null);
   const endEl = ref<HTMLDivElement | null>(null);
@@ -195,6 +219,7 @@
   watch(session, async () => {
     // 切换会话：复位并滚动底部
     prevCount = 0;
+    queuedMessage.value = '';
     await nextTick();
     scrollToBottom();
   });
@@ -212,6 +237,13 @@
       }
     }
   );
+
+  watch(queuedMessage, async (val) => {
+    if (val) {
+      await nextTick();
+      scrollToBottom();
+    }
+  });
 
   watch(permissionRequestsLen, async (newLen) => {
     // 有权限请求出现时也确保滚动到底部
@@ -255,8 +287,15 @@
 
   // ChatInput 事件处理
   async function handleSubmit(content: string) {
-    const s = session.value;
     const trimmed = (content || '').trim();
+
+    // Handle built-in /clear command
+    if (trimmed === '/clear') {
+      await createNew();
+      return;
+    }
+
+    const s = session.value;
     if (!s || (!trimmed && attachments.value.length === 0) || isBusy.value) return;
 
     try {
@@ -524,6 +563,11 @@
 
   /* 其他样式复用 */
 
+  /* Inline permission modal inside the message list */
+  .inlinePermissionModal {
+    padding: 0 12px;
+  }
+
   /* 输入区域容器 */
   .inputContainer {
     padding: 8px 12px 12px;
@@ -554,5 +598,58 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
+  }
+
+  .queuedMessageRow {
+    padding: 4px 12px 8px;
+  }
+
+  .queuedMessageBubble {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--vscode-input-background);
+    border: 1px dashed var(--vscode-input-border);
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .queuedMessageLabel {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.8;
+    padding-top: 1px;
+  }
+
+  .queuedMessageText {
+    flex: 1;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--vscode-descriptionForeground);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .queuedMessageCancel {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0.8;
+    padding: 1px 5px;
+    line-height: 1.4;
+  }
+
+  .queuedMessageCancel:hover {
+    opacity: 1;
+    background: var(--vscode-button-hoverBackground);
+    border-color: var(--vscode-focusBorder);
   }
 </style>

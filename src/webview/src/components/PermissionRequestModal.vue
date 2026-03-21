@@ -6,29 +6,31 @@
     @keydown="handleContainerKeyDown"
     data-permission-panel="1"
   >
-    <div class="permission-request-content">
-      <div class="permission-request-header">
-        Do you want to proceed?
-      </div>
-
-      <!-- 工具输入展示 -->
-      <div v-if="hasInputs" class="tool-display-scroll">
-        <PermissionInputDisplay
-          :tool-name="request.toolName"
-          :inputs="request.inputs"
-          :context="context"
-        />
-      </div>
-    </div>
-
+    <div class="permission-header">Do you approve?</div>
     <div class="button-container">
-      <button class="button primary" @click="handleApprove">
+      <button
+        class="button"
+        :class="{ focused: focusedIndex === 0 }"
+        @click="handleApprove"
+        @mouseenter="focusedIndex = 0"
+      >
         <span class="shortcut-num">1</span> Yes
       </button>
-      <button v-if="showSecondButton" class="button" @click="handleApproveAndDontAsk">
+      <button
+        v-if="showSecondButton"
+        class="button"
+        :class="{ focused: focusedIndex === 1 }"
+        @click="handleApproveAndDontAsk"
+        @mouseenter="focusedIndex = 1"
+      >
         <span class="shortcut-num">2</span> Yes, and don't ask again
       </button>
-      <button class="button" @click="handleReject">
+      <button
+        class="button"
+        :class="{ focused: focusedIndex === (showSecondButton ? 2 : 1) }"
+        @click="handleReject"
+        @mouseenter="focusedIndex = showSecondButton ? 2 : 1"
+      >
         <span class="shortcut-num">{{ showSecondButton ? '3' : '2' }}</span> No
       </button>
       <input
@@ -46,7 +48,6 @@
 import { ref, computed, onMounted } from 'vue';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { ToolContext } from '../types/tool';
-import PermissionInputDisplay from './PermissionInputDisplay.vue';
 
 interface Props {
   request: PermissionRequest;
@@ -58,13 +59,13 @@ const props = defineProps<Props>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
+const focusedIndex = ref(0);
 
 onMounted(() => {
   containerRef.value?.focus();
 });
 const rejectMessage = ref('');
 
-const hasInputs = computed(() => Object.keys(props.request.inputs).length > 0);
 const showSecondButton = computed(
   () => props.request.suggestions && props.request.suggestions.length > 0
 );
@@ -96,12 +97,34 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
 };
 
+const buttonCount = computed(() => (showSecondButton.value ? 3 : 2));
+
+const triggerFocusedButton = () => {
+  const idx = focusedIndex.value;
+  if (idx === 0) {
+    handleApprove();
+  } else if (showSecondButton.value && idx === 1) {
+    handleApproveAndDontAsk();
+  } else {
+    handleReject();
+  }
+};
+
 const handleContainerKeyDown = (e: KeyboardEvent) => {
   if (inputRef.value && document.activeElement === inputRef.value) {
     return;
   }
 
-  if (e.key === '1') {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    focusedIndex.value = (focusedIndex.value + 1) % buttonCount.value;
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    focusedIndex.value = (focusedIndex.value - 1 + buttonCount.value) % buttonCount.value;
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    triggerFocusedButton();
+  } else if (e.key === '1') {
     e.preventDefault();
     handleApprove();
   } else if (e.key === '2') {
@@ -125,55 +148,17 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
 .permission-request-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-input-border);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  gap: 8px;
   outline: none;
+  margin-bottom: 8px;
+  padding-top: 12px;
 }
 
-.permission-request-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.permission-request-header {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--vscode-foreground);
-}
-
-.permission-request-header strong {
+.permission-header {
+  font-size: 13px;
   font-weight: 600;
-}
-
-
-.tool-display-scroll {
-  max-height: 240px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  border-radius: 4px;
-}
-
-.tool-display-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-
-.tool-display-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tool-display-scroll::-webkit-scrollbar-thumb {
-  background: var(--vscode-scrollbarSlider-background);
-  border-radius: 2px;
-}
-
-.tool-display-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--vscode-scrollbarSlider-hoverBackground);
+  color: var(--vscode-foreground);
+  margin-bottom: 4px;
 }
 
 .button-container {
@@ -202,12 +187,12 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
-.button.primary {
+.button.focused {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
 }
 
-.button.primary:hover {
+.button.focused:hover {
   background: var(--vscode-button-hoverBackground);
 }
 

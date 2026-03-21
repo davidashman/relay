@@ -20,7 +20,7 @@
       <!-- 替换选项 -->
       <div v-if="replaceAll" class="replace-option">
         <span class="codicon codicon-replace-all"></span>
-        <span>全部替换</span>
+        <span>Replace all</span>
       </div>
 
       <!-- Diff 视图 -->

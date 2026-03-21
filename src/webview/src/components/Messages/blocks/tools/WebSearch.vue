@@ -15,7 +15,7 @@
       <div v-if="allowedDomains && allowedDomains.length" class="detail-item">
         <div class="detail-label">
           <span class="codicon codicon-verified"></span>
-          <span>允许域名:</span>
+          <span>Allowed domains:</span>
         </div>
         <div class="domain-list">
           <span v-for="domain in allowedDomains" :key="domain" class="domain-tag allowed">
@@ -28,7 +28,7 @@
       <div v-if="blockedDomains && blockedDomains.length" class="detail-item">
         <div class="detail-label">
           <span class="codicon codicon-error"></span>
-          <span>屏蔽域名:</span>
+          <span>Blocked domains:</span>
         </div>
         <div class="domain-list">
           <span v-for="domain in blockedDomains" :key="domain" class="domain-tag blocked">

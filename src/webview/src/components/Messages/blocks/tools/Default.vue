@@ -20,7 +20,7 @@
       <!-- 空参数提示 -->
       <div v-if="!hasParams" class="empty-params">
         <span class="codicon codicon-info"></span>
-        无参数
+        No parameters
       </div>
 
       <!-- 错误内容 -->

@@ -16,46 +16,46 @@
         <div class="options-grid">
           <div v-if="searchPath" class="option-item">
             <span class="codicon codicon-folder"></span>
-            <span class="option-text">路径: {{ searchPath }}</span>
+            <span class="option-text">Path: {{ searchPath }}</span>
           </div>
           <div v-if="glob" class="option-item">
             <span class="codicon codicon-filter"></span>
-            <span class="option-text">过滤: {{ glob }}</span>
+            <span class="option-text">Filter: {{ glob }}</span>
           </div>
           <div v-if="fileType" class="option-item">
             <span class="codicon codicon-file-code"></span>
-            <span class="option-text">类型: {{ fileType }}</span>
+            <span class="option-text">Type: {{ fileType }}</span>
           </div>
           <div v-if="outputMode" class="option-item">
             <span class="codicon codicon-output"></span>
-            <span class="option-text">模式: {{ outputMode }}</span>
+            <span class="option-text">Mode: {{ outputMode }}</span>
           </div>
         </div>
       </div>
 
       <!-- 搜索标志 -->
       <div v-if="hasFlags" class="flags-section">
-        <div class="detail-label">标志:</div>
+        <div class="detail-label">Flags:</div>
         <div class="flags-list">
           <span v-if="caseInsensitive" class="flag-tag">
             <span class="codicon codicon-case-sensitive"></span>
-            忽略大小写
+            Case insensitive
           </span>
           <span v-if="multiline" class="flag-tag">
             <span class="codicon codicon-whole-word"></span>
-            多行模式
+            Multiline
           </span>
           <span v-if="showLineNumbers" class="flag-tag">
             <span class="codicon codicon-list-ordered"></span>
-            显示行号
+            Line numbers
           </span>
           <span v-if="contextLines" class="flag-tag">
             <span class="codicon codicon-list-tree"></span>
-            上下文: {{ contextLines }} 行
+            Context: {{ contextLines }} lines
           </span>
           <span v-if="headLimit" class="flag-tag">
             <span class="codicon codicon-arrow-up"></span>
-            限制: {{ headLimit }} 条
+            Limit: {{ headLimit }}
           </span>
         </div>
       </div>
@@ -63,7 +63,7 @@
       <!-- 搜索结果 -->
       <div v-if="resultFiles.length > 0" class="results-section">
         <div class="detail-label">
-          <span>找到 {{ fileCount }} 个文件:</span>
+          <span>Found {{ fileCount }} files:</span>
         </div>
         <div class="file-list">
           <ToolFilePath

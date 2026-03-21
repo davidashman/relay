@@ -91,6 +91,19 @@ export function useRuntime(): RuntimeInstance {
     }
   });
 
+  // Register built-in /clear command (always available)
+  appContext.commandRegistry.registerAction(
+    {
+      id: 'slash-command-clear',
+      label: '/clear',
+      description: 'Start a new session'
+    },
+    'Slash Commands',
+    () => {
+      void sessionStore.createSession({ isExplicit: true });
+    }
+  );
+
   onMounted(() => {
     let disposed = false;
 

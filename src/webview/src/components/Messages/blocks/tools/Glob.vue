@@ -12,14 +12,14 @@
     <template #expandable>
       <!-- 搜索路径 -->
       <div v-if="globPath" class="detail-item">
-        <span class="detail-label">搜索路径:</span>
+        <span class="detail-label">Path:</span>
         <span class="detail-value">{{ globPath }}</span>
       </div>
 
       <!-- 搜索结果列表 -->
       <div v-if="resultFiles.length > 0" class="detail-item">
         <div class="detail-label">
-          <span>找到 {{ fileCount }} 个文件:</span>
+          <span>Found {{ fileCount }} files:</span>
         </div>
         <div class="file-list">
           <ToolFilePath

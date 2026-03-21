@@ -649,10 +649,8 @@ function handleSubmit() {
   if (!content.value.trim()) return
 
   if (props.conversationWorking) {
-    // 对话工作中，添加到队列
     emit('queueMessage', content.value)
   } else {
-    // 对话未工作，直接发送
     emit('submit', content.value)
   }
 
