@@ -46,12 +46,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, inject } from 'vue';
 import type { Message } from '../../models/Message';
 import type { ToolContext } from '../../types/tool';
 import type { AttachmentItem } from '../../types/attachment';
 import ChatInputBox from '../ChatInputBox.vue';
 import FileIcon from '../FileIcon.vue';
+import { RuntimeKey } from '../../composables/runtimeContext';
 
 interface Props {
   message: Message;
@@ -59,6 +60,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const runtime = inject(RuntimeKey);
 
 const isEditing = ref(false);
 const chatInputRef = ref<InstanceType<typeof ChatInputBox>>();
@@ -149,11 +152,13 @@ function cancelEdit() {
 }
 
 function handleSaveEdit(content?: string) {
-  const finalContent = content || displayContent.value;
+  const finalContent = (content || displayContent.value).trim();
 
-  if (finalContent.trim() && finalContent !== displayContent.value) {
-    // TODO: 调用 session.send() 发送编辑后的消息
-    console.log('[UserMessage] Save edit:', finalContent.trim());
+  if (finalContent && runtime) {
+    const session = runtime.sessionStore.activeSession();
+    if (session) {
+      void session.send(finalContent, attachments.value);
+    }
   }
 
   cancelEdit();

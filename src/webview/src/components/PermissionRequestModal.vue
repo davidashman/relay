@@ -8,25 +8,17 @@
   >
     <div class="permission-request-content">
       <div class="permission-request-header">
-        Do you want to proceed with <strong>{{ request.toolName }}</strong>?
+        Do you want to proceed?
       </div>
 
-      <!-- 工具特定的权限 UI（预留扩展点） -->
-      <!-- <ToolPermissionView
-        v-if="toolPermissionComponent"
-        :toolName="request.toolName"
-        :context="context"
-        :inputs="request.inputs"
-        @modify="handleModifyInputs"
-      /> -->
-
       <!-- 工具输入展示 -->
-      <PermissionInputDisplay
-        v-if="hasInputs"
-        :tool-name="request.toolName"
-        :inputs="request.inputs"
-        :context="context"
-      />
+      <div v-if="hasInputs" class="tool-display-scroll">
+        <PermissionInputDisplay
+          :tool-name="request.toolName"
+          :inputs="request.inputs"
+          :context="context"
+        />
+      </div>
     </div>
 
     <div class="button-container">
@@ -159,6 +151,30 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
   font-weight: 600;
 }
 
+
+.tool-display-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 4px;
+}
+
+.tool-display-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tool-display-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tool-display-scroll::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 2px;
+}
+
+.tool-display-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
 
 .button-container {
   display: flex;
