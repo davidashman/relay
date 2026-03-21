@@ -112,7 +112,13 @@ export function useRuntime(): RuntimeInstance {
 
       await sessionStore.listSessions();
       if (!disposed && !sessionStore.activeSession()) {
-        await sessionStore.createSession({ isExplicit: false });
+        const continueLastSession = connection.config()?.continueLastSession ?? false;
+        const recentSessions = sessionStore.sessionsByLastModified();
+        if (continueLastSession && recentSessions.length > 0) {
+          sessionStore.setActiveSession(recentSessions[0]);
+        } else {
+          await sessionStore.createSession({ isExplicit: false });
+        }
       }
     })();
 

@@ -72,6 +72,7 @@ import {
     handleOpenContent,
     handleOpenURL,
     handleOpenConfigFile,
+    handleUpdateSetting,
     // handleOpenClaudeInTerminal,
     // handleGetAuthStatus,
     // handleLogin,
@@ -330,6 +331,10 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
                     case "cancel_request":
                         this.handleCancellation(message.targetRequestId);
+                        break;
+
+                    case "update_setting":
+                        void this.handlerContext.configService.updateValue(message.key, message.value);
                         break;
 
                     default:
@@ -721,6 +726,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
             case "open_config_file":
                 return handleOpenConfigFile(request, this.handlerContext);
+
+            case "update_setting":
+                return handleUpdateSetting(request as any, this.handlerContext);
 
             // 会话管理
             case "list_sessions_request":

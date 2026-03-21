@@ -128,6 +128,7 @@ export interface InitResponse {
         platform: string;
         thinkingLevel?: string;        // Thinking 等级（off | default_on）
         funSpinner?: boolean;          // Show fun rotating verbs in spinner
+        continueLastSession?: boolean; // Continue the last session on startup
     };
 }
 
@@ -497,6 +498,19 @@ export interface OpenClaudeInTerminalResponse {
 }
 
 /**
+ * 更新单个配置项
+ */
+export interface UpdateSettingRequest {
+    type: "update_setting";
+    key: string;
+    value: unknown;
+}
+
+export interface UpdateSettingResponse {
+    type: "update_setting_response";
+}
+
+/**
  * 认证 URL 通知（Extension → WebView）
  */
 // export interface AuthURLRequest {
@@ -568,7 +582,8 @@ export type WebViewToExtensionMessage =
     | CloseChannelMessage
     | RequestMessage
     | ResponseMessage
-    | CancelRequestMessage;
+    | CancelRequestMessage
+    | UpdateSettingRequest;
 
 /**
  * 所有 Extension → WebView 的消息
@@ -619,7 +634,8 @@ export type WebViewRequest =
     // | LoginRequest
     // | SubmitOAuthCodeRequest
     | OpenConfigFileRequest
-    | OpenClaudeInTerminalRequest;
+    | OpenClaudeInTerminalRequest
+    | UpdateSettingRequest;
 
 /**
  * Extension → WebView 的所有响应类型
@@ -649,7 +665,8 @@ export type WebViewRequestResponse =
     // | LoginResponse
     // | SubmitOAuthCodeResponse
     | OpenConfigFileResponse
-    | OpenClaudeInTerminalResponse;
+    | OpenClaudeInTerminalResponse
+    | UpdateSettingResponse;
 
 /**
  * Extension → WebView 的所有请求类型

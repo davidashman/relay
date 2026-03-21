@@ -22,7 +22,7 @@
 
       <!-- 通用 Details 作为兜底 -->
       <div v-if="hasInputs" class="permission-request-description">
-        <details>
+        <details open>
           <summary>
             <span>Details</span>
             <svg

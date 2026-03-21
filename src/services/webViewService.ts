@@ -21,6 +21,7 @@ export interface WebviewBootstrapConfig {
 	host: WebviewHost;
 	page?: string;
 	id?: string;
+	settings?: Record<string, unknown>;
 }
 
 export interface IWebViewService extends vscode.WebviewViewProvider {
@@ -47,8 +48,9 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * @param page 页面类型标识，例如 'settings'、'diff'
 	 * @param title VSCode 标签标题
 	 * @param instanceId 页面实例 ID，用于区分多标签（不传则默认为 page，实现单例）
+	 * @param settings 初始设置值，注入到 bootstrap config
 	 */
-	openEditorPage(page: string, title: string, instanceId?: string): void;
+	openEditorPage(page: string, title: string, instanceId?: string, settings?: Record<string, unknown>): void;
 }
 
 /**
@@ -109,8 +111,6 @@ export class WebViewService implements IWebViewService {
 	 * 广播消息到所有已注册的 WebView
 	 */
 	postMessage(message: any): void {
-		// 目前 ClaudeAgentService 只需要与侧边栏聊天视图通信
-		// 因此这里只向 host === 'sidebar' 且 page === 'chat' 的 WebView 发送消息
 		if (this.webviews.size === 0) {
 			this.logService.warn('[WebViewService] No available WebView instance, message will be dropped');
 			return;
@@ -124,11 +124,6 @@ export class WebViewService implements IWebViewService {
 		const toRemove: vscode.Webview[] = [];
 
 		for (const webview of this.webviews) {
-			const config = this.webviewConfigs.get(webview);
-			if (!config || config.host !== 'sidebar' || (config.page && config.page !== 'chat')) {
-				continue;
-			}
-
 			try {
 				webview.postMessage(payload);
 			} catch (error) {
@@ -153,7 +148,7 @@ export class WebViewService implements IWebViewService {
 	/**
 	 * 打开（或聚焦）主编辑器中的某个页面
 	 */
-	openEditorPage(page: string, title: string, instanceId?: string): void {
+	openEditorPage(page: string, title: string, instanceId?: string, settings?: Record<string, unknown>): void {
 		const key = instanceId || page;
 		const existing = this.editorPanels.get(key);
 		if (existing) {
@@ -190,7 +185,8 @@ export class WebViewService implements IWebViewService {
 		this.registerWebview(panel.webview, {
 			host: 'editor',
 			page,
-			id: key
+			id: key,
+			settings
 		});
 
 		panel.onDidDispose(

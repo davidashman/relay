@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import { InstantiationServiceBuilder } from './di/instantiationServiceBuilder';
-import { registerServices, ILogService, IClaudeAgentService, IWebViewService } from './services/serviceRegistry';
+import { registerServices, ILogService, IClaudeAgentService, IWebViewService, IConfigurationService } from './services/serviceRegistry';
 import { VSCodeTransport } from './services/claude/transport/VSCodeTransport';
 
 /**
@@ -68,10 +68,13 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('claudix.openSettings', async () => {
 				await instantiationService.invokeFunction(accessorInner => {
 					const webViewServiceInner = accessorInner.get(IWebViewService);
+					const configServiceInner = accessorInner.get(IConfigurationService);
 					const logServiceInner = accessorInner.get(ILogService);
 					try {
-						// Settings 页为单实例，不传 instanceId，使用 page 作为 key
-						webViewServiceInner.openEditorPage('settings', 'Claudix Settings');
+						const settings = {
+							continueLastSession: configServiceInner.getValue<boolean>('claudix.continueLastSession') ?? false,
+						};
+						webViewServiceInner.openEditorPage('settings', 'Claudix Settings', undefined, settings);
 					} catch (error) {
 						logServiceInner.error('[Command] Failed to open Settings page', error);
 					}

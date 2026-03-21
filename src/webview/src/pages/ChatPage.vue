@@ -6,7 +6,7 @@
         <button class="menu-btn" @click="$emit('switchToSessions')">
           <span class="codicon codicon-menu"></span>
         </button>
-        <h2 class="chat-title">{{ title }}</h2>
+        <h2 class="chat-title" @click="$emit('switchToSessions')">{{ title }}</h2>
       </div>
       <div class="header-right">
         <button class="new-chat-btn" title="New conversation" @click="createNew">
@@ -425,6 +425,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .chat-title:hover {
+    opacity: 0.8;
   }
 
   .header-right {

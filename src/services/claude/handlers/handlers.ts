@@ -54,6 +54,8 @@ import type {
     OpenConfigFileResponse,
     OpenClaudeInTerminalRequest,
     OpenClaudeInTerminalResponse,
+    UpdateSettingRequest,
+    UpdateSettingResponse,
 } from '../../../shared/messages';
 import type { HandlerContext } from './types';
 import type { PermissionMode, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
@@ -87,6 +89,9 @@ export async function handleInit(
     // 获取 funSpinner 设置
     const funSpinner = configService.getValue<boolean>('claudix.funSpinner') ?? true;
 
+    // 获取 continueLastSession 设置
+    const continueLastSession = configService.getValue<boolean>('claudix.continueLastSession') ?? false;
+
     return {
         type: "init_response",
         state: {
@@ -96,7 +101,8 @@ export async function handleInit(
             modelSetting,
             platform: process.platform,
             thinkingLevel,
-            funSpinner
+            funSpinner,
+            continueLastSession
         }
     };
 }
@@ -661,6 +667,18 @@ export async function handleOpenClaudeInTerminal(
         const errorMsg = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to open terminal: ${errorMsg}`);
     }
+}
+
+/**
+ * 更新单个配置项
+ */
+export async function handleUpdateSetting(
+    request: UpdateSettingRequest,
+    context: HandlerContext
+): Promise<UpdateSettingResponse> {
+    const { configService } = context;
+    await configService.updateValue(request.key, request.value);
+    return { type: "update_setting_response" };
 }
 
 // ============================================================================

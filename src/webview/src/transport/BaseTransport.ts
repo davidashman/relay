@@ -65,6 +65,7 @@ export abstract class BaseTransport {
       platform: initResponse.state.platform,
       thinkingLevel: initResponse.state.thinkingLevel,
       funSpinner: initResponse.state.funSpinner ?? true,
+      continueLastSession: initResponse.state.continueLastSession ?? false,
     } as InitResponse["state"]);
 
     const claudeState = await this.sendRequest<GetClaudeStateResponse>({
@@ -188,6 +189,9 @@ export abstract class BaseTransport {
   }
   openClaudeInTerminal(): Promise<any> {
     return this.sendRequest({ type: "open_claude_in_terminal" });
+  }
+  updateSetting(key: string, value: unknown): Promise<any> {
+    return this.sendRequest({ type: "update_setting", key, value });
   }
   openURL(url: string): void {
     void this.sendRequest({ type: "open_url", url });
