@@ -3,6 +3,9 @@
 /out
 *.vsix
 
+# Claude CLI bundled from SDK at build time - not committed to repo
+/resources/claude-code/
+
 # Dependencies
 /node_modules
 

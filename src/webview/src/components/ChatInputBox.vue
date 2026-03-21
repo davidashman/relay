@@ -194,6 +194,11 @@ const content = ref('')
 const isLoading = ref(false)
 const textareaRef = ref<HTMLDivElement | null>(null)
 
+// Prompt history for up/down arrow navigation
+const promptHistory = ref<string[]>([])
+const historyIndex = ref(-1)  // -1 = not in history mode
+const draftContent = ref('')  // saved draft when entering history mode
+
 const isSubmitDisabled = computed(() => {
   return !content.value.trim() || isLoading.value
 })
@@ -408,6 +413,31 @@ function handleKeydown(event: KeyboardEvent) {
   // 处理文件引用补全的键盘事件
   if (fileCompletion.isOpen.value) {
     fileCompletion.handleKeydown(event)
+    return
+  }
+
+  // Prompt history navigation (only on single-line content or when already in history mode)
+  if (event.key === 'ArrowUp' && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    if (!content.value.includes('\n')) {
+      event.preventDefault()
+      navigateHistoryUp()
+      return
+    }
+  }
+
+  if (event.key === 'ArrowDown' && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    if (historyIndex.value !== -1) {
+      event.preventDefault()
+      navigateHistoryDown()
+      return
+    }
+  }
+
+  if (event.key === 'Escape' && historyIndex.value !== -1) {
+    event.preventDefault()
+    historyIndex.value = -1
+    setHistoryContent(draftContent.value)
+    draftContent.value = ''
     return
   }
 
@@ -645,8 +675,53 @@ async function handleDrop(event: DragEvent) {
   })
 }
 
+function setHistoryContent(text: string) {
+  content.value = text
+  if (textareaRef.value) {
+    textareaRef.value.textContent = text
+    placeCaretAtEnd(textareaRef.value)
+  }
+  autoResizeTextarea()
+}
+
+function navigateHistoryUp() {
+  if (promptHistory.value.length === 0) return
+
+  if (historyIndex.value === -1) {
+    draftContent.value = content.value
+    historyIndex.value = promptHistory.value.length - 1
+  } else if (historyIndex.value > 0) {
+    historyIndex.value--
+  } else {
+    return
+  }
+
+  setHistoryContent(promptHistory.value[historyIndex.value])
+}
+
+function navigateHistoryDown() {
+  if (historyIndex.value === -1) return
+
+  if (historyIndex.value < promptHistory.value.length - 1) {
+    historyIndex.value++
+    setHistoryContent(promptHistory.value[historyIndex.value])
+  } else {
+    historyIndex.value = -1
+    setHistoryContent(draftContent.value)
+    draftContent.value = ''
+  }
+}
+
 function handleSubmit() {
   if (!content.value.trim()) return
+
+  // Save to history (skip exact duplicate of most recent entry)
+  const text = content.value
+  if (promptHistory.value.length === 0 || promptHistory.value[promptHistory.value.length - 1] !== text) {
+    promptHistory.value.push(text)
+  }
+  historyIndex.value = -1
+  draftContent.value = ''
 
   if (props.conversationWorking) {
     emit('queueMessage', content.value)

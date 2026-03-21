@@ -30,8 +30,9 @@ const esbuildProblemMatcherPlugin = {
 
 
 /**
- * 在构建完成后，将 SDK 的 CLI 文件复制到 dist/
- * 这样运行时可通过显式 path 调用，避免 import.meta.url 在打包后失效。
+ * After build, copy the Claude CLI and its runtime assets from the SDK package
+ * into resources/claude-code/ so they are bundled in the VSIX without being
+ * committed to the repository.
  * @type {import('esbuild').Plugin}
  */
 const copyClaudeCliPlugin = {
@@ -40,32 +41,31 @@ const copyClaudeCliPlugin = {
         const require = createRequire(import.meta.url);
         build.onEnd(async () => {
             try {
-                const pkgDir = path.dirname(require.resolve('@anthropic-ai/claude-code/cli.js'));
-                const outDir = path.resolve(process.cwd(), 'dist');
+                const pkgDir = path.dirname(require.resolve('@anthropic-ai/claude-agent-sdk/cli.js'));
+                const outDir = path.resolve(process.cwd(), 'resources/claude-code');
                 await fs.mkdir(outDir, { recursive: true });
 
                 // copy cli.js
                 const cliSrc = path.join(pkgDir, 'cli.js');
-                const cliDst = path.join(outDir, 'claude-cli.js');
+                const cliDst = path.join(outDir, 'cli.js');
                 await fs.copyFile(cliSrc, cliDst);
                 console.log(`[build] Copied Claude CLI -> ${path.relative(process.cwd(), cliDst)}`);
 
-                // copy yoga.wasm (required by CLI at runtime)
-                const wasmSrc = path.join(pkgDir, 'yoga.wasm');
-                try {
-                    await fs.copyFile(wasmSrc, path.join(outDir, 'yoga.wasm'));
-                    console.log(`[build] Copied yoga.wasm`);
-                } catch (e) {
-                    console.warn('[build] yoga.wasm not found, SDK may fail at runtime');
+                // copy all .wasm files (resvg.wasm, tree-sitter.wasm, tree-sitter-bash.wasm, etc.)
+                const entries = await fs.readdir(pkgDir);
+                for (const entry of entries) {
+                    if (entry.endsWith('.wasm')) {
+                        await fs.copyFile(path.join(pkgDir, entry), path.join(outDir, entry));
+                        console.log(`[build] Copied ${entry}`);
+                    }
                 }
 
-                // copy vendor directory if exists (CLI may read assets/configs)
+                // copy vendor directory (platform-specific ripgrep binaries)
                 const vendorSrc = path.join(pkgDir, 'vendor');
                 try {
                     const st = await fs.stat(vendorSrc);
                     if (st.isDirectory()) {
-                        const vendorDst = path.join(outDir, 'vendor');
-                        await copyDir(vendorSrc, vendorDst);
+                        await copyDir(vendorSrc, path.join(outDir, 'vendor'));
                         console.log('[build] Copied vendor/ directory');
                     }
                 } catch {}
@@ -107,7 +107,7 @@ async function main() {
 		plugins: [
 			/* add to the end of plugins array */
 			esbuildProblemMatcherPlugin,
-			// copyClaudeCliPlugin,
+			copyClaudeCliPlugin,
 		],
 	});
 	if (watch) {
