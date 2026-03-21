@@ -119,14 +119,6 @@
           </template>
         </DropdownTrigger>
 
-        <!-- Sparkle Button -->
-        <button
-          class="action-button"
-          @click="handleSparkleClick"
-          aria-label="Sparkle"
-        >
-          <span class="codicon codicon-wand text-[16px]!" />
-        </button>
 
         <!-- Attach File Button -->
         <button
