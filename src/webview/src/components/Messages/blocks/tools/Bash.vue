@@ -65,8 +65,9 @@ const hasOutput = computed(() => {
   return outputContent.value && !props.toolResult?.is_error;
 });
 
-// 默认展开条件: 有输出或有错误
+// 默认展开条件: 权限请求阶段（无 result）、有输出或有错误
 const shouldExpand = computed(() => {
+  if (!props.toolResult && !props.toolUseResult) return true;
   return hasOutput.value || !!props.toolResult?.is_error;
 });
 </script>
