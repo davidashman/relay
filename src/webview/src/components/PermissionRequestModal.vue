@@ -20,31 +20,13 @@
         @modify="handleModifyInputs"
       /> -->
 
-      <!-- 通用 Details 作为兜底 -->
-      <div v-if="hasInputs" class="permission-request-description">
-        <details open>
-          <summary>
-            <span>Details</span>
-            <svg
-              class="chevron"
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M3 4.5L6 7.5L9 4.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </summary>
-          <pre class="input-json">{{ displayInputs }}</pre>
-        </details>
-      </div>
+      <!-- 工具输入展示 -->
+      <PermissionInputDisplay
+        v-if="hasInputs"
+        :tool-name="request.toolName"
+        :inputs="request.inputs"
+        :context="context"
+      />
     </div>
 
     <div class="button-container">
@@ -72,6 +54,7 @@
 import { ref, computed, onMounted } from 'vue';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { ToolContext } from '../types/tool';
+import PermissionInputDisplay from './PermissionInputDisplay.vue';
 
 interface Props {
   request: PermissionRequest;
@@ -88,29 +71,13 @@ onMounted(() => {
   containerRef.value?.focus();
 });
 const rejectMessage = ref('');
-const modifiedInputs = ref<any | undefined>(undefined);
 
 const hasInputs = computed(() => Object.keys(props.request.inputs).length > 0);
 const showSecondButton = computed(
   () => props.request.suggestions && props.request.suggestions.length > 0
 );
-const displayInputs = computed(() => {
-  try {
-    return JSON.stringify(modifiedInputs.value ?? props.request.inputs, null, 2);
-  } catch {
-    return '{}';
-  }
-});
-
-const handleModifyInputs = (newInputs: any) => {
-  modifiedInputs.value = newInputs;
-};
 
 const handleApprove = () => {
-  if (modifiedInputs.value) {
-    // 覆盖 inputs 为修改后的值
-    (props.request as any).inputs = modifiedInputs.value;
-  }
   props.onResolve(props.request, true);
 };
 
@@ -192,53 +159,6 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
   font-weight: 600;
 }
 
-.permission-request-description {
-  font-size: 13px;
-}
-
-.permission-request-description details {
-  border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.permission-request-description summary {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  user-select: none;
-  list-style: none;
-}
-
-.permission-request-description summary::-webkit-details-marker {
-  display: none;
-}
-
-.chevron {
-  transition: transform 0.2s;
-  color: var(--vscode-descriptionForeground);
-}
-
-.permission-request-description details[open] .chevron {
-  transform: rotate(180deg);
-}
-
-.input-json {
-  margin: 8px 0 0 0;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 1.4;
-  max-height: 200px;
-  overflow: auto;
-  font-family: var(--vscode-editor-font-family, 'Monaco', 'Courier New', monospace);
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--vscode-editor-foreground);
-}
 
 .button-container {
   display: flex;

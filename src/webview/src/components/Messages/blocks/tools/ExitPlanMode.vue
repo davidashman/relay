@@ -20,7 +20,7 @@
         <div v-if="plan && !toolResult?.is_error" class="plan-footer">
           <button @click="toggleExpand" class="expand-button">
             <span class="codicon" :class="isExpanded ? 'codicon-chevron-up' : 'codicon-chevron-down'"></span>
-            <span>{{ isExpanded ? '收起' : '展开' }}</span>
+            <span>{{ isExpanded ? 'Collapse' : 'Expand' }}</span>
           </button>
         </div>
 
@@ -45,8 +45,15 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 展开状态
-const isExpanded = ref(false);
+// Auto-expand during permission phase (no toolResult yet); user can toggle after
+const isPermissionPhase = computed(() => !props.toolResult && !props.toolUseResult);
+const userToggled = ref(false);
+const userExpandedState = ref(false);
+
+const isExpanded = computed(() => {
+  if (userToggled.value) return userExpandedState.value;
+  return isPermissionPhase.value;
+});
 
 // Plan内容
 const plan = computed(() => {
@@ -61,7 +68,8 @@ const renderedPlan = computed(() => {
 
 // 切换展开/收起
 const toggleExpand = () => {
-  isExpanded.value = !isExpanded.value;
+  userToggled.value = true;
+  userExpandedState.value = !isExpanded.value;
 };
 </script>
 

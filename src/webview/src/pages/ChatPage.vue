@@ -227,6 +227,7 @@
     prevCount = messages.value.length;
     await nextTick();
     scrollToBottom();
+    chatInputRef.value?.focus();
   });
 
   onUnmounted(() => {
@@ -484,9 +485,7 @@
     position: relative;
   }
   .messagesContainer.dimmed {
-    filter: blur(1px);
-    opacity: 0.5;
-    pointer-events: none;
+    opacity: 0.6;
   }
 
   .msg-list {
