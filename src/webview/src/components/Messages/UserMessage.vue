@@ -165,8 +165,13 @@ function handleSaveEdit(content?: string) {
 }
 
 function handleRestore() {
-  // TODO: 实现 restore checkpoint 逻辑
-  console.log('[UserMessage] Restore checkpoint clicked');
+  const content = displayContent.value.trim();
+  if (content && runtime) {
+    const session = runtime.sessionStore.activeSession();
+    if (session) {
+      void session.send(content, []);
+    }
+  }
 }
 
 // 监听键盘事件
