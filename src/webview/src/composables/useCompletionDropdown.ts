@@ -56,7 +56,7 @@ export function useCompletionDropdown<T>(
 
   // 验证配置
   if (mode === 'inline' && !trigger) {
-    throw new Error('[useCompletionDropdown] inline 模式必须提供 trigger 参数')
+    throw new Error('[useCompletionDropdown] inline mode must provide trigger parameter')
   }
 
   // === 状态管理 ===
@@ -96,7 +96,7 @@ export function useCompletionDropdown<T>(
       if (error instanceof Error && error.name === 'AbortError') {
         return
       }
-      console.error('[useCompletionDropdown] 加载数据失败:', error)
+      console.error('[useCompletionDropdown] Failed to load data:', error)
       rawItems.value = []
     } finally {
       isLoading.value = false

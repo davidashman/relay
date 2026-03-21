@@ -64,6 +64,7 @@ export abstract class BaseTransport {
       modelSetting: initResponse.state.modelSetting,
       platform: initResponse.state.platform,
       thinkingLevel: initResponse.state.thinkingLevel,
+      funSpinner: initResponse.state.funSpinner ?? true,
     } as InitResponse["state"]);
 
     const claudeState = await this.sendRequest<GetClaudeStateResponse>({
@@ -333,13 +334,14 @@ export abstract class BaseTransport {
 
       case "update_state": {
         this.config({
-          defaultCwd: req.state.defaultCwd,
-          openNewInTab: req.state.openNewInTab,
-          modelSetting: req.state.modelSetting,
-          platform: req.state.platform,
-          thinkingLevel: req.state.thinkingLevel,
+          ...this.config(),
+          ...Object.fromEntries(
+            Object.entries(req.state).filter(([, v]) => v !== undefined)
+          ),
         } as InitResponse["state"]);
-        this.claudeConfig(req.config);
+        if (req.config !== undefined) {
+          this.claudeConfig(req.config);
+        }
         break;
       }
       default:

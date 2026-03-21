@@ -127,6 +127,7 @@ export interface InitResponse {
         modelSetting: string;
         platform: string;
         thinkingLevel?: string;        // Thinking 等级（off | default_on）
+        funSpinner?: boolean;          // Show fun rotating verbs in spinner
     };
 }
 
@@ -547,10 +548,10 @@ export interface SelectionChangedRequest {
  */
 export interface UpdateStateRequest {
     type: "update_state";
-    // 与 init_response.state 对齐，保证双方一致
-    state: InitResponse['state'];
-    // 后端下发的 Claude 配置对象
-    config: GetClaudeStateResponse['config'];
+    // 与 init_response.state 对齐，保证双方一致；支持局部更新
+    state: Partial<InitResponse['state']>;
+    // 后端下发的 Claude 配置对象（可选，不传则不更新）
+    config?: GetClaudeStateResponse['config'];
 }
 
 // ============================================================================

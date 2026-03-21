@@ -3,7 +3,7 @@
     <span class="icon" :style="{ fontSize: size + 'px' }">
       {{ currentIcon }}
     </span>
-    <span class="text">{{ animatedText }}</span>
+    <span class="text">{{ displayText }}</span>
   </div>
 </template>
 
@@ -14,11 +14,13 @@
   interface Props {
     size?: number;
     permissionMode?: PermissionMode;
+    funSpinner?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     size: 16,
     permissionMode: undefined,
+    funSpinner: true,
   });
 
   const SPINNER_ICONS = ['·', '✢', '*', '✶', '✻', '✽'];
@@ -58,6 +60,8 @@
   let lastTick = 0;
   const stepMs = 40;
 
+  const displayText = computed(() => animatedText.value);
+
   onMounted(() => {
     iconTimer = setInterval(() => {
       iconIndex.value = (iconIndex.value + 1) % ANIMATION_ICONS.length;
@@ -67,14 +71,15 @@
     const intervals = [2000, 3000, 5000];
     let count = 0;
     const schedule = () => {
-      verb.value = randomVerb();
+      const text = props.funSpinner ? randomVerb() + '...' : 'Working...';
+      startTextAnimation(text);
       const next = count < intervals.length ? intervals[count++] : 5000;
       verbTimer = setTimeout(schedule, next);
     };
     verbTimer = setTimeout(schedule, intervals[0]);
 
     // 初次触发文本动画
-    startTextAnimation(verb.value + '...');
+    startTextAnimation(props.funSpinner ? verb.value + '...' : 'Working...');
   });
 
   onBeforeUnmount(() => {
@@ -89,7 +94,7 @@
 
   // 监听动词变化，重启文本动画
   watch(verb, v => {
-    startTextAnimation(v + '...');
+    if (props.funSpinner) startTextAnimation(v + '...');
   });
 
   function padTargetText(text: string, width: number): string {

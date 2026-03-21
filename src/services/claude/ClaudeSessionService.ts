@@ -360,7 +360,7 @@ export class ClaudeSessionService implements IClaudeSessionService {
     constructor(
         @ILogService private readonly logService: ILogService
     ) {
-        this.logService.info('[ClaudeSessionService] 已初始化');
+        this.logService.info('[ClaudeSessionService] Initialized');
     }
 
     /**
@@ -368,7 +368,7 @@ export class ClaudeSessionService implements IClaudeSessionService {
      */
     async listSessions(cwd: string): Promise<SessionInfo[]> {
         try {
-            this.logService.info(`[ClaudeSessionService] 加载会话列表: ${cwd}`);
+            this.logService.info(`[ClaudeSessionService] Loading session list: ${cwd}`);
 
             const data = await loadProjectData(cwd);
 
@@ -389,10 +389,10 @@ export class ClaudeSessionService implements IClaudeSessionService {
                 };
             });
 
-            this.logService.info(`[ClaudeSessionService] 找到 ${sessions.length} 个会话`);
+            this.logService.info(`[ClaudeSessionService] Found ${sessions.length} sessions`);
             return sessions;
         } catch (error) {
-            this.logService.error(`[ClaudeSessionService] 加载会话列表失败:`, error);
+            this.logService.error(`[ClaudeSessionService] Failed to load session list:`, error);
             return [];
         }
     }
@@ -402,7 +402,7 @@ export class ClaudeSessionService implements IClaudeSessionService {
      */
     async getSession(sessionIdOrPath: string, cwd: string): Promise<any[]> {
         try {
-            this.logService.info(`[ClaudeSessionService] 获取会话消息: ${sessionIdOrPath}`);
+            this.logService.info(`[ClaudeSessionService] Getting session messages: ${sessionIdOrPath}`);
 
             if (sessionIdOrPath.endsWith(".jsonl")) {
                 const messages: any[] = [];
@@ -434,10 +434,10 @@ export class ClaudeSessionService implements IClaudeSessionService {
                 .map(convertMessage)
                 .filter(msg => !!msg);
 
-            this.logService.info(`[ClaudeSessionService] 获取到 ${result.length} 条消息`);
+            this.logService.info(`[ClaudeSessionService] Retrieved ${result.length} messages`);
             return result;
         } catch (error) {
-            this.logService.error(`[ClaudeSessionService] 获取会话消息失败:`, error);
+            this.logService.error(`[ClaudeSessionService] Failed to retrieve session messages:`, error);
             return [];
         }
     }

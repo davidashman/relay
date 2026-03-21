@@ -17,23 +17,23 @@
     <template #content="{ close }">
       <DropdownItem
         :item="{
-          id: 'claude-opus-4-5',
-          label: 'Opus 4.5',
-          checked: selectedModel === 'claude-opus-4-5',
+          id: 'claude-opus-4-6',
+          label: 'Opus 4.6',
+          checked: selectedModel === 'claude-opus-4-6',
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-opus-4-5'"
+        :is-selected="selectedModel === 'claude-opus-4-6'"
         :index="0"
         @click="(item) => handleModelSelect(item, close)"
       />
       <DropdownItem
         :item="{
-          id: 'claude-sonnet-4-5',
-          label: 'Sonnet 4.5',
-          checked: selectedModel === 'claude-sonnet-4-5',
+          id: 'claude-sonnet-4-6',
+          label: 'Sonnet 4.6',
+          checked: selectedModel === 'claude-sonnet-4-6',
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-sonnet-4-5'"
+        :is-selected="selectedModel === 'claude-sonnet-4-6'"
         :index="1"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -48,13 +48,36 @@
         :index="2"
         @click="(item) => handleModelSelect(item, close)"
       />
+      <DropdownSeparator />
+      <DropdownItem
+        :item="{
+          id: 'claude-opus-4-5',
+          label: 'Opus 4.5',
+          checked: selectedModel === 'claude-opus-4-5',
+          type: 'model'
+        }"
+        :is-selected="selectedModel === 'claude-opus-4-5'"
+        :index="3"
+        @click="(item) => handleModelSelect(item, close)"
+      />
+      <DropdownItem
+        :item="{
+          id: 'claude-sonnet-4-5',
+          label: 'Sonnet 4.5',
+          checked: selectedModel === 'claude-sonnet-4-5',
+          type: 'model'
+        }"
+        :is-selected="selectedModel === 'claude-sonnet-4-5'"
+        :index="4"
+        @click="(item) => handleModelSelect(item, close)"
+      />
     </template>
   </DropdownTrigger>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { DropdownTrigger, DropdownItem, type DropdownItemData } from './Dropdown'
+import { DropdownTrigger, DropdownItem, DropdownSeparator, type DropdownItemData } from './Dropdown'
 
 interface Props {
   selectedModel?: string
@@ -65,7 +88,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  selectedModel: 'claude-opus-4-5'
+  selectedModel: 'claude-opus-4-6'
 })
 
 const emit = defineEmits<Emits>()
@@ -73,6 +96,10 @@ const emit = defineEmits<Emits>()
 // 计算显示的模型名称
 const selectedModelLabel = computed(() => {
   switch (props.selectedModel) {
+    case 'claude-opus-4-6':
+      return 'Opus 4.6'
+    case 'claude-sonnet-4-6':
+      return 'Sonnet 4.6'
     case 'claude-opus-4-5':
       return 'Opus 4.5'
     case 'claude-sonnet-4-5':
@@ -80,7 +107,7 @@ const selectedModelLabel = computed(() => {
     case 'claude-haiku-4-5':
       return 'Haiku 4.5'
     default:
-      return 'Opus 4.5'
+      return 'Opus 4.6'
   }
 })
 

@@ -9,7 +9,7 @@
         <h2 class="chat-title">{{ title }}</h2>
       </div>
       <div class="header-right">
-        <button class="new-chat-btn" title="新开对话" @click="createNew">
+        <button class="new-chat-btn" title="New conversation" @click="createNew">
           <span class="codicon codicon-plus"></span>
         </button>
       </div>
@@ -45,7 +45,7 @@
               />
             <!-- </div> -->
             <div v-if="isBusy" class="spinnerRow">
-              <Spinner :size="16" :permission-mode="permissionMode" />
+              <Spinner :size="16" :permission-mode="permissionMode" :fun-spinner="funSpinner" />
             </div>
             <div ref="endEl" />
           </template>
@@ -60,6 +60,7 @@
             data-permission-panel="1"
           />
           <ChatInputBox
+            ref="chatInputRef"
             :show-progress="true"
             :progress-percentage="progressPercentage"
             :conversation-working="isBusy"
@@ -142,6 +143,7 @@
   const permissionRequestsLen = computed(() => permissionRequests.value.length);
   const pendingPermission = computed(() => permissionRequests.value[0] as any);
   const platform = computed(() => runtime.appContext.platform);
+  const funSpinner = computed(() => runtime.appContext.funSpinner);
 
   // 注册命令：permissionMode.toggle（在下方定义函数后再注册）
 
@@ -164,6 +166,7 @@
   // DOM refs
   const containerEl = ref<HTMLDivElement | null>(null);
   const endEl = ref<HTMLDivElement | null>(null);
+  const chatInputRef = ref<InstanceType<typeof ChatInputBox> | null>(null);
 
   // 附件状态管理
   const attachments = ref<AttachmentItem[]>([]);
@@ -210,10 +213,14 @@
     }
   );
 
-  watch(permissionRequestsLen, async () => {
+  watch(permissionRequestsLen, async (newLen) => {
     // 有权限请求出现时也确保滚动到底部
     await nextTick();
     scrollToBottom();
+    // Restore focus to input after last permission modal is dismissed
+    if (newLen === 0) {
+      chatInputRef.value?.focus();
+    }
   });
 
   onMounted(async () => {

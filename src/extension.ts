@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const logService = accessor.get(ILogService);
 		logService.info('');
 		logService.info('╔════════════════════════════════════════╗');
-		logService.info('║         Claude Chat 扩展已激活           ║');
+		logService.info('║    Claude Chat Extension Activated    ║');
 		logService.info('╚════════════════════════════════════════╝');
 		logService.info('');
 	});
@@ -73,15 +73,15 @@ export function activate(context: vscode.ExtensionContext) {
 						// Settings 页为单实例，不传 instanceId，使用 page 作为 key
 						webViewServiceInner.openEditorPage('settings', 'Claudix Settings');
 					} catch (error) {
-						logServiceInner.error('[Command] 打开 Settings 页面失败', error);
+						logServiceInner.error('[Command] Failed to open Settings page', error);
 					}
 				});
 			})
 		);
 
-		logService.info('✓ Claude Agent Service 已连接 Transport');
-		logService.info('✓ WebView Service 已注册为 View Provider');
-		logService.info('✓ Settings 命令已注册');
+		logService.info('✓ Claude Agent Service connected to Transport');
+		logService.info('✓ WebView Service registered as View Provider');
+		logService.info('✓ Settings command registered');
 	});
 
 	// 6. Register commands
@@ -94,7 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// 7. Log completion
 	instantiationService.invokeFunction(accessor => {
 		const logService = accessor.get(ILogService);
-		logService.info('✓ Claude Chat 视图已注册');
+		logService.info('✓ Claude Chat view registered');
 		logService.info('');
 	});
 

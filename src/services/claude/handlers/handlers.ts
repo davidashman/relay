@@ -67,7 +67,7 @@ export async function handleInit(
 ): Promise<InitResponse> {
     const { configService, workspaceService, logService, agentService } = context;
 
-    logService.info('[handleInit] 处理初始化请求');
+    logService.info('[handleInit] Processing initialization request');
 
     // TODO: 从 AuthManager 获取认证状态
     // const authStatus = null;
@@ -84,6 +84,9 @@ export async function handleInit(
     // 获取 thinking level (默认值)
     const thinkingLevel = 'default_on';
 
+    // 获取 funSpinner 设置
+    const funSpinner = configService.getValue<boolean>('claudix.funSpinner') ?? true;
+
     return {
         type: "init_response",
         state: {
@@ -92,7 +95,8 @@ export async function handleInit(
             // authStatus,
             modelSetting,
             platform: process.platform,
-            thinkingLevel
+            thinkingLevel,
+            funSpinner
         }
     };
 }
@@ -106,7 +110,7 @@ export async function handleGetClaudeState(
 ): Promise<GetClaudeStateResponse> {
     const { logService } = context;
 
-    logService.info('[handleGetClaudeState] 获取 Claude 状态');
+    logService.info('[handleGetClaudeState] Getting Claude state');
 
     const config = await loadConfig(context);
 
@@ -183,7 +187,7 @@ export async function handleOpenFile(
         return { type: "open_file_response" };
     } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logService.error(`[handleOpenFile] 打开文件失败: ${errorMsg}`);
+        logService.error(`[handleOpenFile] Failed to open file: ${errorMsg}`);
         throw new Error(`Failed to open file: ${errorMsg}`);
     }
 }

@@ -75,7 +75,7 @@ export class WebViewService implements IWebViewService {
 		_context: vscode.WebviewViewResolveContext,
 		_token: vscode.CancellationToken
 	): void | Thenable<void> {
-		this.logService.info('开始解析侧边栏 WebView 视图');
+		this.logService.info('Starting to resolve sidebar WebView');
 
 		this.registerWebview(webviewView.webview, {
 			host: 'sidebar',
@@ -85,13 +85,13 @@ export class WebViewService implements IWebViewService {
 		// WebviewView 的销毁由 VSCode 管理，这里仅作日志记录
 		webviewView.onDidDispose(
 			() => {
-				this.logService.info('侧边栏 WebView 视图已销毁');
+				this.logService.info('Sidebar WebView disposed');
 			},
 			undefined,
 			this.context.subscriptions
 		);
 
-		this.logService.info('侧边栏 WebView 视图解析完成');
+		this.logService.info('Sidebar WebView resolved');
 	}
 
 	/**
@@ -112,7 +112,7 @@ export class WebViewService implements IWebViewService {
 		// 目前 ClaudeAgentService 只需要与侧边栏聊天视图通信
 		// 因此这里只向 host === 'sidebar' 且 page === 'chat' 的 WebView 发送消息
 		if (this.webviews.size === 0) {
-			this.logService.warn('[WebViewService] 当前没有可用的 WebView 实例，消息将被丢弃');
+			this.logService.warn('[WebViewService] No available WebView instance, message will be dropped');
 			return;
 		}
 
@@ -132,7 +132,7 @@ export class WebViewService implements IWebViewService {
 			try {
 				webview.postMessage(payload);
 			} catch (error) {
-				this.logService.warn('[WebViewService] 向 WebView 发送消息失败，将移除该实例', error as Error);
+				this.logService.warn('[WebViewService] Failed to send message to WebView, will remove instance', error as Error);
 				toRemove.push(webview);
 			}
 		}

@@ -155,4 +155,9 @@ export class AppContext {
     const connection = this.connectionManager.connection();
     return connection?.config()?.platform ?? 'macos';
   }
+
+  get funSpinner(): boolean {
+    const connection = this.connectionManager.connection();
+    return connection?.config()?.funSpinner ?? true;
+  }
 }

@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="containerRef"
     class="permission-request-container"
     tabIndex="0"
     @keydown="handleContainerKeyDown"
@@ -68,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { ToolContext } from '../types/tool';
 
@@ -80,7 +81,12 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const containerRef = ref<HTMLDivElement | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
+
+onMounted(() => {
+  containerRef.value?.focus();
+});
 const rejectMessage = ref('');
 const modifiedInputs = ref<any | undefined>(undefined);
 

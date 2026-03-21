@@ -38,6 +38,7 @@ import type {
     ExtensionRequest,
     ToolPermissionRequest,
     ToolPermissionResponse,
+    UpdateStateRequest,
 } from '../../shared/messages';
 
 // SDK 类型导入
@@ -258,6 +259,23 @@ export class ClaudeAgentService implements IClaudeAgentService {
         // 启动消息循环
         this.readFromClient();
 
+        // 监听配置变更，实时推送到 WebView
+        this.configService.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('claudix.funSpinner')) {
+                const funSpinner = this.configService.getValue<boolean>('claudix.funSpinner') ?? true;
+                const request: UpdateStateRequest = {
+                    type: 'update_state',
+                    state: { funSpinner },
+                };
+                this.webViewService.postMessage({
+                    type: 'request',
+                    channelId: '',
+                    requestId: this.generateId(),
+                    request,
+                } as RequestMessage);
+            }
+        });
+
         this.logService.info('[ClaudeAgentService] 消息循环已启动');
     }
 
@@ -419,12 +437,12 @@ export class ClaudeAgentService implements IClaudeAgentService {
                         });
                     }
 
-                    // 正常结束
-                    this.logService.info(`  ✓ Query 输出完成，共 ${messageCount} 条消息`);
+                    // Normal completion
+                    this.logService.info(`  ✓ Query output completed, ${messageCount} messages total`);
                     this.closeChannel(channelId, true);
                 } catch (error) {
-                    // 出错
-                    this.logService.error(`  ❌ Query 输出错误: ${error}`);
+                    // Error occurred
+                    this.logService.error(`  ❌ Query output error: ${error}`);
                     if (error instanceof Error) {
                         this.logService.error(`     Stack: ${error.stack}`);
                     }

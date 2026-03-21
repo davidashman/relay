@@ -265,11 +265,11 @@ export class ClaudeSdkService implements IClaudeSdkService {
      */
     async interrupt(query: Query): Promise<void> {
         try {
-            this.logService.info('🛑 中断 Claude SDK 查询');
+            this.logService.info('🛑 Interrupting Claude SDK query');
             await query.interrupt();
-            this.logService.info('✓ 查询已中断');
+            this.logService.info('✓ Query interrupted');
         } catch (error) {
-            this.logService.error(`❌ 中断查询失败: ${error}`);
+            this.logService.error(`❌ Failed to interrupt query: ${error}`);
             throw error;
         }
     }

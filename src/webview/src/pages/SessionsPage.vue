@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <!-- 搜索栏 - 只在需要时显示 -->
+    <!-- Search bar - only shown when needed -->
     <Motion
       v-if="showSearch"
       class="search-bar"
@@ -39,29 +39,29 @@
     </Motion>
 
     <div class="page-content custom-scroll-container">
-      <!-- 加载状态 -->
+      <!-- Loading state -->
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>加载会话历史中...</p>
+        <p>Loading session history...</p>
       </div>
 
-      <!-- 错误状态 -->
+      <!-- Error state -->
       <div v-else-if="error" class="error-state">
         <p class="error-message">{{ error }}</p>
-        <button class="btn-primary" @click="refreshSessions">重试</button>
+        <button class="btn-primary" @click="refreshSessions">Retry</button>
       </div>
 
-      <!-- 空状态 -->
+      <!-- Empty state -->
       <div v-else-if="sessionList.length === 0" class="empty-state">
         <div class="empty-icon">
           <Icon icon="comment-discussion" :size="48" />
         </div>
-        <h3>暂无历史会话</h3>
-        <p class="empty-hint">开始与 Claude 对话后，会话历史将出现在这里</p>
-        <button class="btn-primary" @click="startNewChat">开始新对话</button>
+        <h3>No session history</h3>
+        <p class="empty-hint">Your conversation history will appear here after you start chatting with Claude</p>
+        <button class="btn-primary" @click="startNewChat">Start new chat</button>
       </div>
 
-      <!-- 会话列表 -->
+      <!-- Session list -->
       <div v-else class="sessions-container">
         <div
           v-for="(session, index) in filteredSessions"
@@ -75,7 +75,7 @@
             </div>
 
             <div class="session-meta">
-              <span class="session-messages">{{ session.messageCount.value }} 条消息</span>
+              <span class="session-messages">{{ session.messageCount.value }} messages</span>
               <span v-if="session.sessionId.value" class="session-id">{{ session.sessionId.value }}</span>
             </div>
 
@@ -94,7 +94,7 @@ import { useSessionStore } from '../composables/useSessionStore';
 import { useSession } from '../composables/useSession';
 import type { Session } from '../core/Session';
 
-// 注入运行时
+// Inject runtime
 const runtime = inject(RuntimeKey);
 if (!runtime) {
   throw new Error('[SessionsPage] runtime not provided');
@@ -109,12 +109,12 @@ const sessionList = computed(() => {
   return rawSessions.map(raw => useSession(raw));
 });
 
-// 定义事件
+// Define events
 const emit = defineEmits<{
   switchToChat: [sessionId?: string];
 }>();
 
-// 组件状态
+// Component state
 const loading = ref(true);
 const error = ref('');
 const searchQuery = ref('');
@@ -122,11 +122,11 @@ const showSearch = ref(false);
 const searchInput = ref<HTMLInputElement | null>(null);
 
 
-// 计算属性：过滤和排序会话列表
+// Computed: filter and sort session list
 const filteredSessions = computed(() => {
   let sessions = [...sessionList.value];
 
-  // 搜索过滤
+  // Search filter
   const query = searchQuery.value.trim().toLowerCase();
   if (query) {
     sessions = sessions.filter(session => {
@@ -136,11 +136,11 @@ const filteredSessions = computed(() => {
     });
   }
 
-  // 已经通过 sessionsByLastModified 按时间倒序排序，无需再排序
+  // Already sorted by sessionsByLastModified in reverse chronological order, no need to sort again
   return sessions;
 });
 
-// 方法
+// Methods
 const refreshSessions = async () => {
   loading.value = true;
   error.value = '';
@@ -149,7 +149,7 @@ const refreshSessions = async () => {
     // 🔥 使用包装后的方法
     await store.listSessions();
   } catch (err) {
-    error.value = `加载会话失败: ${err}`;
+    error.value = `Failed to load sessions: ${err}`;
   } finally {
     loading.value = false;
   }
@@ -177,7 +177,7 @@ const startNewChat = () => {
   emit('switchToChat');
 };
 
-// 搜索功能
+// Search functionality
 const toggleSearch = async () => {
   showSearch.value = !showSearch.value;
   if (showSearch.value) {
@@ -193,22 +193,22 @@ const hideSearch = () => {
   searchQuery.value = '';
 };
 
-// 格式化相对时间
+// Format relative time
 function formatRelativeTime(input?: number | string | Date): string {
-  if (input === undefined || input === null) return '刚刚';
+  if (input === undefined || input === null) return 'just now';
   const date = input instanceof Date ? input : new Date(input);
-  if (Number.isNaN(date.getTime())) return '刚刚';
+  if (Number.isNaN(date.getTime())) return 'just now';
 
   const diff = Date.now() - date.getTime();
-  if (diff < 60_000) return '刚刚';
-  if (diff < 3_600_000) return `${Math.max(1, Math.round(diff / 60_000))}分钟前`;
-  if (diff < 86_400_000) return `${Math.max(1, Math.round(diff / 3_600_000))}小时前`;
+  if (diff < 60_000) return 'just now';
+  if (diff < 3_600_000) return `${Math.max(1, Math.round(diff / 60_000))}m ago`;
+  if (diff < 86_400_000) return `${Math.max(1, Math.round(diff / 3_600_000))}h ago`;
   const days = Math.max(1, Math.round(diff / 86_400_000));
-  if (days < 7) return `${days}天前`;
-  return date.toLocaleDateString('zh-CN');
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US');
 }
 
-// 生命周期
+// Lifecycle
 onMounted(() => {
   refreshSessions();
 });
@@ -462,7 +462,7 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   flex: 1;
-  /* 限制标题长度，避免溢出 */
+  /* Limit title length to avoid overflow */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
