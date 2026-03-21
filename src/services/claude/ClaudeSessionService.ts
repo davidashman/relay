@@ -14,6 +14,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import * as vscode from 'vscode';
 import { createDecorator } from '../../di/instantiation';
 import { ILogService } from '../logService';
 
@@ -81,6 +82,10 @@ export interface IClaudeSessionService {
  * 获取 Claude 配置目录
  */
 function getConfigDir(): string {
+    const configDir = vscode.workspace.getConfiguration("claudix").get<string>("configurationDirectory", "");
+    if (configDir) {
+        return configDir;
+    }
     return process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
 }
 

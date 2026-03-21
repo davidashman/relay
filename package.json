@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.21",
+  "version": "0.4.22",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -35,6 +35,11 @@
           "type": "boolean",
           "default": false,
           "description": "When enabled, Claudix will automatically continue the last session when it starts instead of creating a new one"
+        },
+        "claudix.configurationDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Claude configuration directory. When set, takes priority over the CLAUDE_CONFIG_DIR environment variable. Leave empty to use CLAUDE_CONFIG_DIR or the default (~/.claude)."
         },
         "claudix.environmentVariables": {
           "type": "array",

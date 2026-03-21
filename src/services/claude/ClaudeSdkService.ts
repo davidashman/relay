@@ -288,6 +288,11 @@ export class ClaudeSdkService implements IClaudeSdkService {
             }
         }
 
+        const configDir = config.get<string>("configurationDirectory", "");
+        if (configDir) {
+            env["CLAUDE_CONFIG_DIR"] = configDir;
+        }
+
         return env as Record<string, string>;
     }
 
