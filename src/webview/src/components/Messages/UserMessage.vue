@@ -34,6 +34,9 @@
             :show-progress="false"
             :conversation-working="false"
             :attachments="attachments"
+            :selected-model="sessionModel"
+            :thinking-level="sessionThinkingLevel"
+            :permission-mode="sessionPermissionMode"
             ref="chatInputRef"
             @submit="handleSaveEdit"
             @stop="cancelEdit"
@@ -62,6 +65,11 @@ interface Props {
 const props = defineProps<Props>();
 
 const runtime = inject(RuntimeKey);
+
+const activeSession = computed(() => runtime?.sessionStore?.activeSession?.() ?? null);
+const sessionModel = computed(() => activeSession.value?.modelSelection?.value);
+const sessionThinkingLevel = computed(() => activeSession.value?.thinkingLevel?.value);
+const sessionPermissionMode = computed(() => activeSession.value?.permissionMode?.value);
 
 const isEditing = ref(false);
 const chatInputRef = ref<InstanceType<typeof ChatInputBox>>();
