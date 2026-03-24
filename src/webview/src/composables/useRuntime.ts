@@ -5,12 +5,14 @@ import { ConnectionManager } from '../core/ConnectionManager';
 import { VSCodeTransport } from '../transport/VSCodeTransport';
 import { AppContext } from '../core/AppContext';
 import { SessionStore } from '../core/SessionStore';
-import type { SelectionRange } from '../core/Session';
+import type { SelectionRange, Session } from '../core/Session';
+import { useTabs, type UseTabsReturn } from './useTabs';
 
 export interface RuntimeInstance {
   connectionManager: ConnectionManager;
   appContext: AppContext;
   sessionStore: SessionStore;
+  tabs: UseTabsReturn;
   atMentionEvents: EventEmitter<string>;
   selectionEvents: EventEmitter<any>;
 }
@@ -49,6 +51,55 @@ export function useRuntime(): RuntimeInstance {
   selectionEvents.add((selection) => {
     appContext.currentSelection(selection);
   });
+
+  const tabs = useTabs(sessionStore);
+
+  // --- Notification wiring ---
+  function tabTitle(session: Session): string {
+    const s = session.summary();
+    return s && s.length > 20 ? `${s.slice(0, 19)}\u2026` : (s || 'New Conversation');
+  }
+
+  const removePermissionListener = sessionStore.onPermissionRequested(({ session }) => {
+    if (sessionStore.activeSession() !== session && tabs.tabs.value?.includes(session)) {
+      void appContext.showNotification(
+        `"${tabTitle(session)}" needs your permission`,
+        'warning',
+        [],
+        true
+      );
+    }
+  });
+
+  const completionWatchers = new Map<Session, () => void>();
+
+  const stopTabsWatch = watch(tabs.tabs, (currentTabs) => {
+    if (!currentTabs) return;
+    for (const session of currentTabs) {
+      if (!completionWatchers.has(session)) {
+        let lastBusy = session.busy();
+        const stopEffect = effect(() => {
+          const isBusy = session.busy();
+          if (lastBusy && !isBusy && sessionStore.activeSession() !== session) {
+            void appContext.showNotification(
+              `"${tabTitle(session)}" has finished`,
+              'info',
+              [],
+              true
+            );
+          }
+          lastBusy = isBusy;
+        });
+        completionWatchers.set(session, stopEffect);
+      }
+    }
+    for (const [session, stop] of completionWatchers) {
+      if (!currentTabs.includes(session)) {
+        stop();
+        completionWatchers.delete(session);
+      }
+    }
+  }, { immediate: true });
 
   // SessionStore 内部的 effect 会自动监听 connection 建立并拉取会话列表
 
@@ -91,16 +142,29 @@ export function useRuntime(): RuntimeInstance {
     }
   });
 
-  // Register built-in /clear command (always available)
+  // Register built-in /clear command - replaces current tab with a new session
   appContext.commandRegistry.registerAction(
     {
       id: 'slash-command-clear',
       label: '/clear',
-      description: 'Start a new session'
+      description: 'Start a new session (replaces current tab)'
     },
     'Slash Commands',
     () => {
-      void sessionStore.createSession({ isExplicit: true });
+      void tabs.replaceCurrentTab();
+    }
+  );
+
+  // Register built-in /new command - opens a new session in a new tab
+  appContext.commandRegistry.registerAction(
+    {
+      id: 'slash-command-new',
+      label: '/new',
+      description: 'Open a new session in a new tab'
+    },
+    'Slash Commands',
+    () => {
+      void tabs.createNewTab();
     }
   );
 
@@ -128,9 +192,9 @@ export function useRuntime(): RuntimeInstance {
         const continueLastSession = connection.config()?.continueLastSession ?? false;
         const recentSessions = sessionStore.sessionsByLastModified();
         if (continueLastSession && recentSessions.length > 0) {
-          sessionStore.setActiveSession(recentSessions[0]);
+          tabs.addTab(recentSessions[0]);
         } else {
-          await sessionStore.createSession({ isExplicit: false });
+          await tabs.createNewTab({ isExplicit: false });
         }
       }
     })();
@@ -142,10 +206,16 @@ export function useRuntime(): RuntimeInstance {
       slashCommandDisposers.forEach(dispose => dispose());
       cleanupSlashCommands();
 
+      // 清理通知监听器
+      removePermissionListener();
+      stopTabsWatch();
+      for (const stop of completionWatchers.values()) stop();
+      completionWatchers.clear();
+
       connectionManager.close();
     });
   });
 
-  return { connectionManager, appContext, sessionStore, atMentionEvents, selectionEvents };
+  return { connectionManager, appContext, sessionStore, tabs, atMentionEvents, selectionEvents };
 }
 

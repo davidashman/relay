@@ -235,7 +235,11 @@ export async function handleShowNotification(
     request: ShowNotificationRequest,
     context: HandlerContext
 ): Promise<ShowNotificationResponse> {
-    const { message, severity, buttons = [] } = request;
+    const { message, severity, buttons = [], onlyIfNotVisible } = request;
+
+    if (onlyIfNotVisible && context.webViewService.isSidebarVisible()) {
+        return { type: 'show_notification_response' };
+    }
 
     let result: string | undefined;
     switch (severity) {

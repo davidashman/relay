@@ -1,6 +1,15 @@
 <template>
   <div class="app-wrapper">
     <main class="app-main">
+      <TabBar
+        v-if="currentPage === 'chat' && runtime"
+        :tabs="runtime.tabs.tabs.value"
+        :active-tab-index="runtime.tabs.activeTabIndex.value"
+        @menu="switchToPage('sessions')"
+        @switch-tab="runtime.tabs.switchToTab($event)"
+        @new-tab="runtime.tabs.createNewTab()"
+        @close-tab="runtime.tabs.closeTab($event)"
+      />
       <div class="page-container">
         <Motion
           :animate="pageAnimation"
@@ -15,7 +24,6 @@
           <ChatPage
             v-else-if="currentPage === 'chat'"
             key="chat"
-            @switch-to-sessions="switchToPage('sessions')"
           />
           <SettingsPage
             v-else-if="currentPage === 'settings'"
@@ -38,6 +46,7 @@ import { Motion } from 'motion-v';
 import SessionsPage from './pages/SessionsPage.vue';
 import ChatPage from './pages/ChatPage.vue';
 import SettingsPage from './pages/SettingsPage.vue';
+import TabBar from './components/TabBar.vue';
 import './styles/claude-theme.css';
 import { useRuntime } from './composables/useRuntime';
 import { RuntimeKey } from './composables/runtimeContext';
@@ -104,12 +113,15 @@ function handleSwitchToChat(sessionId?: string) {
 .app-main {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-container {
   position: relative;
-  height: 100%;
+  flex: 1;
   width: 100%;
+  overflow: hidden;
 }
 
 .motion-wrapper {

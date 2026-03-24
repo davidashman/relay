@@ -51,6 +51,11 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * @param settings 初始设置值，注入到 bootstrap config
 	 */
 	openEditorPage(page: string, title: string, instanceId?: string, settings?: Record<string, unknown>): void;
+
+	/**
+	 * Returns true if the sidebar webview is currently visible to the user.
+	 */
+	isSidebarVisible(): boolean;
 }
 
 /**
@@ -63,6 +68,7 @@ export class WebViewService implements IWebViewService {
 	private readonly webviewConfigs = new Map<vscode.Webview, WebviewBootstrapConfig>();
 	private messageHandler?: (message: any) => void;
 	private readonly editorPanels = new Map<string, vscode.WebviewPanel>();
+	private sidebarVisible = false;
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -83,6 +89,16 @@ export class WebViewService implements IWebViewService {
 			host: 'sidebar',
 			page: 'chat'
 		});
+
+		this.sidebarVisible = webviewView.visible;
+		webviewView.onDidChangeVisibility(
+			() => {
+				this.sidebarVisible = webviewView.visible;
+				this.postMessage({ type: 'visibility_changed', isVisible: webviewView.visible });
+			},
+			undefined,
+			this.context.subscriptions
+		);
 
 		// WebviewView 的销毁由 VSCode 管理，这里仅作日志记录
 		webviewView.onDidDispose(
@@ -105,6 +121,10 @@ export class WebViewService implements IWebViewService {
 			return webview;
 		}
 		return undefined;
+	}
+
+	isSidebarVisible(): boolean {
+		return this.sidebarVisible;
 	}
 
 	/**

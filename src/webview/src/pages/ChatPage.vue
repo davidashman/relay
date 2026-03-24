@@ -1,20 +1,5 @@
 <template>
   <div class="chat-page">
-    <!-- 顶部标题栏 -->
-    <div class="chat-header">
-      <div class="header-left">
-        <button class="menu-btn" @click="$emit('switchToSessions')">
-          <span class="codicon codicon-menu"></span>
-        </button>
-        <h2 class="chat-title" @click="$emit('switchToSessions')">{{ title }}</h2>
-      </div>
-      <div class="header-right">
-        <button class="new-chat-btn" title="New conversation" @click="createNew">
-          <span class="codicon codicon-plus"></span>
-        </button>
-      </div>
-    </div>
-
     <!-- 主体：消息容器 -->
     <div class="main">
       <!-- <div class="chatContainer"> -->
@@ -266,32 +251,13 @@
     try { unregisterToggle?.(); } catch {}
   });
 
-  async function createNew(): Promise<void> {
-    if (!runtime) return;
-
-    // 1. 先尝试通过 appContext.startNewConversationTab 创建新标签（多标签模式）
-    if (runtime.appContext.startNewConversationTab()) {
-      return;
-    }
-
-    // 2. 如果不是多标签模式，检查当前会话是否为空
-    const currentMessages = messages.value;
-    if (currentMessages.length === 0) {
-      // 当前已经是空会话，无需创建新会话
-      return;
-    }
-
-    // 3. 当前会话有内容，创建新会话
-    await runtime.sessionStore.createSession({ isExplicit: true });
-  }
-
   // ChatInput 事件处理
   async function handleSubmit(content: string) {
     const trimmed = (content || '').trim();
 
     // Handle built-in /clear command
     if (trimmed === '/clear') {
-      await createNew();
+      await runtime.tabs.replaceCurrentTab();
       return;
     }
 
@@ -414,91 +380,6 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-  }
-
-  .chat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    min-height: 32px;
-    padding: 0 12px;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow: hidden;
-    flex: 1;
-  }
-
-  .menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: transparent;
-    color: var(--vscode-titleBar-activeForeground);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    opacity: 0.7;
-  }
-
-  .menu-btn .codicon {
-    font-size: 12px;
-  }
-
-  .menu-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-    opacity: 1;
-  }
-
-  .chat-title {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--vscode-titleBar-activeForeground);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-
-  .chat-title:hover {
-    opacity: 0.8;
-  }
-
-  .header-right {
-    display: flex;
-    gap: 4px;
-  }
-
-  .new-chat-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: transparent;
-    color: var(--vscode-titleBar-activeForeground);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    opacity: 0.7;
-  }
-
-  .new-chat-btn .codicon {
-    font-size: 12px;
-  }
-
-  .new-chat-btn:hover {
-    background: var(--vscode-toolbar-hoverBackground);
-    opacity: 1;
   }
 
   .main {

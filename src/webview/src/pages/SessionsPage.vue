@@ -160,17 +160,14 @@ const openSession = (wrappedSession: ReturnType<typeof useSession> | undefined) 
   if (!wrappedSession) return;
   // 🔥 从包装对象中获取原始 Session 实例
   const rawSession = wrappedSession.__session;
-  store.setActiveSession(rawSession);
+  runtime.tabs.openSessionInNewTab(rawSession);
   emit('switchToChat', wrappedSession.sessionId.value);
 };
 
 
 const createNewSession = async () => {
-  // 🔥 使用包装后的方法（返回原始 Session）
-  const rawSession = await store.createSession({ isExplicit: true });
-  store.setActiveSession(rawSession);
-  // 🔥 访问 alien-signals 需要函数调用
-  emit('switchToChat', rawSession.sessionId());
+  await runtime.tabs.createNewTab();
+  emit('switchToChat');
 };
 
 const startNewChat = () => {
@@ -229,7 +226,7 @@ onMounted(() => {
   align-items: center;
   border-bottom: 1px solid var(--vscode-panel-border);
   min-height: 32px;
-  padding: 0 12px;
+  padding: 0 12px 0 0;
 }
 
 .header-left {
