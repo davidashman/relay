@@ -5,9 +5,16 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { execFile } from 'child_process';
+import { execFile, ExecFileException } from 'child_process';
 import Fuse from 'fuse.js';
 import { createDecorator } from '../di/instantiation';
+
+/**
+ * 判断 error 是否为 ExecFileException
+ */
+function isExecException(error: unknown): error is ExecFileException {
+	return error instanceof Error && ('code' in error || 'signal' in error);
+}
 
 export const IFileSystemService = createDecorator<IFileSystemService>('fileSystemService');
 
@@ -106,6 +113,13 @@ export interface IFileSystemService {
 	 * @returns 是否存在
 	 */
 	pathExists(target: string): Promise<boolean>;
+
+  /**
+   * 检查文件是否可执行
+   * @param target 目标路径
+   * @returns 是否可执行
+   */
+  isExecutable(target: string): Promise<boolean>;
 
 	/**
 	 * 清理文件名（移除非法字符）
@@ -383,22 +397,22 @@ export class FileSystemService implements IFileSystemService {
 					return;
 				}
 
-				// code === 1 表示无匹配结果,不算错误
-				const code = (error as any)?.code;
-				if (code === 1) {
-					resolve([]);
-					return;
-				}
+				// 使用类型守卫安全访问 error 属性
+				if (isExecException(error)) {
+					// code === 1 表示无匹配结果,不算错误
+					if (error.code === 1) {
+						resolve([]);
+						return;
+					}
 
-				// 超时或缓冲区溢出但有部分结果
-				const signal = (error as any)?.signal;
-				const hasOutput = stdout && stdout.trim().length > 0;
-
-				if ((signal === 'SIGTERM' || code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') && hasOutput) {
-					const lines = stdout.split(/\r?\n/).filter(Boolean);
-					// 移除可能不完整的最后一行
-					resolve(lines.length > 0 ? lines.slice(0, -1) : []);
-					return;
+					// 超时或缓冲区溢出但有部分结果
+					const hasOutput = stdout && stdout.trim().length > 0;
+					if ((error.signal === 'SIGTERM' || error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') && hasOutput) {
+						const lines = stdout.split(/\r?\n/).filter(Boolean);
+						// 移除可能不完整的最后一行
+						resolve(lines.length > 0 ? lines.slice(0, -1) : []);
+						return;
+					}
 				}
 
 				reject(error);
@@ -547,6 +561,20 @@ export class FileSystemService implements IFileSystemService {
 		return path.normalize(absolute);
 	}
 
+  /**
+   * 检查文件是否可执行
+   * @param target 目标路径
+   * @returns 是否可执行
+   */
+  async isExecutable(target: string): Promise<boolean> {
+    try {
+      await require('fs').promises.access(target, require('fs').constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
 	/**
 	 * 检查路径是否存在
 	 */
@@ -670,11 +698,11 @@ export class FileSystemService implements IFileSystemService {
 				const folders = vscode.workspace.workspaceFolders;
 				if (folders) {
 					for (const folder of folders) {
-						const gitignorePatterns = this.readGitignorePatterns(folder.uri.fsPath);
+						const gitignorePatterns = this.readGitignoreFile(path.join(folder.uri.fsPath, '.gitignore'));
 						gitignorePatterns.forEach(p => patterns.add(p));
 					}
 				}
-				const globalPatterns = this.readGlobalGitignorePatterns();
+				const globalPatterns = this.readGitignoreFile(path.join(require('os').homedir(), '.config', 'git', 'ignore'));
 				globalPatterns.forEach(p => patterns.add(p));
 			}
 		} catch {
@@ -685,41 +713,18 @@ export class FileSystemService implements IFileSystemService {
 	}
 
 	/**
-	 * 读取本地 .gitignore 文件
+	 * 读取并解析 gitignore 文件
 	 */
-	private readGitignorePatterns(root: string): string[] {
-		const entries: string[] = [];
-		const localGitignore = path.join(root, '.gitignore');
-
+	private readGitignoreFile(filePath: string): string[] {
 		try {
-			if (require('fs').existsSync(localGitignore)) {
-				const content = require('fs').readFileSync(localGitignore, 'utf8');
-				entries.push(...this.parseGitignore(content));
+			if (require('fs').existsSync(filePath)) {
+				const content = require('fs').readFileSync(filePath, 'utf8');
+				return this.parseGitignore(content);
 			}
 		} catch {
 			// ignore errors
 		}
-
-		return entries;
-	}
-
-	/**
-	 * 读取全局 .gitignore 文件
-	 */
-	private readGlobalGitignorePatterns(): string[] {
-		const entries: string[] = [];
-		const globalGitIgnore = path.join(require('os').homedir(), '.config', 'git', 'ignore');
-
-		try {
-			if (require('fs').existsSync(globalGitIgnore)) {
-				const content = require('fs').readFileSync(globalGitIgnore, 'utf8');
-				entries.push(...this.parseGitignore(content));
-			}
-		} catch {
-			// ignore errors
-		}
-
-		return entries;
+		return [];
 	}
 
 	/**

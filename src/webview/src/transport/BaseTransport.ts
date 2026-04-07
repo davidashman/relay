@@ -9,6 +9,7 @@ import type {
   GetClaudeStateResponse,
   InitResponse,
   RequestMessage,
+  SdkProbeResponse,
   ToolPermissionRequest,
   WebViewToExtensionMessage,
   WebViewRequest,
@@ -32,9 +33,11 @@ export abstract class BaseTransport {
   readonly permissionRequests = signal<PermissionRequest[]>([]);
   readonly config = signal<InitResponse["state"] | undefined>(undefined);
   readonly claudeConfig = signal<GetClaudeStateResponse["config"] | undefined>(undefined);
+  private initPromise?: Promise<void>;
+  private initialized = false;
 
   get opened(): Promise<void> {
-    return Promise.resolve();
+    return this.ensureInitialized();
   }
   get closed(): Promise<void> {
     return Promise.resolve();
@@ -43,6 +46,10 @@ export abstract class BaseTransport {
   readonly permissionRequested: EventEmitter<PermissionRequest> =
     new EventEmitter<PermissionRequest>();
 
+  readonly extensionConfigChanged: EventEmitter<{ key: string; value: any }> =
+    new EventEmitter<{ key: string; value: any }>();
+
+  // v0.4.x: Tab management events (kept for multi-session tab support)
   readonly newSessionEvents = new EventEmitter<void>();
   readonly newTabEvents = new EventEmitter<void>();
   readonly closeTabEvents = new EventEmitter<void>();
@@ -59,6 +66,25 @@ export abstract class BaseTransport {
   }
 
   protected abstract send(message: WebViewToExtensionMessage): void;
+
+  async ensureInitialized(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    if (!this.initPromise) {
+      this.initPromise = this.initialize()
+        .then(() => {
+          this.initialized = true;
+        })
+        .catch((error) => {
+          this.initPromise = undefined;
+          throw error;
+        });
+    }
+
+    return this.initPromise;
+  }
 
   async initialize(): Promise<void> {
     const initResponse = await this.sendRequest<InitResponse>({ type: "init" });
@@ -117,6 +143,9 @@ export abstract class BaseTransport {
   }
   getMcpServers(channelId?: string): Promise<any> {
     return this.sendRequest({ type: "get_mcp_servers" }, channelId);
+  }
+  sdkProbe(capabilities: string[], timeoutMs?: number): Promise<SdkProbeResponse> {
+    return this.sendRequest({ type: "sdk_probe", capabilities, timeoutMs });
   }
 
   async openContent(
@@ -194,9 +223,6 @@ export abstract class BaseTransport {
   openClaudeInTerminal(): Promise<any> {
     return this.sendRequest({ type: "open_claude_in_terminal" });
   }
-  updateSetting(key: string, value: unknown): Promise<any> {
-    return this.sendRequest({ type: "update_setting", key, value });
-  }
   openURL(url: string): void {
     void this.sendRequest({ type: "open_url", url });
   }
@@ -208,6 +234,38 @@ export abstract class BaseTransport {
   }
   getAssetUris(): Promise<any> {
     return this.sendRequest({ type: "get_asset_uris" });
+  }
+
+  getSettings(): Promise<any> {
+    return this.sendRequest({ type: "get_settings" });
+  }
+
+  updateSetting(key: string, value: any, target?: 'local' | 'shared' | 'global'): Promise<any> {
+    return this.sendRequest({ type: 'update_setting', key, value, target });
+  }
+
+  resetSetting(key: string, target: 'local' | 'shared' | 'global'): Promise<any> {
+    return this.sendRequest({ type: 'reset_setting', key, target });
+  }
+
+  switchProfile(profile: string | null): Promise<any> {
+    return this.sendRequest({ type: 'switch_profile', profile });
+  }
+
+  createProfile(name: string): Promise<any> {
+    return this.sendRequest({ type: 'create_profile', name });
+  }
+
+  deleteProfile(name: string): Promise<any> {
+    return this.sendRequest({ type: 'delete_profile', name });
+  }
+
+  getExtensionConfig(): Promise<any> {
+    return this.sendRequest({ type: 'get_extension_config' });
+  }
+
+  updateExtensionConfig(key: string, value: any): Promise<any> {
+    return this.sendRequest({ type: 'update_extension_config', key, value });
   }
 
   showNotification(
@@ -284,15 +342,30 @@ export abstract class BaseTransport {
             }
             break;
           }
+          case "sdk_error": {
+            // 将 LLM 请求错误作为特殊事件注入到消息流中
+            const errorStream = this.streams.get(message.channelId);
+            if (errorStream) {
+              errorStream.enqueue({
+                type: '__llm_request_error__',
+                error: message.error,
+                statusCode: message.statusCode,
+                errorType: message.errorType,
+              });
+            }
+            break;
+          }
           case "request":
             await this.processRequest(message as RequestMessage);
             break;
           case "response": {
             const handler = this.outstandingRequests.get(message.requestId);
             if (!handler) {
-              console.warn(
-                `[BaseTransport] No handler for response ${message.requestId}`
-              );
+              // 多 WebView 宿主场景下，其他实例也会收到响应但没有对应的 pending request
+              // 这是预期行为，这里静默忽略
+              // console.warn(
+              //   `[BaseTransport] No handler for response ${message.requestId}`
+              // );
               break;
             }
             const response = (message as any).response;
@@ -362,6 +435,10 @@ export abstract class BaseTransport {
         if (req.config !== undefined) {
           this.claudeConfig(req.config);
         }
+        break;
+      }
+      case "extension_config_changed": {
+        this.extensionConfigChanged.emit({ key: req.key, value: req.value });
         break;
       }
       default:

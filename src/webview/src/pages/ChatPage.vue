@@ -5,7 +5,7 @@
       <!-- <div class="chatContainer"> -->
         <div
           ref="containerEl"
-          :class="['messagesContainer', 'custom-scroll-container']"
+          :class="['messagesContainer', 'custom-scroll-container', { dimmed: permissionRequestsLen > 0 }]"
         >
           <template v-if="messages.length === 0">
             <div v-if="isBusy" class="emptyState">
@@ -29,16 +29,8 @@
                 :context="toolContext"
               />
             <!-- </div> -->
-            <PermissionRequestModal
-              v-if="pendingPermission && toolContext"
-              :request="pendingPermission"
-              :context="toolContext"
-              :on-resolve="handleResolvePermission"
-              data-permission-panel="1"
-              class="inlinePermissionModal"
-            />
-            <div v-if="isBusy && !pendingPermission" class="spinnerRow">
-              <Spinner :size="16" :permission-mode="permissionMode" :fun-spinner="funSpinner" />
+            <div v-if="isBusy" class="spinnerRow">
+              <Spinner :size="16" :permission-mode="permissionMode" />
             </div>
             <div v-if="queuedMessage" class="queuedMessageRow">
               <div class="queuedMessageBubble">
@@ -52,10 +44,18 @@
         </div>
 
         <div class="inputContainer">
+          <PermissionRequestModal
+            v-if="pendingPermission && toolContext"
+            :request="pendingPermission"
+            :context="toolContext"
+            :on-resolve="handleResolvePermission"
+            data-permission-panel="1"
+          />
           <ChatInputBox
             ref="chatInputRef"
             :show-progress="true"
             :progress-percentage="progressPercentage"
+            :context-tooltip="contextTooltip"
             :conversation-working="isBusy"
             :attachments="attachments"
             :thinking-level="session?.thinkingLevel.value"
@@ -137,24 +137,34 @@
   const permissionRequestsLen = computed(() => permissionRequests.value.length);
   const pendingPermission = computed(() => permissionRequests.value[0] as any);
   const platform = computed(() => runtime.appContext.platform);
-  const funSpinner = computed(() => runtime.appContext.funSpinner);
 
   // 注册命令：permissionMode.toggle（在下方定义函数后再注册）
 
   // 估算 Token 使用占比（基于 usageData）
-  const progressPercentage = computed(() => {
+  const usageComputed = computed(() => {
     const s = session.value;
-    if (!s) return 0;
+    if (!s) return { percentage: 0, totalTokens: 0, contextWindow: 200000 };
 
     const usage = s.usageData.value;
     const total = usage.totalTokens;
     const windowSize = usage.contextWindow || 200000;
+    const percentage = (typeof total === 'number' && total > 0)
+      ? Math.max(0, Math.min(100, (total / windowSize) * 100))
+      : 0;
 
-    if (typeof total === 'number' && total > 0) {
-      return Math.max(0, Math.min(100, (total / windowSize) * 100));
-    }
+    return { percentage, totalTokens: total, contextWindow: windowSize };
+  });
 
-    return 0;
+  const progressPercentage = computed(() => usageComputed.value.percentage);
+
+  const contextTooltip = computed(() => {
+    const { totalTokens, contextWindow } = usageComputed.value;
+    const fmt = (n: number) => {
+      if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+      if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+      return `${n}`;
+    };
+    return `${fmt(totalTokens)} / ${fmt(contextWindow)} context used`;
   });
 
   // Queued message (submitted while busy)
@@ -405,7 +415,9 @@
     position: relative;
   }
   .messagesContainer.dimmed {
-    opacity: 0.6;
+    filter: blur(1px);
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .msg-list {
@@ -443,11 +455,6 @@
   }
 
   /* 其他样式复用 */
-
-  /* Inline permission modal inside the message list */
-  .inlinePermissionModal {
-    padding: 0 12px;
-  }
 
   /* 输入区域容器 */
   .inputContainer {

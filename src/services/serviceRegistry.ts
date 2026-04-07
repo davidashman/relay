@@ -38,8 +38,9 @@ export function registerServices(
 
 	// Core services
 	builder.define(ILogService, new SyncDescriptor(LogService));
-	builder.define(IConfigurationService, new SyncDescriptor(ConfigurationService));
 	builder.define(IFileSystemService, new SyncDescriptor(FileSystemService));
+	// ConfigurationService depends on IFileSystemService, so register after
+	builder.define(IConfigurationService, new SyncDescriptor(ConfigurationService));
 
 	// Workspace services
 	builder.define(IWorkspaceService, new SyncDescriptor(WorkspaceService));

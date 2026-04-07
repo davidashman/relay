@@ -390,6 +390,32 @@ export class Session {
   }
 
   private processIncomingMessage(event: any): void {
+    // 处理 LLM 请求错误（来自 SDK stderr 致命错误）
+    // 双路分发：
+    //   - 用户触发的请求（busy=true）→ 以 tip 消息追加到消息流，由 LLMErrorBlock 渲染
+    //   - 非用户触发（busy=false，如 Profile 切换预热）→ VSCode Notification
+    if (event?.type === '__llm_request_error__') {
+      if (this.busy()) {
+        // 用户主动请求期间的 LLM 错误：构造标准 raw 事件，走统一的 fromRaw → contentParsers 路径
+        // 与 Interrupt 消息的分化方式一致：user 消息 → llm_error content block → tip 类型分化
+        const syntheticEvent = {
+          type: 'user',
+          message: {
+            role: 'user',
+            content: [{ type: 'llm_error', message: event.error }],
+          },
+        };
+        const currentMessages = [...this.messages()] as Message[];
+        processAndAttachMessage(currentMessages, syntheticEvent);
+        this.messages(currentMessages);
+        this.busy(false);
+      } else {
+        // 非用户触发（Profile 切换预热、channel 启动探测等）：VSCode Notification
+        this.context.showNotification?.(event.error, 'error');
+      }
+      return;
+    }
+
     // 🔥 使用完整的消息处理流程
 
     // 1. 获取当前消息数组（转为可变数组）

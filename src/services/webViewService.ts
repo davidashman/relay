@@ -21,7 +21,6 @@ export interface WebviewBootstrapConfig {
 	host: WebviewHost;
 	page?: string;
 	id?: string;
-	settings?: Record<string, unknown>;
 }
 
 export interface IWebViewService extends vscode.WebviewViewProvider {
@@ -48,14 +47,8 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * @param page 页面类型标识，例如 'settings'、'diff'
 	 * @param title VSCode 标签标题
 	 * @param instanceId 页面实例 ID，用于区分多标签（不传则默认为 page，实现单例）
-	 * @param settings 初始设置值，注入到 bootstrap config
 	 */
-	openEditorPage(page: string, title: string, instanceId?: string, settings?: Record<string, unknown>): void;
-
-	/**
-	 * Returns true if the sidebar webview is currently visible to the user.
-	 */
-	isSidebarVisible(): boolean;
+	openEditorPage(page: string, title: string, instanceId?: string): void;
 }
 
 /**
@@ -66,9 +59,9 @@ export class WebViewService implements IWebViewService {
 
 	private readonly webviews = new Set<vscode.Webview>();
 	private readonly webviewConfigs = new Map<vscode.Webview, WebviewBootstrapConfig>();
+	private readonly webviewIdMap = new Map<string, vscode.Webview>();
 	private messageHandler?: (message: any) => void;
 	private readonly editorPanels = new Map<string, vscode.WebviewPanel>();
-	private sidebarVisible = false;
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -83,33 +76,24 @@ export class WebViewService implements IWebViewService {
 		_context: vscode.WebviewViewResolveContext,
 		_token: vscode.CancellationToken
 	): void | Thenable<void> {
-		this.logService.info('Starting to resolve sidebar WebView');
+		this.logService.info('开始解析侧边栏 WebView 视图');
 
 		this.registerWebview(webviewView.webview, {
 			host: 'sidebar',
 			page: 'chat'
 		});
 
-		this.sidebarVisible = webviewView.visible;
-		webviewView.onDidChangeVisibility(
-			() => {
-				this.sidebarVisible = webviewView.visible;
-				this.postMessage({ type: 'visibility_changed', isVisible: webviewView.visible });
-			},
-			undefined,
-			this.context.subscriptions
-		);
-
 		// WebviewView 的销毁由 VSCode 管理，这里仅作日志记录
 		webviewView.onDidDispose(
 			() => {
-				this.logService.info('Sidebar WebView disposed');
+				this.removeWebview(webviewView.webview);
+				this.logService.info('侧边栏 WebView 视图已销毁');
 			},
 			undefined,
 			this.context.subscriptions
 		);
 
-		this.logService.info('Sidebar WebView resolved');
+		this.logService.info('侧边栏 WebView 视图解析完成');
 	}
 
 	/**
@@ -123,16 +107,12 @@ export class WebViewService implements IWebViewService {
 		return undefined;
 	}
 
-	isSidebarVisible(): boolean {
-		return this.sidebarVisible;
-	}
-
 	/**
 	 * 广播消息到所有已注册的 WebView
 	 */
 	postMessage(message: any): void {
 		if (this.webviews.size === 0) {
-			this.logService.warn('[WebViewService] No available WebView instance, message will be dropped');
+			this.logService.warn('[WebViewService] 当前没有可用的 WebView 实例，消息将被丢弃');
 			return;
 		}
 
@@ -141,20 +121,41 @@ export class WebViewService implements IWebViewService {
 			message
 		};
 
+		const targetId = message?.webviewId as string | undefined;
+		if (targetId) {
+			const targetWebview = this.webviewIdMap.get(targetId);
+			if (!targetWebview) {
+				this.logService.warn(`[WebViewService] 找不到目标 WebView: ${targetId}`);
+				return;
+			}
+			try {
+				targetWebview.postMessage(payload);
+			} catch (error) {
+				this.logService.warn('[WebViewService] 向目标 WebView 发送消息失败，将移除该实例', error as Error);
+				this.removeWebview(targetWebview);
+			}
+			return;
+		}
+
+		// 默认仅向侧边栏 chat WebView 发送消息，避免误广播
 		const toRemove: vscode.Webview[] = [];
 
 		for (const webview of this.webviews) {
+			const config = this.webviewConfigs.get(webview);
+			if (!config || config.host !== 'sidebar' || (config.page && config.page !== 'chat')) {
+				continue;
+			}
+
 			try {
 				webview.postMessage(payload);
 			} catch (error) {
-				this.logService.warn('[WebViewService] Failed to send message to WebView, will remove instance', error as Error);
+				this.logService.warn('[WebViewService] 向 WebView 发送消息失败，将移除该实例', error as Error);
 				toRemove.push(webview);
 			}
 		}
 
 		for (const webview of toRemove) {
-			this.webviews.delete(webview);
-			this.webviewConfigs.delete(webview);
+			this.removeWebview(webview);
 		}
 	}
 
@@ -168,7 +169,7 @@ export class WebViewService implements IWebViewService {
 	/**
 	 * 打开（或聚焦）主编辑器中的某个页面
 	 */
-	openEditorPage(page: string, title: string, instanceId?: string, settings?: Record<string, unknown>): void {
+	openEditorPage(page: string, title: string, instanceId?: string): void {
 		const key = instanceId || page;
 		const existing = this.editorPanels.get(key);
 		if (existing) {
@@ -202,17 +203,17 @@ export class WebViewService implements IWebViewService {
 			}
 		);
 
-		this.registerWebview(panel.webview, {
+		const panelWebview = panel.webview;
+
+		this.registerWebview(panelWebview, {
 			host: 'editor',
 			page,
-			id: key,
-			settings
+			id: key
 		});
 
 		panel.onDidDispose(
 			() => {
-				this.webviews.delete(panel.webview);
-				this.webviewConfigs.delete(panel.webview);
+				this.removeWebview(panelWebview);
 				this.editorPanels.delete(key);
 				this.logService.info(`[WebViewService] 主编辑器 WebView 面板已销毁: page=${page}, id=${key}`);
 			},
@@ -239,17 +240,17 @@ export class WebViewService implements IWebViewService {
 		// 保存实例及其配置
 		this.webviews.add(webview);
 		this.webviewConfigs.set(webview, bootstrap);
+		const webviewId = this.getWebviewId(bootstrap);
+		this.webviewIdMap.set(webviewId, webview);
 
 		// 连接消息处理器
 		webview.onDidReceiveMessage(
 			message => {
-				if (message.type === 'webview_focused') {
-					vscode.commands.executeCommand('setContext', 'claudixFocused', message.focused);
-					return;
-				}
 				this.logService.info(`[WebView → Extension] 收到消息: ${message.type}`);
 				if (this.messageHandler) {
-					this.messageHandler(message);
+					const taggedMessage =
+						message && typeof message === 'object' ? { ...message, webviewId } : message;
+					this.messageHandler(taggedMessage);
 				}
 			},
 			undefined,
@@ -332,7 +333,7 @@ export class WebViewService implements IWebViewService {
 		// Vite 开发场景的 CSP：允许连接 devServer 与 HMR 的 ws
 		const csp = [
 			`default-src 'none';`,
-			`img-src ${webview.cspSource} https: data:;`,
+			`img-src ${webview.cspSource} 'self' https: data: blob: http: ${origin};`,
 			`style-src ${webview.cspSource} 'unsafe-inline' ${origin} https://*.vscode-cdn.net;`,
 			`font-src ${webview.cspSource} data: ${origin};`,
 			`script-src ${webview.cspSource} 'nonce-${nonce}' 'unsafe-eval' ${origin};`,
@@ -364,6 +365,20 @@ export class WebViewService implements IWebViewService {
     <script type="module" nonce="${nonce}" src="${entry}"></script>
 </body>
 </html>`;
+	}
+
+	private getWebviewId(bootstrap: WebviewBootstrapConfig): string {
+		return `${bootstrap.host}:${bootstrap.page ?? ''}:${bootstrap.id ?? ''}`;
+	}
+
+	private removeWebview(webview: vscode.Webview): void {
+		this.webviews.delete(webview);
+		const config = this.webviewConfigs.get(webview);
+		if (config) {
+			const webviewId = this.getWebviewId(config);
+			this.webviewIdMap.delete(webviewId);
+		}
+		this.webviewConfigs.delete(webview);
 	}
 
 	/**

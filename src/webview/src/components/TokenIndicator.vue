@@ -72,6 +72,11 @@ const containerStyle = computed(() => ({
   display: 'flex',
   alignItems: 'center',
   gap: '4px',
+  // paddingLeft: '4px',
+  // paddingRight: '2px',
+  // backgroundColor: 'var(--vscode-input-background)',
+  // borderRadius: '4px',
+  // boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px',
   cursor: 'default'
 }))
 
