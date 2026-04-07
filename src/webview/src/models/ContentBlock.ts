@@ -68,6 +68,11 @@ export interface DiagnosticsBlock {
   diagnostics: DiagnosticsEntry[];
 }
 
+export interface LLMErrorBlock {
+  type: 'llm_error';
+  message: string;
+}
+
 export interface SlashCommandResultBlock {
   type: 'slash_command_result';
   result: string;
@@ -98,6 +103,7 @@ export type ContentBlockType =
   | ImageBlock
   | DocumentBlock
   | InterruptBlock
+  | LLMErrorBlock
   | SelectionBlock
   | OpenedFileBlock
   | DiagnosticsBlock

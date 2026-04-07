@@ -29,6 +29,7 @@ import ThinkingBlock from './blocks/ThinkingBlock.vue';
 import ImageBlock from './blocks/ImageBlock.vue';
 import DocumentBlock from './blocks/DocumentBlock.vue';
 import InterruptBlock from './blocks/InterruptBlock.vue';
+import LLMErrorBlock from './blocks/LLMErrorBlock.vue';
 import SelectionBlock from './blocks/SelectionBlock.vue';
 import OpenedFileBlock from './blocks/OpenedFileBlock.vue';
 import DiagnosticsBlock from './blocks/DiagnosticsBlock.vue';
@@ -57,6 +58,8 @@ const blockComponent = computed(() => {
       return DocumentBlock;
     case 'interrupt':
       return InterruptBlock;
+    case 'llm_error':
+      return LLMErrorBlock;
     case 'selection':
       return SelectionBlock;
     case 'opened_file':

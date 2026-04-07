@@ -5,6 +5,7 @@ import type {
   ImageBlock,
   DocumentBlock,
   InterruptBlock,
+  LLMErrorBlock,
   SelectionBlock,
   OpenedFileBlock,
   DiagnosticsBlock,
@@ -55,6 +56,8 @@ function parseBlock(raw: any): ContentBlockType[] {
       return [createImageBlock(raw)];
     case 'document':
       return [createDocumentBlock(raw)];
+    case 'llm_error':
+      return [{ type: 'llm_error', message: String(raw.message ?? '') } satisfies LLMErrorBlock];
     case 'tool_use':
       return [createToolUseBlock(raw)];
     case 'tool_result':
