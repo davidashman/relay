@@ -86,7 +86,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     assetsDir: '',
     sourcemap: false,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         entryFileNames: 'main.js',
         assetFileNames: (assetInfo) => {

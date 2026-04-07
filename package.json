@@ -91,7 +91,8 @@
       },
       {
         "command": "claudix.openSettings",
-        "title": "Claudix: Open Settings"
+        "title": "Claudix: Open Settings",
+        "icon": "$(gear)"
       },
       {
         "command": "claudix.newSession",
@@ -125,7 +126,16 @@
         "command": "claudix.closeSession",
         "when": "claudixFocused"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claudix.openSettings",
+          "when": "view == claudix.chatView",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "dev": "concurrently \"pnpm run dev:webview\" \"pnpm run watch:extension\"",
@@ -149,43 +159,44 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,vue}\" && eslint src --ext ts,tsx,vue --fix"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.17",
-    "@types/node": "^24.10.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^25.0.3",
     "@types/vscode": "^1.98.0",
-    "@typescript-eslint/eslint-plugin": "^8.48.1",
-    "@typescript-eslint/parser": "^8.48.1",
-    "@vitejs/plugin-vue": "^6.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.51.0",
+    "@typescript-eslint/parser": "^8.51.0",
+    "@vitejs/plugin-vue": "^6.0.5",
     "@vscode/vsce": "^3.7.1",
     "concurrently": "^9.2.1",
-    "esbuild": "^0.27.1",
-    "eslint": "^9.39.1",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
     "prettier": "^3.7.4",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "^7.2.7",
+    "vite": "^8.0.3",
     "vite-plugin-svg-icons": "^2.0.1",
-    "vitest": "^4.0.15",
-    "vue-tsc": "^3.1.7"
+    "vitest": "^4.0.16",
+    "vue-tsc": "^3.2.1",
+    "vue-vine": "^1.7.27"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.61",
+    "@anthropic-ai/claude-agent-sdk": "^0.1.76",
     "@anthropic-ai/sdk": "^0.71.2",
     "@gn8/alien-signals-vue": "^0.1.1",
     "@mdi/font": "^7.4.47",
-    "@modelcontextprotocol/sdk": "^1.24.3",
-    "@vscode/codicons": "^0.0.43",
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@vscode/codicons": "^0.0.44",
     "@vueuse/core": "^14.1.0",
-    "alien-signals": "^3.1.1",
+    "alien-signals": "^3.1.2",
     "fuse.js": "^7.1.0",
-    "lexical": "^0.38.2",
+    "lexical": "^0.39.0",
     "lexical-vue": "^0.14.1",
     "marked": "^17.0.1",
     "motion-v": "^1.7.4",
     "path-browserify-esm": "^1.0.6",
     "pinia": "^3.0.4",
     "reka-ui": "^2.8.0",
-    "vue": "^3.5.25",
+    "vue": "^3.5.26",
     "zod": "^3.25.76"
   },
   "keywords": [
