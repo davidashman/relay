@@ -6,6 +6,11 @@
     @keydown="handleContainerKeyDown"
     data-permission-panel="1"
   >
+    <div class="tool-title">
+      <span class="codicon" :class="toolIcon"></span>
+      <span class="tool-name">{{ toolLabel }}</span>
+      <span v-if="toolDescription" class="tool-description">{{ toolDescription }}</span>
+    </div>
     <div class="permission-header">Do you approve?</div>
     <div class="button-container">
       <button
@@ -69,6 +74,41 @@ const rejectMessage = ref('');
 const showSecondButton = computed(
   () => props.request.suggestions && props.request.suggestions.length > 0
 );
+
+const TOOL_ICONS: Record<string, string> = {
+  Bash: 'codicon-terminal',
+  Read: 'codicon-eye-two',
+  Edit: 'codicon-edit',
+  Write: 'codicon-new-file',
+  MultiEdit: 'codicon-edit',
+  Task: 'codicon-tasklist',
+  TodoWrite: 'codicon-checklist',
+  Glob: 'codicon-list-tree',
+  Grep: 'codicon-search',
+  WebFetch: 'codicon-globe',
+  WebSearch: 'codicon-globe',
+  KillShell: 'codicon-terminal-kill',
+  NotebookEdit: 'codicon-notebook',
+  ExitPlanMode: 'codicon-milestone',
+};
+
+const toolIcon = computed(() => TOOL_ICONS[props.request.toolName] ?? 'codicon-tools');
+
+const toolLabel = computed(() => props.request.toolName);
+
+const toolDescription = computed(() => {
+  const inputs = props.request.inputs as Record<string, unknown>;
+  const name = props.request.toolName;
+  if (name === 'Bash' || name === 'Task') return (inputs.description as string) || '';
+  if (name === 'WebSearch') return (inputs.query as string) || '';
+  if (name === 'WebFetch') {
+    try { return new URL(inputs.url as string).hostname; } catch { return ''; }
+  }
+  if (name === 'Glob') return (inputs.pattern as string) || '';
+  if (name === 'Grep') return (inputs.pattern as string) || '';
+  if (inputs.file_path) return (inputs.file_path as string).split('/').pop() || '';
+  return '';
+});
 
 const handleApprove = () => {
   props.onResolve(props.request, true);
@@ -152,6 +192,34 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
   outline: none;
   margin-bottom: 8px;
   padding-top: 12px;
+}
+
+.tool-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.tool-title .codicon {
+  font-size: 16px;
+  flex-shrink: 0;
+  color: var(--vscode-foreground);
+}
+
+.tool-name {
+  font-weight: 500;
+  font-size: 0.9em;
+  color: var(--vscode-foreground);
+}
+
+.tool-description {
+  font-size: 0.85em;
+  font-style: italic;
+  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .permission-header {
