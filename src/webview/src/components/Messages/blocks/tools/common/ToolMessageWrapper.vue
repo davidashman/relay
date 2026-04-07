@@ -16,21 +16,23 @@
         @mouseleave="isHovered = false"
       >
         <!-- 工具图标 -->
-        <button class="tool-icon-btn" :title="toolName">
-          <span
-            v-if="!isHovered || !hasExpandableContent"
-            class="codicon"
-            :class="toolIcon"
-          ></span>
-          <span
-            v-else-if="isExpanded"
-            class="codicon codicon-fold"
-          ></span>
-          <span
-            v-else
-            class="codicon codicon-chevron-up-down"
-          ></span>
-        </button>
+        <Tooltip :content="toolName">
+          <button class="tool-icon-btn">
+            <span
+              v-if="!isHovered || !hasExpandableContent"
+              class="codicon"
+              :class="toolIcon"
+            ></span>
+            <span
+              v-else-if="isExpanded"
+              class="codicon codicon-fold"
+            ></span>
+            <span
+              v-else
+              class="codicon codicon-chevron-up-down"
+            ></span>
+          </button>
+        </Tooltip>
 
         <!-- 主内容 -->
         <div class="main-content">
@@ -65,6 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed, useSlots } from 'vue';
+import Tooltip from '@/components/Common/Tooltip.vue';
 import ToolStatusIndicator from './ToolStatusIndicator.vue';
 
 interface Props {

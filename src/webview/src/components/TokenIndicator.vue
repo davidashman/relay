@@ -1,49 +1,54 @@
 <template>
-  <div
-    class="progress-container"
-    :style="containerStyle"
-  >
-    <span class="progress-text">{{ formattedPercentage }}</span>
-    <div class="progress-circle">
-      <svg width="14" height="14" class="progress-svg">
-        <circle
-          cx="7"
-          cy="7"
-          r="5.25"
-          :stroke="strokeColor"
-          stroke-width="1.5"
-          fill="none"
-          opacity="0.25"
-        />
-        <circle
-          cx="7"
-          cy="7"
-          r="5.25"
-          :stroke="strokeColor"
-          stroke-width="1.5"
-          fill="none"
-          stroke-linecap="round"
-          opacity="0.9"
-          :stroke-dasharray="circumference"
-          :stroke-dashoffset="strokeOffset"
-          transform="rotate(-90 7 7)"
-          class="progress-arc"
-        />
-      </svg>
+  <Tooltip :content="tooltipText" side="top" :side-offset="6">
+    <div
+      class="progress-container"
+      :style="containerStyle"
+    >
+      <span class="progress-text">{{ formattedPercentage }}</span>
+      <div class="progress-circle">
+        <svg width="14" height="14" class="progress-svg">
+          <circle
+            cx="7"
+            cy="7"
+            r="5.25"
+            :stroke="strokeColor"
+            stroke-width="1.5"
+            fill="none"
+            opacity="0.25"
+          />
+          <circle
+            cx="7"
+            cy="7"
+            r="5.25"
+            :stroke="strokeColor"
+            stroke-width="1.5"
+            fill="none"
+            stroke-linecap="round"
+            opacity="0.9"
+            :stroke-dasharray="circumference"
+            :stroke-dashoffset="strokeOffset"
+            transform="rotate(-90 7 7)"
+            class="progress-arc"
+          />
+        </svg>
+      </div>
     </div>
-  </div>
+  </Tooltip>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import Tooltip from './Common/Tooltip.vue'
 
 interface Props {
   percentage: number
+  contextTooltip?: string
   size?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   percentage: 0,
+  contextTooltip: '',
   size: 14
 })
 
@@ -67,13 +72,15 @@ const containerStyle = computed(() => ({
   display: 'flex',
   alignItems: 'center',
   gap: '4px',
-  // paddingLeft: '4px',
-  // paddingRight: '2px',
-  // backgroundColor: 'var(--vscode-input-background)',
-  // borderRadius: '4px',
-  // boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px',
   cursor: 'default'
 }))
+
+const tooltipText = computed(() => {
+  if (props.contextTooltip) {
+    return `${formattedPercentage.value} · ${props.contextTooltip}`
+  }
+  return formattedPercentage.value
+})
 
 const strokeColor = 'color-mix(in srgb,var(--vscode-foreground) 92%,transparent)'
 </script>

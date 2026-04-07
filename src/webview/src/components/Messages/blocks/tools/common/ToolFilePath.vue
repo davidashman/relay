@@ -1,17 +1,19 @@
 <template>
-  <button
-    class="tool-filepath"
-    role="button"
-    tabindex="0"
-    @click="handleClick"
-    :title="fullPath"
-  >
-    <span class="filepath-name">{{ fileName }}</span>
-  </button>
+  <Tooltip :content="fullPath" side="bottom">
+    <button
+      class="tool-filepath"
+      role="button"
+      tabindex="0"
+      @click="handleClick"
+    >
+      <span class="filepath-name">{{ fileName }}</span>
+    </button>
+  </Tooltip>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import Tooltip from '@/components/Common/Tooltip.vue';
 import type { ToolContext } from '@/types/tool';
 
 interface Props {

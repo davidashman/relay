@@ -18,13 +18,14 @@
         >
           <div class="message-text">
             <div>{{ displayContent }}</div>
-            <button
-              class="restore-button"
-              @click.stop="handleRestore"
-              title="Restore checkpoint"
-            >
-              <span class="codicon codicon-restore"></span>
-            </button>
+            <Tooltip content="Restore checkpoint">
+              <button
+                class="restore-button"
+                @click.stop="handleRestore"
+              >
+                <span class="codicon codicon-restore"></span>
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -53,6 +54,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted, inject } from 'vue';
 import type { Message } from '../../models/Message';
 import type { ToolContext } from '../../types/tool';
 import type { AttachmentItem } from '../../types/attachment';
+import Tooltip from '../Common/Tooltip.vue';
 import ChatInputBox from '../ChatInputBox.vue';
 import FileIcon from '../FileIcon.vue';
 import { RuntimeKey } from '../../composables/runtimeContext';

@@ -50,21 +50,23 @@
         <!-- 操作按钮 -->
         <div class="queue-item-actions">
           <!-- 删除按钮 -->
-          <div
-            class="anysphere-icon-button"
-            @click="$emit('remove', message.id)"
-            title="Remove from queue"
-          >
-            <span class="codicon codicon-trashcan text-[12px]!"></span>
-          </div>
+          <Tooltip content="Remove from queue">
+            <div
+              class="anysphere-icon-button"
+              @click="$emit('remove', message.id)"
+            >
+              <span class="codicon codicon-trashcan text-[12px]!"></span>
+            </div>
+          </Tooltip>
           <!-- 立即发送按钮 -->
-          <div
-            class="anysphere-icon-button"
-            @click="$emit('sendNow', message.id)"
-            title="Send immediately (interrupt current conversation)"
-          >
-            <span class="codicon codicon-arrow-up-two text-[12px]!"></span>
-          </div>
+          <Tooltip content="Send immediately">
+            <div
+              class="anysphere-icon-button"
+              @click="$emit('sendNow', message.id)"
+            >
+              <span class="codicon codicon-arrow-up-two text-[12px]!"></span>
+            </div>
+          </Tooltip>
         </div>
       </div>
     </div>
@@ -73,6 +75,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import Tooltip from './Common/Tooltip.vue'
 import type { QueuedMessage } from '../types/queue'
 
 interface Props {
