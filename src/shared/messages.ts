@@ -669,6 +669,20 @@ export type WebViewRequestResponse =
     | UpdateSettingResponse;
 
 /**
+ * 新建会话标签页（Extension → WebView）
+ */
+export interface NewTabRequest {
+    type: "new_tab";
+}
+
+/**
+ * 关闭当前会话标签页（Extension → WebView）
+ */
+export interface CloseTabRequest {
+    type: "close_tab";
+}
+
+/**
  * Extension → WebView 的所有请求类型
  */
 export type ExtensionRequest =
@@ -676,7 +690,9 @@ export type ExtensionRequest =
     | InsertAtMentionRequest
     | SelectionChangedRequest
     | UpdateStateRequest
-    | VisibilityChangedRequest;
+    | VisibilityChangedRequest
+    | NewTabRequest
+    | CloseTabRequest;
     // | AuthURLRequest;
 
 /**

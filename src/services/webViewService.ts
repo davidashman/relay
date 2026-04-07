@@ -243,6 +243,10 @@ export class WebViewService implements IWebViewService {
 		// 连接消息处理器
 		webview.onDidReceiveMessage(
 			message => {
+				if (message.type === 'webview_focused') {
+					vscode.commands.executeCommand('setContext', 'claudixFocused', message.focused);
+					return;
+				}
 				this.logService.info(`[WebView → Extension] 收到消息: ${message.type}`);
 				if (this.messageHandler) {
 					this.messageHandler(message);

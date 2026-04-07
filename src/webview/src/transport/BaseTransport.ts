@@ -43,6 +43,10 @@ export abstract class BaseTransport {
   readonly permissionRequested: EventEmitter<PermissionRequest> =
     new EventEmitter<PermissionRequest>();
 
+  readonly newSessionEvents = new EventEmitter<void>();
+  readonly newTabEvents = new EventEmitter<void>();
+  readonly closeTabEvents = new EventEmitter<void>();
+
   protected readonly fromHost = new AsyncQueue<ExtensionToWebViewMessage>();
   protected readonly streams = new Map<string, AsyncQueue<any>>();
   protected readonly outstandingRequests = new Map<string, RequestHandler>();
@@ -333,6 +337,18 @@ export abstract class BaseTransport {
       }
       case "visibility_changed": {
         this.isVisible(req.isVisible);
+        break;
+      }
+      case "new_session": {
+        this.newSessionEvents.emit();
+        break;
+      }
+      case "new_tab": {
+        this.newTabEvents.emit();
+        break;
+      }
+      case "close_tab": {
+        this.closeTabEvents.emit();
         break;
       }
 

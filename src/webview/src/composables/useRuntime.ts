@@ -177,6 +177,18 @@ export function useRuntime(): RuntimeInstance {
 
       if (disposed) return;
 
+      connection.newSessionEvents.add(() => {
+        if (!disposed) void tabs.replaceCurrentTab();
+      });
+
+      connection.newTabEvents.add(() => {
+        if (!disposed) void tabs.createNewTab();
+      });
+
+      connection.closeTabEvents.add(() => {
+        if (!disposed) tabs.closeTab(tabs.activeTabIndex.value);
+      });
+
       try {
         const selection = await connection.getCurrentSelection();
         if (!disposed) appContext.currentSelection(selection?.selection ?? undefined);

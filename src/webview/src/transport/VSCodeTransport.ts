@@ -37,6 +37,8 @@ export class VSCodeTransport extends BaseTransport {
         this.api = (window as any).acquireVsCodeApi();
 
         window.addEventListener('message', this.handleMessage);
+        window.addEventListener('focus', this.handleFocus);
+        window.addEventListener('blur', this.handleBlur);
 
         this.openedPromise = this.initialize();
         this.closedPromise = new Promise(() => {
@@ -44,12 +46,22 @@ export class VSCodeTransport extends BaseTransport {
         });
     }
 
+    private handleFocus = () => {
+        this.api.postMessage({ type: 'webview_focused', focused: true });
+    };
+
+    private handleBlur = () => {
+        this.api.postMessage({ type: 'webview_focused', focused: false });
+    };
+
     protected send(message: WebViewToExtensionMessage): void {
         this.api.postMessage(message);
     }
 
     override close(): void {
         window.removeEventListener('message', this.handleMessage);
+        window.removeEventListener('focus', this.handleFocus);
+        window.removeEventListener('blur', this.handleBlur);
         super.close();
     }
 }

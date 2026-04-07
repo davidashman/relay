@@ -65,6 +65,36 @@ export function activate(context: vscode.ExtensionContext) {
 		// Register disposables
 		context.subscriptions.push(webviewProvider);
 		context.subscriptions.push(
+			vscode.commands.registerCommand('claudix.newSession', () => {
+				webViewService.postMessage({
+					type: 'request',
+					requestId: `new-tab-${Date.now()}`,
+					request: { type: 'new_tab' }
+				});
+			})
+		);
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand('claudix.clearSession', () => {
+				webViewService.postMessage({
+					type: 'request',
+					requestId: `clear-session-${Date.now()}`,
+					request: { type: 'new_session' }
+				});
+			})
+		);
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand('claudix.closeSession', () => {
+				webViewService.postMessage({
+					type: 'request',
+					requestId: `close-tab-${Date.now()}`,
+					request: { type: 'close_tab' }
+				});
+			})
+		);
+
+		context.subscriptions.push(
 			vscode.commands.registerCommand('claudix.openSettings', async () => {
 				await instantiationService.invokeFunction(accessorInner => {
 					const webViewServiceInner = accessorInner.get(IWebViewService);
