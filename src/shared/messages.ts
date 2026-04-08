@@ -659,9 +659,8 @@ export interface GetExtensionConfigRequest {
 export interface GetExtensionConfigResponse {
     type: "get_extension_config_response";
     config: {
-        defaultPermissionMode: string;
+        activeProfile: string | null;
         defaultModel: string;
-        defaultThinkingLevel: string;
         systemNotifications: boolean;
         completionSound: boolean;
         customModels: Array<{ id: string; name?: string }>;

@@ -45,18 +45,11 @@ export interface ExtensionConfig {
   activeProfile: string | null;
 
   // Startup defaults
-  defaultPermissionMode: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'delegate' | 'dontAsk';
   defaultModel: string;
-  defaultThinkingLevel: 'off' | 'default_on';
 
   // UI preferences
   systemNotifications: boolean;
   completionSound: boolean;
-  disableFunSpinner: boolean;
-  continueLastSession: boolean;
-
-  // System settings
-  configurationDirectory: string;
 
   // Model management
   customModels: Array<{ id: string; name?: string }>;
@@ -154,14 +147,9 @@ export class ConfigurationService implements IConfigurationService {
   // Default template for extension config (~/.claudix.json)
   private readonly _extensionConfigDefaults: ExtensionConfig = {
     activeProfile: null,
-    defaultPermissionMode: 'default',
     defaultModel: 'default',
-    defaultThinkingLevel: 'default_on',
     systemNotifications: false,
     completionSound: true,
-    disableFunSpinner: false,
-    continueLastSession: false,
-    configurationDirectory: '',
     customModels: [],
     disabledModels: []
   };

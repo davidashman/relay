@@ -12,15 +12,6 @@
         />
 
         <div class="cursor-settings-pane-content">
-          <!-- Scope Tab (top-right) -->
-          <div class="cursor-settings-scope-bar">
-            <SettingsScopeTab
-              v-model="activeScope"
-              :has-workspace="hasWorkspace"
-              :active-profile="activeProfile"
-            />
-          </div>
-
           <component :is="currentTabComponent" />
         </div>
       </div>
@@ -31,7 +22,6 @@
 <script setup lang="ts">
 import { ref, computed, provide } from 'vue';
 import SettingsSidebar from '../components/settings/SettingsSidebar.vue';
-import SettingsScopeTab from '../components/settings/SettingsScopeTab.vue';
 import SettingsTabGeneral from '../components/settings/tabs/SettingsTabGeneral.vue';
 import SettingsTabModels from '../components/settings/tabs/SettingsTabModels.vue';
 import SettingsTabProfiles from '../components/settings/tabs/SettingsTabProfiles.vue';
@@ -46,7 +36,7 @@ import SettingsTabSlashCommands from '../components/settings/tabs/SettingsTabSla
 import SettingsTabSkills from '../components/settings/tabs/SettingsTabSkills.vue';
 import SettingsTabPlugins from '../components/settings/tabs/SettingsTabPlugins.vue';
 import { SettingsStore } from '../core/SettingsStore';
-import { initSettingsStore, useSettingsStore } from '../composables/useSettingsStore';
+import { initSettingsStore } from '../composables/useSettingsStore';
 import type { SettingsScope } from '../composables/useSettingsStore';
 import { transport } from '../core/runtimeTransport';
 import { SETTINGS_SCOPE_KEY } from '../composables/useSettingsScope';
@@ -54,8 +44,6 @@ import { SETTINGS_SCOPE_KEY } from '../composables/useSettingsScope';
 // Reuse global Transport instance
 const settingsStore = new SettingsStore(transport);
 initSettingsStore(settingsStore);
-
-const { hasWorkspace, activeProfile } = useSettingsStore();
 
 const activeTab = ref('general');
 const activeScope = ref<SettingsScope>('global');

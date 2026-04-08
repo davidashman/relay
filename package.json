@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.42",
+  "version": "0.4.43",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -21,10 +21,54 @@
     "configuration": {
       "title": "Claudix",
       "properties": {
-        "claudix.openSettingsPage": {
+        "claudix.openClaudeCodeSettings": {
           "type": "null",
-          "markdownDescription": "**Configure Claudix settings in the dedicated Settings Page**\n\nClick here to open: [**Open Claudix Settings**](command:claudix.openSettings)\n\n---\n\nThe Settings Page provides a comprehensive UI for configuring:\n- Models & Permissions\n- MCP Servers\n- Environment Variables\n- UI Preferences (Fun Spinner, Session Continuation)\n- Profiles & Advanced Options\n\nNote: VSCode settings are deprecated in favor of the Settings Page.",
+          "markdownDescription": "**Configure Claude Code Settings**\n\nClick here to open: [**Open Claude Code Settings**](command:claudix.openSettings)\n\n---\n\nThe Claude Code Settings page allows you to configure:\n- Profiles & Model Selection\n- MCP Servers & Plugins\n- Permissions & Sandbox\n- Memory, Rules & Advanced Options\n\nNote: Claudix extension settings are managed here in VSCode settings.",
           "order": 0
+        },
+        "claudix.defaultPermissionMode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "delegate", "dontAsk"],
+          "default": "default",
+          "enumDescriptions": [
+            "Standard behavior, prompt for dangerous operations",
+            "Automatically accept file edits",
+            "Bypass all permission prompts",
+            "Planning only, no actual execution",
+            "Delegate decisions to another agent",
+            "Never ask for permissions"
+          ],
+          "description": "Default permission mode for new sessions",
+          "order": 1
+        },
+        "claudix.defaultThinkingLevel": {
+          "type": "string",
+          "enum": ["off", "default_on"],
+          "default": "default_on",
+          "enumDescriptions": [
+            "Disable extended thinking",
+            "Enable extended thinking by default"
+          ],
+          "description": "Default extended thinking level for new sessions",
+          "order": 2
+        },
+        "claudix.disableFunSpinner": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable fun rotating verbs while Claude is working. When enabled, shows plain 'Working...' instead of fun verbs like 'Reticulating...', 'Spelunking...', etc.",
+          "order": 3
+        },
+        "claudix.continueLastSession": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically resume the last session when Claudix starts instead of creating a new one",
+          "order": 4
+        },
+        "claudix.configurationDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Claude configuration directory. Leave empty to use CLAUDE_CONFIG_DIR environment variable or default (~/.claude)",
+          "order": 5
         },
         "claudix.environmentVariables": {
           "type": "array",

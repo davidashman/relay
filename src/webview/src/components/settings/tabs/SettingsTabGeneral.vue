@@ -1,44 +1,6 @@
 <template>
-  <SettingsTab title="General">
-    <!-- Startup Defaults Section (Extension Config — Pipeline B) -->
-    <SettingsSection title="Startup Defaults">
-      <SettingsSubSection>
-        <SettingsCell
-          label="Default Permission Mode"
-          description="Permission mode for new sessions"
-        >
-          <template #trailing>
-            <Dropdown
-              :model-value="defaultPermissionMode"
-              @update:model-value="updateExtensionSetting('defaultPermissionMode', $event)"
-              :options="permissionModeOptions"
-              menu-align="right"
-            >
-              <template #trigger="{ selected }">
-                {{ selected?.label || 'Default' }}
-              </template>
-            </Dropdown>
-          </template>
-        </SettingsCell>
-        <SettingsCell
-          label="Extended Thinking"
-          description="Enable extended thinking for new sessions"
-          :divider="true"
-        >
-          <template #trailing>
-            <div class="cursor-settings-cell-switch-container">
-              <Switch
-                :model-value="defaultThinkingLevel === 'default_on'"
-                @update:model-value="updateExtensionSetting('defaultThinkingLevel', $event ? 'default_on' : 'off')"
-                title="Extended Thinking"
-              />
-            </div>
-          </template>
-        </SettingsCell>
-      </SettingsSubSection>
-    </SettingsSection>
-
-    <!-- Language & Output Section (Pipeline A — CC Settings) -->
+  <SettingsTab title="Claude Code Settings">
+    <!-- Language & Output Section -->
     <SettingsSection title="Language & Output">
       <SettingsSubSection>
         <SettingsItem
@@ -134,34 +96,6 @@
          spinnerTipsEnabled, terminalProgressBarEnabled, prefersReducedMotion -->
     <SettingsSection title="UI & Experience">
       <SettingsSubSection>
-        <SettingsCell
-          label="Disable Fun Spinner"
-          description="Show plain 'Working...' instead of fun verbs like 'Reticulating...', 'Spelunking...'"
-        >
-          <template #trailing>
-            <div class="cursor-settings-cell-switch-container">
-              <Switch
-                :model-value="disableFunSpinner"
-                @update:model-value="updateExtensionSetting('disableFunSpinner', $event)"
-                title="Disable Fun Spinner"
-              />
-            </div>
-          </template>
-        </SettingsCell>
-        <SettingsCell
-          label="Continue Last Session"
-          description="Automatically resume the last session when Claudix starts"
-        >
-          <template #trailing>
-            <div class="cursor-settings-cell-switch-container">
-              <Switch
-                :model-value="continueLastSession"
-                @update:model-value="updateExtensionSetting('continueLastSession', $event)"
-                title="Continue Last Session"
-              />
-            </div>
-          </template>
-        </SettingsCell>
         <SettingsItem
           setting-key="showTurnDuration"
           label="Show Turn Duration"
@@ -326,28 +260,13 @@
             />
           </template>
         </SettingsItem>
-        <SettingsCell
-          label="Configuration Directory"
-          description="Path to Claude configuration directory. Leave empty to use default (~/.claude)"
-          :divider="true"
-        >
-          <template #trailing>
-            <TextInput
-              :model-value="configurationDirectory"
-              @change="updateExtensionSetting('configurationDirectory', $event)"
-              placeholder="~/.claude"
-              monospace
-              class="general-input"
-            />
-          </template>
-        </SettingsCell>
       </SettingsSubSection>
     </SettingsSection>
   </SettingsTab>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import SettingsTab from '../SettingsTab.vue';
 import SettingsSection from '../SettingsSection.vue';
 import SettingsSubSection from '../SettingsSubSection.vue';
@@ -358,7 +277,6 @@ import Dropdown from '../../Common/Dropdown.vue';
 import TextInput from '../../Common/TextInput.vue';
 import NumberInput from '../../Common/NumberInput.vue';
 import { useSettingsStore } from '../../../composables/useSettingsStore';
-import { transport } from '../../../core/runtimeTransport';
 
 const { settings, updateSetting } = useSettingsStore();
 
@@ -368,61 +286,7 @@ const updateCleanupPeriod = (value: number) => {
   updateSetting('cleanupPeriodDays', value, 'global');
 };
 
-// ── Extension Config (Pipeline B — ~/.claudix.json) ──
-const defaultPermissionMode = ref('default');
-const defaultThinkingLevel = ref('default_on');
-const disableFunSpinner = ref(false);
-const continueLastSession = ref(false);
-const configurationDirectory = ref('');
-
-onMounted(async () => {
-  try {
-    const response = await transport.getExtensionConfig();
-    if (response?.config) {
-      defaultPermissionMode.value = response.config.defaultPermissionMode || 'default';
-      defaultThinkingLevel.value = response.config.defaultThinkingLevel || 'default_on';
-      disableFunSpinner.value = response.config.disableFunSpinner ?? false;
-      continueLastSession.value = response.config.continueLastSession ?? false;
-      configurationDirectory.value = response.config.configurationDirectory || '';
-    }
-  } catch (e) {
-    console.error('Failed to load extension config:', e);
-  }
-});
-
-async function updateExtensionSetting(key: string, value: any) {
-  try {
-    await transport.updateExtensionConfig(key, value);
-    switch (key) {
-      case 'defaultPermissionMode':
-        defaultPermissionMode.value = value;
-        break;
-      case 'defaultThinkingLevel':
-        defaultThinkingLevel.value = value;
-        break;
-      case 'disableFunSpinner':
-        disableFunSpinner.value = value;
-        break;
-      case 'continueLastSession':
-        continueLastSession.value = value;
-        break;
-      case 'configurationDirectory':
-        configurationDirectory.value = value;
-        break;
-    }
-  } catch (e) {
-    console.error('Failed to update extension config:', e);
-  }
-}
-
 // ── Dropdown Options ──
-
-const permissionModeOptions = [
-  { label: 'Default', value: 'default', description: 'Standard behavior, prompt for dangerous operations' },
-  { label: 'Accept Edits', value: 'acceptEdits', description: 'Automatically accept file edits' },
-  { label: 'Plan Mode', value: 'plan', description: 'Planning only, no actual execution' },
-  { label: "Don't Ask", value: 'dontAsk', description: "Don't prompt, deny if not pre-approved" },
-];
 
 const teammateModeOptions = [
   { label: 'Auto', value: 'auto', description: 'Automatically choose display mode' },
