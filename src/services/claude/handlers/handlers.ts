@@ -101,6 +101,12 @@ export async function handleInit(
     // 获取 thinking level (默认值)
     const thinkingLevel = 'default_on';
 
+    // Read VSCode extension settings
+    const vscodeConfig = vscode.workspace.getConfiguration('claudix');
+    const disableFunSpinner = vscodeConfig.get<boolean>('disableFunSpinner') ?? false;
+    const funSpinner = !disableFunSpinner;
+    const continueLastSession = vscodeConfig.get<boolean>('continueLastSession') ?? false;
+
     return {
         type: "init_response",
         state: {
@@ -109,7 +115,9 @@ export async function handleInit(
             // authStatus,
             modelSetting,
             platform: process.platform,
-            thinkingLevel
+            thinkingLevel,
+            funSpinner,
+            continueLastSession
         }
     };
 }

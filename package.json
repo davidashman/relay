@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.37",
+  "version": "0.4.39",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -26,10 +26,10 @@
           "default": "default",
           "description": "The AI model for Claude Code"
         },
-        "claudix.funSpinner": {
+        "claudix.disableFunSpinner": {
           "type": "boolean",
-          "default": true,
-          "description": "Show fun rotating verbs while Claude is working (e.g. 'Reticulating...', 'Spelunking...'). Disable for a plain 'Working...'"
+          "default": false,
+          "description": "Disable fun rotating verbs while Claude is working. When enabled, shows plain 'Working...' instead of fun verbs like 'Reticulating...', 'Spelunking...', etc."
         },
         "claudix.continueLastSession": {
           "type": "boolean",

@@ -62,6 +62,34 @@ export function activate(context: vscode.ExtensionContext) {
 		// Start message loop
 		claudeAgentService.start();
 
+		// Listen for configuration changes and notify webview
+		const configChangeListener = vscode.workspace.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration('claudix.disableFunSpinner') ||
+			    e.affectsConfiguration('claudix.continueLastSession')) {
+				const config = vscode.workspace.getConfiguration('claudix');
+				const disableFunSpinner = config.get<boolean>('disableFunSpinner') ?? false;
+				const funSpinner = !disableFunSpinner;
+				const continueLastSession = config.get<boolean>('continueLastSession') ?? false;
+
+				// Send update_state message to webview
+				webViewService.postMessage({
+					type: 'request',
+					requestId: `config-update-${Date.now()}`,
+					request: {
+						type: 'update_state',
+						state: {
+							funSpinner,
+							continueLastSession
+						}
+					}
+				});
+
+				logService.info(`Configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}`);
+			}
+		});
+
+		context.subscriptions.push(configChangeListener);
+
 		// Register disposables
 		context.subscriptions.push(webviewProvider);
 		context.subscriptions.push(

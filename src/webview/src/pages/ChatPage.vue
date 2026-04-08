@@ -30,7 +30,7 @@
               />
             <!-- </div> -->
             <div v-if="isBusy" class="spinnerRow">
-              <Spinner :size="16" :permission-mode="permissionMode" />
+              <Spinner :size="16" :permission-mode="permissionMode" :fun-spinner="funSpinner" />
             </div>
             <div v-if="queuedMessage" class="queuedMessageRow">
               <div class="queuedMessageBubble">
@@ -137,6 +137,7 @@
   const permissionRequestsLen = computed(() => permissionRequests.value.length);
   const pendingPermission = computed(() => permissionRequests.value[0] as any);
   const platform = computed(() => runtime.appContext.platform);
+  const funSpinner = computed(() => runtime.appContext.funSpinner);
 
   // 注册命令：permissionMode.toggle（在下方定义函数后再注册）
 
