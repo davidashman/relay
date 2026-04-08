@@ -1,15 +1,5 @@
 <template>
   <div class="cursor-settings-sidebar">
-    <div class="cursor-settings-sidebar-header">
-      <div class="cursor-settings-sidebar-avatar">
-        <img :src="avatarUrl" alt="Avatar" class="cursor-settings-sidebar-avatar-img" />
-      </div>
-      <div class="cursor-settings-sidebar-header-content">
-        <p class="cursor-settings-sidebar-header-email">Claudix@cometix.dev</p>
-        <p class="cursor-settings-sidebar-header-plan">Ultra Plan</p>
-      </div>
-    </div>
-
     <!-- Profile Selector -->
     <div class="px-3">
       <ProfileSelector
@@ -69,8 +59,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import _avatarUrl from '../../assets/claudix-avatar.png';
-const avatarUrl = _avatarUrl;
 import ProfileSelector from './SettingsProfileSelector.vue';
 import Separator from '../Common/Separator.vue';
 import { useSettingsStore } from '../../composables/useSettingsStore';
@@ -153,64 +141,6 @@ const getIconClass = (icon: string): string[] => {
     position: sticky;
     top: 0;
     width: clamp(100px, 25%, 200px);
-}
-
-.cursor-settings-sidebar-header {
-    align-items: center;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    overflow: hidden;
-    width: 100%;
-}
-
-.cursor-settings-sidebar-avatar {
-    align-items: center;
-    /* background: var(--cursor-bg-tertiary); */
-    /* border-radius: 50%; */
-    color: var(--cursor-text-tertiary);
-    display: flex;
-    flex-shrink: 0;
-    height: 28px;
-    justify-content: center;
-    width: 28px;
-}
-
-.cursor-settings-sidebar-avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* border-radius: 50%; */
-}
-
-.cursor-settings-sidebar-header-content {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    font-size: 12px;
-    font-weight: 400;
-    gap: 2px;
-    line-height: 16px;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.cursor-settings-sidebar-header-email {
-    color: var(--cursor-text-primary);
-}
-
-.cursor-settings-sidebar-header-email,
-.cursor-settings-sidebar-header-plan {
-    display: block;
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 100%;
-}
-
-.cursor-settings-sidebar-header-plan {
-    color: var(--cursor-text-secondary);
 }
 
 .cursor-settings-sidebar-cells {
