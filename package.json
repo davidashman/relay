@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.40",
+  "version": "0.4.41",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -21,25 +21,10 @@
     "configuration": {
       "title": "Claudix",
       "properties": {
-        "claudix.selectedModel": {
-          "type": "string",
-          "default": "default",
-          "description": "The AI model for Claude Code"
-        },
-        "claudix.disableFunSpinner": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable fun rotating verbs while Claude is working. When enabled, shows plain 'Working...' instead of fun verbs like 'Reticulating...', 'Spelunking...', etc."
-        },
-        "claudix.continueLastSession": {
-          "type": "boolean",
-          "default": false,
-          "description": "When enabled, Claudix will automatically continue the last session when it starts instead of creating a new one"
-        },
-        "claudix.configurationDirectory": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the Claude configuration directory. When set, takes priority over the CLAUDE_CONFIG_DIR environment variable. Leave empty to use CLAUDE_CONFIG_DIR or the default (~/.claude)."
+        "claudix.openSettingsPage": {
+          "type": "null",
+          "markdownDescription": "**Configure Claudix settings in the dedicated Settings Page**\n\nClick here to open: [**Open Claudix Settings**](command:claudix.openSettings)\n\n---\n\nThe Settings Page provides a comprehensive UI for configuring:\n- Models & Permissions\n- MCP Servers\n- Environment Variables\n- UI Preferences (Fun Spinner, Session Continuation)\n- Profiles & Advanced Options\n\nNote: VSCode settings are deprecated in favor of the Settings Page.",
+          "order": 0
         },
         "claudix.environmentVariables": {
           "type": "array",
