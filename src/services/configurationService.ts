@@ -52,6 +52,11 @@ export interface ExtensionConfig {
   // UI preferences
   systemNotifications: boolean;
   completionSound: boolean;
+  disableFunSpinner: boolean;
+  continueLastSession: boolean;
+
+  // System settings
+  configurationDirectory: string;
 
   // Model management
   customModels: Array<{ id: string; name?: string }>;
@@ -154,6 +159,9 @@ export class ConfigurationService implements IConfigurationService {
     defaultThinkingLevel: 'default_on',
     systemNotifications: false,
     completionSound: true,
+    disableFunSpinner: false,
+    continueLastSession: false,
+    configurationDirectory: '',
     customModels: [],
     disabledModels: []
   };

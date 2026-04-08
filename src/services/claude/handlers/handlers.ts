@@ -98,14 +98,11 @@ export async function handleInit(
     // TODO: 从配置获取 openNewInTab
     const openNewInTab = false;
 
-    // 获取 thinking level (默认值)
-    const thinkingLevel = 'default_on';
-
-    // Read VSCode extension settings
-    const vscodeConfig = vscode.workspace.getConfiguration('claudix');
-    const disableFunSpinner = vscodeConfig.get<boolean>('disableFunSpinner') ?? false;
-    const funSpinner = !disableFunSpinner;
-    const continueLastSession = vscodeConfig.get<boolean>('continueLastSession') ?? false;
+    // Read extension config for UI preferences
+    const extensionConfig = await configService.getExtensionConfig();
+    const thinkingLevel = extensionConfig.defaultThinkingLevel || 'default_on';
+    const funSpinner = !extensionConfig.disableFunSpinner;
+    const continueLastSession = extensionConfig.continueLastSession;
 
     return {
         type: "init_response",
@@ -342,6 +339,22 @@ export async function handleUpdateExtensionConfig(
             value: request.value,
         }
     });
+
+    // If UI state settings changed, also update the state object
+    if (request.key === 'disableFunSpinner' || request.key === 'continueLastSession') {
+        const extensionConfig = await context.configService.getExtensionConfig();
+        context.webViewService.postMessage({
+            type: 'request',
+            requestId: `state-update-${Date.now()}`,
+            request: {
+                type: 'update_state',
+                state: {
+                    funSpinner: !extensionConfig.disableFunSpinner,
+                    continueLastSession: extensionConfig.continueLastSession
+                }
+            }
+        });
+    }
 
     return {
         type: 'update_extension_config_response',

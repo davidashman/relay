@@ -134,6 +134,34 @@
          spinnerTipsEnabled, terminalProgressBarEnabled, prefersReducedMotion -->
     <SettingsSection title="UI & Experience">
       <SettingsSubSection>
+        <SettingsCell
+          label="Disable Fun Spinner"
+          description="Show plain 'Working...' instead of fun verbs like 'Reticulating...', 'Spelunking...'"
+        >
+          <template #trailing>
+            <div class="cursor-settings-cell-switch-container">
+              <Switch
+                :model-value="disableFunSpinner"
+                @update:model-value="updateExtensionSetting('disableFunSpinner', $event)"
+                title="Disable Fun Spinner"
+              />
+            </div>
+          </template>
+        </SettingsCell>
+        <SettingsCell
+          label="Continue Last Session"
+          description="Automatically resume the last session when Claudix starts"
+        >
+          <template #trailing>
+            <div class="cursor-settings-cell-switch-container">
+              <Switch
+                :model-value="continueLastSession"
+                @update:model-value="updateExtensionSetting('continueLastSession', $event)"
+                title="Continue Last Session"
+              />
+            </div>
+          </template>
+        </SettingsCell>
         <SettingsItem
           setting-key="showTurnDuration"
           label="Show Turn Duration"
@@ -298,6 +326,21 @@
             />
           </template>
         </SettingsItem>
+        <SettingsCell
+          label="Configuration Directory"
+          description="Path to Claude configuration directory. Leave empty to use default (~/.claude)"
+          :divider="true"
+        >
+          <template #trailing>
+            <TextInput
+              :model-value="configurationDirectory"
+              @change="updateExtensionSetting('configurationDirectory', $event)"
+              placeholder="~/.claude"
+              monospace
+              class="general-input"
+            />
+          </template>
+        </SettingsCell>
       </SettingsSubSection>
     </SettingsSection>
   </SettingsTab>
@@ -328,6 +371,9 @@ const updateCleanupPeriod = (value: number) => {
 // ── Extension Config (Pipeline B — ~/.claudix.json) ──
 const defaultPermissionMode = ref('default');
 const defaultThinkingLevel = ref('default_on');
+const disableFunSpinner = ref(false);
+const continueLastSession = ref(false);
+const configurationDirectory = ref('');
 
 onMounted(async () => {
   try {
@@ -335,6 +381,9 @@ onMounted(async () => {
     if (response?.config) {
       defaultPermissionMode.value = response.config.defaultPermissionMode || 'default';
       defaultThinkingLevel.value = response.config.defaultThinkingLevel || 'default_on';
+      disableFunSpinner.value = response.config.disableFunSpinner ?? false;
+      continueLastSession.value = response.config.continueLastSession ?? false;
+      configurationDirectory.value = response.config.configurationDirectory || '';
     }
   } catch (e) {
     console.error('Failed to load extension config:', e);
@@ -350,6 +399,15 @@ async function updateExtensionSetting(key: string, value: any) {
         break;
       case 'defaultThinkingLevel':
         defaultThinkingLevel.value = value;
+        break;
+      case 'disableFunSpinner':
+        disableFunSpinner.value = value;
+        break;
+      case 'continueLastSession':
+        continueLastSession.value = value;
+        break;
+      case 'configurationDirectory':
+        configurationDirectory.value = value;
         break;
     }
   } catch (e) {
