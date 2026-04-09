@@ -131,6 +131,17 @@ export class Session {
     effect(() => {
       this.selection(this.context.currentSelection());
     });
+
+    // Initialize modelSelection from config when it becomes available
+    effect(() => {
+      const configModel = this.config()?.modelSetting;
+      const currentModel = this.modelSelection();
+      console.log('[Session] Config model:', configModel, 'Current model:', currentModel);
+      if (configModel && !currentModel) {
+        console.log('[Session] Setting modelSelection to:', configModel);
+        this.modelSelection(configModel);
+      }
+    });
   }
 
   static fromServer(
@@ -256,7 +267,11 @@ export class Session {
     }
 
     if (!this.modelSelection()) {
-      this.modelSelection(connection.config()?.modelSetting);
+      const configModel = connection.config()?.modelSetting;
+      console.log('[Session.launchClaude] Setting modelSelection to config:', configModel);
+      this.modelSelection(configModel);
+    } else {
+      console.log('[Session.launchClaude] modelSelection already set:', this.modelSelection());
     }
 
     if (!this.thinkingLevel()) {

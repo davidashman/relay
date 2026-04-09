@@ -958,4 +958,5 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
         this.logService.info(`[setModel] Set channel ${channelId} to model: ${model}`);
     }
+
 }

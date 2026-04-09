@@ -182,7 +182,6 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Plan, @ for context, / for commands...',
   readonly: false,
   showSearch: false,
-  selectedModel: 'claude-opus-4-5',
   conversationWorking: false,
   attachments: () => [],
   thinkingLevel: 'default_on',

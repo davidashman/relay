@@ -7,7 +7,7 @@
       <div class="model-dropdown">
         <div class="dropdown-content">
           <div class="dropdown-text">
-            <span class="dropdown-label">{{ selectedModelLabel }}</span>
+            <span class="dropdown-label">{{ modelInfo.label }}</span>
           </div>
         </div>
         <div class="codicon codicon-chevron-up chevron-icon text-[12px]!" />
@@ -19,10 +19,10 @@
         :item="{
           id: 'claude-opus-4-6',
           label: 'Opus 4.6',
-          checked: selectedModel === 'claude-opus-4-6',
+          checked: isModelSelected('claude-opus-4-6'),
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-opus-4-6'"
+        :is-selected="isModelSelected('claude-opus-4-6')"
         :index="0"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -30,10 +30,10 @@
         :item="{
           id: 'claude-sonnet-4-6',
           label: 'Sonnet 4.6',
-          checked: selectedModel === 'claude-sonnet-4-6',
+          checked: isModelSelected('claude-sonnet-4-6'),
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-sonnet-4-6'"
+        :is-selected="isModelSelected('claude-sonnet-4-6')"
         :index="1"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -41,10 +41,10 @@
         :item="{
           id: 'claude-haiku-4-5',
           label: 'Haiku 4.5',
-          checked: selectedModel === 'claude-haiku-4-5',
+          checked: isModelSelected('claude-haiku-4-5'),
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-haiku-4-5'"
+        :is-selected="isModelSelected('claude-haiku-4-5')"
         :index="2"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -53,10 +53,10 @@
         :item="{
           id: 'claude-opus-4-5',
           label: 'Opus 4.5',
-          checked: selectedModel === 'claude-opus-4-5',
+          checked: isModelSelected('claude-opus-4-5'),
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-opus-4-5'"
+        :is-selected="isModelSelected('claude-opus-4-5')"
         :index="3"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -64,10 +64,10 @@
         :item="{
           id: 'claude-sonnet-4-5',
           label: 'Sonnet 4.5',
-          checked: selectedModel === 'claude-sonnet-4-5',
+          checked: isModelSelected('claude-sonnet-4-5'),
           type: 'model'
         }"
-        :is-selected="selectedModel === 'claude-sonnet-4-5'"
+        :is-selected="isModelSelected('claude-sonnet-4-5')"
         :index="4"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -87,29 +87,50 @@ interface Emits {
   (e: 'modelSelect', modelId: string): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  selectedModel: 'claude-opus-4-6'
-})
+const props = defineProps<Props>()
 
 const emit = defineEmits<Emits>()
 
-// 计算显示的模型名称
-const selectedModelLabel = computed(() => {
-  switch (props.selectedModel) {
-    case 'claude-opus-4-6':
-      return 'Opus 4.6'
-    case 'claude-sonnet-4-6':
-      return 'Sonnet 4.6'
-    case 'claude-opus-4-5':
-      return 'Opus 4.5'
-    case 'claude-sonnet-4-5':
-      return 'Sonnet 4.5'
-    case 'claude-haiku-4-5':
-      return 'Haiku 4.5'
-    default:
-      return 'Opus 4.6'
+interface ModelInfo {
+  model?: string
+  version?: string
+  modelId?: string
+  label: string
+}
+
+// Regex to parse model names: (?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?
+// Captures: model name (opus/sonnet/haiku) and optional version (X-Y)
+const MODEL_REGEX = /^(?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?$/
+
+const LATEST_MODELS: Record<string, string> = {
+  'haiku': '4-5',
+  'sonnet': '4-6',
+  'opus': '4-6'
+}
+
+const modelInfo = computed((): ModelInfo => {
+  if (!props.selectedModel) return { label: 'Select Model' }
+
+  const match = props.selectedModel.match(MODEL_REGEX)
+  if (!match?.groups) return { label: 'Select Model' }
+
+  const { model, version } = match.groups
+  const finalVersion = version || LATEST_MODELS[model]  
+  const modelLabel = model.charAt(0).toUpperCase() + model.slice(1)
+  const versionLabel = finalVersion.replace('-', '.')
+
+  return { 
+    model: model, 
+    version: versionLabel,
+    modelId: `claude-${model}-${finalVersion}`, 
+    label: `${modelLabel} ${versionLabel}` 
   }
 })
+
+// Helper to check if selected model matches a given model ID (handles short names)
+const isModelSelected = (modelId: string): boolean => {
+  return modelInfo.value.modelId === modelId
+}
 
 function handleModelSelect(item: DropdownItemData, close: () => void) {
   console.log('Selected model:', item)

@@ -88,6 +88,7 @@ export abstract class BaseTransport {
 
   async initialize(): Promise<void> {
     const initResponse = await this.sendRequest<InitResponse>({ type: "init" });
+    console.log('[BaseTransport.init] Received modelSetting from backend:', initResponse.state.modelSetting);
     this.config({
       defaultCwd: initResponse.state.defaultCwd,
       openNewInTab: initResponse.state.openNewInTab ?? false,
@@ -97,6 +98,7 @@ export abstract class BaseTransport {
       funSpinner: initResponse.state.funSpinner ?? true,
       continueLastSession: initResponse.state.continueLastSession ?? false,
     } as InitResponse["state"]);
+    console.log('[BaseTransport.init] Set config with modelSetting:', this.config().modelSetting);
 
     const claudeState = await this.sendRequest<GetClaudeStateResponse>({
       type: "get_claude_state",

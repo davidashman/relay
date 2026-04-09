@@ -117,6 +117,9 @@ export class SessionStore {
 
     this.attachPermissionListener(session);
 
+    // Eagerly establish connection so config becomes available
+    await session.getConnection();
+
     return session;
   }
 
