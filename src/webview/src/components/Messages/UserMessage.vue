@@ -295,8 +295,6 @@ onUnmounted(() => {
 .message-text > div:first-child {
   min-width: 0;
   height: min-content;
-  max-height: 72px;
-  overflow: hidden;
   line-height: 1.5;
   font-family: inherit;
   font-size: 13px;

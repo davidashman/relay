@@ -43,17 +43,17 @@
             </div>
             <div ref="endEl" />
           </template>
-        </div>
 
-        <!-- Jump to latest button -->
-        <Transition name="jump-button">
-          <div v-if="showJumpToLatest" class="jumpToLatestContainer">
-            <button class="jumpToLatestButton" @click="jumpToLatest">
-              <span class="codicon codicon-arrow-down"></span>
-              Jump to Latest
-            </button>
-          </div>
-        </Transition>
+          <!-- Jump to latest button (floating over messages) -->
+          <Transition name="jump-button">
+            <div v-if="showJumpToLatest" class="jumpToLatestContainer">
+              <button class="jumpToLatestButton" @click="jumpToLatest">
+                <span class="codicon codicon-arrow-down"></span>
+                Jump to Latest
+              </button>
+            </div>
+          </Transition>
+        </div>
 
         <div class="inputContainer">
           <AskUserQuestionModal
@@ -299,7 +299,7 @@
   watch(queuedMessages, async (val) => {
     if (val.length > 0) {
       await nextTick();
-      scrollToBottom(); // Only auto-scroll if near bottom
+      scrollToBottom(true); // Force scroll to show queued message
     }
   });
 
@@ -355,6 +355,10 @@
 
       // 发送成功后清空附件
       attachments.value = [];
+
+      // Scroll to bottom when user submits a prompt
+      await nextTick();
+      scrollToBottom(true);
     } catch (e) {
       console.error('[ChatPage] send failed', e);
     }
@@ -625,11 +629,15 @@
 
   /* Jump to latest button */
   .jumpToLatestContainer {
+    position: sticky;
+    bottom: 8px;
+    left: 0;
+    right: 0;
     display: flex;
     justify-content: center;
-    padding: 8px 12px 0;
     pointer-events: none;
     z-index: 100;
+    margin-top: -48px; /* Negative margin to overlay content */
   }
 
   .jumpToLatestButton {
