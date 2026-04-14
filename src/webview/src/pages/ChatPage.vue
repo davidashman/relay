@@ -32,20 +32,39 @@
             <div v-if="isBusy" class="spinnerRow">
               <Spinner :size="16" :permission-mode="permissionMode" :fun-spinner="funSpinner" />
             </div>
-            <div v-if="queuedMessage" class="queuedMessageRow">
-              <div class="queuedMessageBubble">
-                <span class="queuedMessageLabel">Queued</span>
-                <span class="queuedMessageText">{{ queuedMessage }}</span>
-                <button class="queuedMessageCancel" @click="queuedMessage = ''" title="Cancel">✕</button>
+            <div v-if="queuedMessages.length > 0" class="queuedMessagesContainer">
+              <div v-for="(msg, idx) in queuedMessages" :key="idx" class="queuedMessageRow">
+                <div class="queuedMessageBubble">
+                  <span class="queuedMessageLabel">Queued</span>
+                  <span class="queuedMessageText">{{ msg }}</span>
+                  <button class="queuedMessageCancel" @click="queuedMessages.splice(idx, 1)" title="Cancel">✕</button>
+                </div>
               </div>
             </div>
             <div ref="endEl" />
           </template>
         </div>
 
+        <!-- Jump to latest button -->
+        <Transition name="jump-button">
+          <div v-if="showJumpToLatest" class="jumpToLatestContainer">
+            <button class="jumpToLatestButton" @click="jumpToLatest">
+              <span class="codicon codicon-arrow-down"></span>
+              Jump to Latest
+            </button>
+          </div>
+        </Transition>
+
         <div class="inputContainer">
+          <AskUserQuestionModal
+            v-if="pendingPermission && toolContext && pendingPermission.toolName === 'AskUserQuestion'"
+            :request="pendingPermission"
+            :context="toolContext"
+            :on-resolve="handleResolvePermission"
+            data-permission-panel="1"
+          />
           <PermissionRequestModal
-            v-if="pendingPermission && toolContext"
+            v-else-if="pendingPermission && toolContext"
             :request="pendingPermission"
             :context="toolContext"
             :on-resolve="handleResolvePermission"
@@ -87,6 +106,7 @@
   import { convertFileToAttachment } from '../types/attachment';
   import ChatInputBox from '../components/ChatInputBox.vue';
   import PermissionRequestModal from '../components/PermissionRequestModal.vue';
+  import AskUserQuestionModal from '../components/AskUserQuestionModal.vue';
   import Spinner from '../components/Messages/WaitingIndicator.vue';
   import ClaudeWordmark from '../components/ClaudeWordmark.vue';
   import RandomTip from '../components/RandomTip.vue';
@@ -168,18 +188,31 @@
     return `${fmt(totalTokens)} / ${fmt(contextWindow)} context used`;
   });
 
-  // Queued message (submitted while busy)
-  const queuedMessage = ref('');
+  // Queued messages (submitted while busy)
+  const queuedMessages = ref<string[]>([]);
 
   function handleQueueMessage(content: string) {
-    queuedMessage.value = content;
+    queuedMessages.value.push(content);
   }
 
   watch(isBusy, async (busy) => {
-    if (!busy && queuedMessage.value) {
-      const msg = queuedMessage.value;
-      queuedMessage.value = '';
-      await handleSubmit(msg);
+    if (!busy && queuedMessages.value.length > 0) {
+      // Process all queued messages sequentially
+      while (queuedMessages.value.length > 0) {
+        const msg = queuedMessages.value.shift();
+        if (msg) {
+          await handleSubmit(msg);
+          // Wait for this message to complete before sending the next one
+          await new Promise<void>((resolve) => {
+            const unwatch = watch(isBusy, (newBusy) => {
+              if (!newBusy) {
+                unwatch();
+                resolve();
+              }
+            });
+          });
+        }
+      }
     }
   });
 
@@ -194,6 +227,10 @@
   // 记录上次消息数量，用于判断是否需要滚动
   let prevCount = 0;
 
+  // Scroll state management
+  const showJumpToLatest = ref(false);
+  const isUserScrolledUp = ref(false);
+
   function stringify(m: any): string {
     try {
       return JSON.stringify(m ?? {}, null, 2);
@@ -202,22 +239,47 @@
     }
   }
 
-  function scrollToBottom(): void {
+  function isNearBottom(container: HTMLElement, threshold = 100): boolean {
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    return scrollHeight - scrollTop - clientHeight < threshold;
+  }
+
+  function checkScrollPosition(): void {
+    const container = containerEl.value;
+    if (!container) return;
+
+    const nearBottom = isNearBottom(container);
+    isUserScrolledUp.value = !nearBottom;
+    showJumpToLatest.value = !nearBottom;
+  }
+
+  function scrollToBottom(force = false): void {
     const end = endEl.value;
-    if (!end) return;
-    requestAnimationFrame(() => {
-      try {
-        end.scrollIntoView({ block: 'end' });
-      } catch {}
-    });
+    const container = containerEl.value;
+    if (!end || !container) return;
+
+    // Only auto-scroll if user is near bottom or force is true
+    if (force || !isUserScrolledUp.value) {
+      requestAnimationFrame(() => {
+        try {
+          end.scrollIntoView({ block: 'end' });
+          showJumpToLatest.value = false;
+          isUserScrolledUp.value = false;
+        } catch {}
+      });
+    }
+  }
+
+  function jumpToLatest(): void {
+    scrollToBottom(true);
   }
 
   watch(session, async () => {
     // 切换会话：复位并滚动底部
     prevCount = 0;
-    queuedMessage.value = '';
+    queuedMessages.value = [];
     await nextTick();
-    scrollToBottom();
+    scrollToBottom(true); // Force scroll on session change
   });
 
   // moved above
@@ -229,22 +291,22 @@
       prevCount = len;
       if (increased) {
         await nextTick();
-        scrollToBottom();
+        scrollToBottom(); // Only auto-scroll if near bottom
       }
     }
   );
 
-  watch(queuedMessage, async (val) => {
-    if (val) {
+  watch(queuedMessages, async (val) => {
+    if (val.length > 0) {
       await nextTick();
-      scrollToBottom();
+      scrollToBottom(); // Only auto-scroll if near bottom
     }
   });
 
   watch(permissionRequestsLen, async (newLen) => {
     // 有权限请求出现时也确保滚动到底部
     await nextTick();
-    scrollToBottom();
+    scrollToBottom(); // Only auto-scroll if near bottom
     // Restore focus to input after last permission modal is dismissed
     if (newLen === 0) {
       chatInputRef.value?.focus();
@@ -254,12 +316,24 @@
   onMounted(async () => {
     prevCount = messages.value.length;
     await nextTick();
-    scrollToBottom();
+    scrollToBottom(true); // Force scroll on mount
     chatInputRef.value?.focus();
+
+    // Add scroll listener to track user scroll position
+    const container = containerEl.value;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+    }
   });
 
   onUnmounted(() => {
     try { unregisterToggle?.(); } catch {}
+
+    // Remove scroll listener
+    const container = containerEl.value;
+    if (container) {
+      container.removeEventListener('scroll', checkScrollPosition);
+    }
   });
 
   // ChatInput 事件处理
@@ -399,6 +473,7 @@
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    isolation: isolate; /* Create stacking context */
   }
 
   /* Chat 容器与消息滚动容器（对齐 React） */
@@ -489,6 +564,12 @@
     margin-bottom: 24px;
   }
 
+  .queuedMessagesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .queuedMessageRow {
     padding: 4px 12px 8px;
   }
@@ -540,5 +621,59 @@
     opacity: 1;
     background: var(--vscode-button-hoverBackground);
     border-color: var(--vscode-focusBorder);
+  }
+
+  /* Jump to latest button */
+  .jumpToLatestContainer {
+    display: flex;
+    justify-content: center;
+    padding: 8px 12px 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .jumpToLatestButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .jumpToLatestButton:hover {
+    background: var(--vscode-button-hoverBackground);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  }
+
+  .jumpToLatestButton .codicon {
+    font-size: 14px;
+  }
+
+  /* Transition animations */
+  .jump-button-enter-active,
+  .jump-button-leave-active {
+    transition: all 0.25s ease;
+  }
+
+  .jump-button-enter-from,
+  .jump-button-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .jump-button-enter-to,
+  .jump-button-leave-from {
+    opacity: 1;
+    transform: translateY(0);
   }
 </style>

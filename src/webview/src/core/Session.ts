@@ -142,6 +142,16 @@ export class Session {
         this.modelSelection(configModel);
       }
     });
+
+    // Initialize permissionMode from config when it becomes available
+    effect(() => {
+      const configMode = this.config()?.permissionMode;
+      const currentMode = this.permissionMode();
+      if (configMode && currentMode === 'default') {
+        console.log('[Session] Setting permissionMode from config to:', configMode);
+        this.permissionMode(configMode as PermissionMode);
+      }
+    });
   }
 
   static fromServer(

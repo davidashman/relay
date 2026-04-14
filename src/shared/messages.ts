@@ -145,7 +145,8 @@ export interface InitResponse {
         // authStatus: null | { authenticated: boolean };
         modelSetting: string;
         platform: string;
-        thinkingLevel?: string;        // Thinking 等级（off | default_on）
+        thinkingLevel?: string;        // Thinking 等级（off | on | extended）
+        permissionMode?: string;       // Permission mode (default | acceptEdits | plan)
         funSpinner?: boolean;          // Show fun rotating verbs in spinner
         continueLastSession?: boolean; // Continue the last session on startup
     };

@@ -65,11 +65,15 @@ export function activate(context: vscode.ExtensionContext) {
 		// Listen for VSCode configuration changes and notify webview
 		const configChangeListener = vscode.workspace.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('claudix.disableFunSpinner') ||
-			    e.affectsConfiguration('claudix.continueLastSession')) {
+			    e.affectsConfiguration('claudix.continueLastSession') ||
+			    e.affectsConfiguration('claudix.defaultPermissionMode') ||
+			    e.affectsConfiguration('claudix.defaultThinkingLevel')) {
 				const config = vscode.workspace.getConfiguration('claudix');
 				const disableFunSpinner = config.get<boolean>('disableFunSpinner') ?? false;
 				const funSpinner = !disableFunSpinner;
 				const continueLastSession = config.get<boolean>('continueLastSession') ?? false;
+				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
+				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
 
 				// Send update_state message to webview
 				webViewService.postMessage({
@@ -79,12 +83,14 @@ export function activate(context: vscode.ExtensionContext) {
 						type: 'update_state',
 						state: {
 							funSpinner,
-							continueLastSession
+							continueLastSession,
+							permissionMode,
+							thinkingLevel
 						}
 					}
 				});
 
-				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}`);
+				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}, permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}`);
 			}
 		});
 

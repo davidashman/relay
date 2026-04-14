@@ -16,6 +16,7 @@ import type { ContentBlockWrapper } from '../../../models/ContentBlockWrapper';
 import type { ToolContext } from '../../../types/tool';
 
 // 导入所有工具组件
+import AskUserQuestionTool from './tools/AskUserQuestion.vue';
 import ReadTool from './tools/Read.vue';
 import WriteTool from './tools/Write.vue';
 import EditTool from './tools/Edit.vue';
@@ -71,6 +72,8 @@ const toolComponent = computed(() => {
   }
 
   switch (name) {
+    case 'AskUserQuestion':
+      return AskUserQuestionTool;
     case 'Read':
       return ReadTool;
     case 'Write':

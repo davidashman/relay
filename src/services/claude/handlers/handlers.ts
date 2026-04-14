@@ -100,11 +100,13 @@ export async function handleInit(
 
     // Read VSCode extension settings
     const vscodeConfig = vscode.workspace.getConfiguration('claudix');
-    const defaultThinkingLevel = vscodeConfig.get<string>('defaultThinkingLevel') ?? 'default_on';
+    const defaultThinkingLevel = vscodeConfig.get<string>('defaultThinkingLevel') ?? 'on';
+    const defaultPermissionMode = vscodeConfig.get<string>('defaultPermissionMode') ?? 'default';
     const disableFunSpinner = vscodeConfig.get<boolean>('disableFunSpinner') ?? false;
     const continueLastSession = vscodeConfig.get<boolean>('continueLastSession') ?? false;
 
     const thinkingLevel = defaultThinkingLevel;
+    const permissionMode = defaultPermissionMode;
     const funSpinner = !disableFunSpinner;
 
     return {
@@ -116,6 +118,7 @@ export async function handleInit(
             modelSetting,
             platform: process.platform,
             thinkingLevel,
+            permissionMode,
             funSpinner,
             continueLastSession
         }
@@ -361,8 +364,16 @@ export async function handleOpenFile(
     const { filePath, location } = request;
 
     try {
-        const searchResults = await fileSystemService.findFiles(filePath, cwd);
-        const resolvedPath = await fileSystemService.resolveExistingPath(filePath, cwd, searchResults);
+        // Resolve the path directly without fuzzy search
+        // This ensures we open the exact file that was referenced, not a similar one
+        const resolvedPath = fileSystemService.resolveFilePath(filePath, cwd);
+
+        // Check if the path exists
+        const exists = await fileSystemService.pathExists(resolvedPath);
+        if (!exists) {
+            throw new Error(`File not found: ${filePath}`);
+        }
+
         const stat = await fs.promises.stat(resolvedPath);
         const uri = vscode.Uri.file(resolvedPath);
 
@@ -435,6 +446,18 @@ export async function handleShowNotification(
     context: HandlerContext
 ): Promise<ShowNotificationResponse> {
     const { message, severity, buttons = [] } = request;
+
+    // Check if notifications are enabled
+    const config = vscode.workspace.getConfiguration('claudix');
+    const showNotifications = config.get<boolean>('showNotifications', true);
+
+    if (!showNotifications) {
+        // Return undefined to indicate no button was clicked
+        return {
+            type: "show_notification_response",
+            buttonValue: undefined
+        };
+    }
 
     let result: string | undefined;
     switch (severity) {

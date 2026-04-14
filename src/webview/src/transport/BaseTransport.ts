@@ -95,6 +95,7 @@ export abstract class BaseTransport {
       modelSetting: initResponse.state.modelSetting,
       platform: initResponse.state.platform,
       thinkingLevel: initResponse.state.thinkingLevel,
+      permissionMode: initResponse.state.permissionMode,
       funSpinner: initResponse.state.funSpinner ?? true,
       continueLastSession: initResponse.state.continueLastSession ?? false,
     } as InitResponse["state"]);

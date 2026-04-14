@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.58",
+  "version": "0.4.68",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -28,26 +28,25 @@
         },
         "claudix.defaultPermissionMode": {
           "type": "string",
-          "enum": ["default", "acceptEdits", "bypassPermissions", "plan", "delegate", "dontAsk"],
+          "enum": ["default", "acceptEdits", "plan"],
           "default": "default",
+          "enumItemLabels": ["Default", "Agent", "Plan"],
           "enumDescriptions": [
-            "Standard behavior, prompt for dangerous operations",
-            "Automatically accept file edits",
-            "Bypass all permission prompts",
-            "Planning only, no actual execution",
-            "Delegate decisions to another agent",
-            "Never ask for permissions"
+            "Prompt for permission on first use of each operation",
+            "Automatically accept file edits and common operations",
+            "Read-only mode, Claude can explore but not modify files"
           ],
           "description": "Default permission mode for new sessions",
           "order": 1
         },
         "claudix.defaultThinkingLevel": {
           "type": "string",
-          "enum": ["off", "default_on"],
-          "default": "default_on",
-          "enumDescriptions": [
-            "Disable extended thinking",
-            "Enable extended thinking by default"
+          "enum": ["off", "on", "extended"],
+          "default": "on",
+          "enumItemLabels": [
+            "Off",
+            "On",
+            "Extended"
           ],
           "description": "Default extended thinking level for new sessions",
           "order": 2
@@ -64,11 +63,17 @@
           "description": "Automatically resume the last session when Claudix starts instead of creating a new one",
           "order": 4
         },
+        "claudix.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications and messages from Claudix",
+          "order": 5
+        },
         "claudix.configurationDirectory": {
           "type": "string",
           "default": "",
           "description": "Path to the Claude configuration directory. Leave empty to use CLAUDE_CONFIG_DIR environment variable or default (~/.claude)",
-          "order": 5
+          "order": 6
         },
         "claudix.environmentVariables": {
           "type": "array",

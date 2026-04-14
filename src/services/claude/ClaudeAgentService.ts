@@ -216,7 +216,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
     private handlerContext: HandlerContext;
 
     // Thinking Level 配置
-    private thinkingLevel: string = 'default_on';
+    private thinkingLevel: string = 'on';
 
     constructor(
         @ILogService private readonly logService: ILogService,
