@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.84",
+  "version": "0.4.85",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -34,7 +34,11 @@
             "plan"
           ],
           "default": "default",
-          "enumItemLabels": ["Default", "Agent", "Plan"],
+          "enumItemLabels": [
+            "Default",
+            "Agent",
+            "Plan"
+          ],
           "enumDescriptions": [
             "Prompt for permission on first use of each operation",
             "Automatically accept file edits and common operations",
@@ -45,7 +49,11 @@
         },
         "claudix.defaultThinkingLevel": {
           "type": "string",
-          "enum": ["off", "on", "extended"],
+          "enum": [
+            "off",
+            "on",
+            "extended"
+          ],
           "default": "on",
           "enumItemLabels": [
             "Off",
