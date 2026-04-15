@@ -4,6 +4,7 @@
     tool-name="Edit"
     :tool-result="toolResult"
     :default-expanded="shouldExpand"
+    :always-expanded="true"
     :class="{ 'has-diff-view': hasDiffView }"
   >
     <template #main>

@@ -3,6 +3,7 @@
     tool-icon="codicon-notebook"
     :tool-result="toolResult"
     :default-expanded="shouldExpand"
+    :always-expanded="true"
   >
     <template #main>
       <span class="tool-label">NotebookEdit</span>

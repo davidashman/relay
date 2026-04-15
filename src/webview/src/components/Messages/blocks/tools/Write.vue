@@ -4,6 +4,7 @@
     tool-name="Write"
     :tool-result="toolResult"
     :default-expanded="shouldExpand"
+    :always-expanded="true"
     :class="{ 'has-content-view': hasContentView }"
   >
     <template #main>

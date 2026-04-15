@@ -78,6 +78,7 @@ interface Props {
   permissionState?: string;
   defaultExpanded?: boolean;
   isCustomLayout?: boolean;
+  alwaysExpanded?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -85,6 +86,7 @@ const props = withDefaults(defineProps<Props>(), {
   isCustomLayout: false,
   toolIcon: 'codicon-tools',
   toolName: 'Tool',
+  alwaysExpanded: false,
 });
 
 defineEmits<{
@@ -121,6 +123,8 @@ const isExpanded = computed({
     if (props.permissionState === 'pending') return true;
     // Errors always expand regardless of setting
     if (props.toolResult?.is_error) return true;
+    // File-modifying tools always expand when they have content to show
+    if (props.alwaysExpanded && props.defaultExpanded) return true;
     // Respect the global expandToolOutput setting; fall back to defaultExpanded
     const globalExpand = runtime?.appContext.expandToolOutput ?? true;
     return globalExpand && props.defaultExpanded;
