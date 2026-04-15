@@ -34,9 +34,11 @@ const messageClasses = computed(() => {
 
   // content 总是数组，检查是否包含 tool_use
   if (Array.isArray(content)) {
-    const hasToolUse = content.some(wrapper => wrapper.content.type === 'tool_use');
-    // 只有纯文本消息（没有 tool_use）才显示圆点
-    return hasToolUse ? [] : ['prefix'];
+    // Show dot only for pure-text messages; suppress for tool_use and thinking blocks
+    const hasNonTextBlock = content.some(wrapper =>
+      wrapper.content.type === 'tool_use' || wrapper.content.type === 'thinking'
+    );
+    return hasNonTextBlock ? [] : ['prefix'];
   }
 
   return [];

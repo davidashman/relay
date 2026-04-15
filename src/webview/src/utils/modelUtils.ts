@@ -9,9 +9,9 @@ export const LATEST_MODELS: Record<string, string> = {
   'opus': '4-6'
 };
 
-// Regex to parse model names: (?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?
+// Regex to parse model names, including date-suffixed full IDs like claude-sonnet-4-5-20250929
 // Captures: model name (opus/sonnet/haiku) and optional version (X-Y)
-export const MODEL_REGEX = /^(?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?$/;
+export const MODEL_REGEX = /^(?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?(?:-\d{8})?$/;
 
 export interface ModelInfo {
   model?: string;

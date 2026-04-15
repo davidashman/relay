@@ -175,7 +175,10 @@ const selectedModelLabel = computed(() => {
   const custom = customModels.value.find((m) => m.id === props.selectedModel)
   if (custom) return custom.name || custom.id
 
-  // Last resort: show raw id
+  // Fallback: parse the model ID to extract a readable label (handles date-suffixed IDs)
+  const parsed = parseModelInfo(props.selectedModel)
+  if (parsed.model) return parsed.label
+
   return props.selectedModel || 'Select model'
 })
 
