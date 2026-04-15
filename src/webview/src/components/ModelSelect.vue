@@ -76,9 +76,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { DropdownTrigger, DropdownItem, DropdownSeparator, type DropdownItemData } from './Dropdown'
 import { parseModelInfo, type ModelInfo } from '../utils/modelUtils'
+import { transport } from '../core/runtimeTransport'
 
 interface Props {
   selectedModel?: string
@@ -96,10 +97,87 @@ const modelInfo = computed((): ModelInfo => {
   return parseModelInfo(props.selectedModel)
 })
 
-// Helper to check if selected model matches a given model ID (handles short names)
-const isModelSelected = (modelId: string): boolean => {
-  return modelInfo.value.modelId === modelId
-}
+const customModels = ref<Array<{ id: string; name?: string }>>([])
+const disabledModels = ref<string[]>([])
+const sdkModels = ref<Array<{ value: string; displayName: string }>>([])
+
+// ── Listen for config changes from settings page ──
+
+const unsubConfigChanged = transport.extensionConfigChanged.add(({ key, value }) => {
+  if (key === 'customModels') {
+    customModels.value = value ?? []
+  } else if (key === 'disabledModels') {
+    disabledModels.value = value ?? []
+  }
+})
+
+onUnmounted(() => {
+  unsubConfigChanged()
+})
+
+// ── Static aliases ──
+
+const MODEL_ALIASES: Array<{ id: string; label: string }> = [
+  { id: 'default', label: 'Default' },
+  { id: 'sonnet', label: 'Sonnet' },
+  { id: 'opus', label: 'Opus' },
+  { id: 'haiku', label: 'Haiku' },
+]
+
+// ── Available models: aliases + SDK + custom, minus disabled ──
+
+const availableModels = computed(() => {
+  const disabledSet = new Set(disabledModels.value)
+  const seenIds = new Set<string>()
+  const result: Array<{ id: string; label: string }> = []
+
+  // 1. Static aliases
+  for (const alias of MODEL_ALIASES) {
+    if (!disabledSet.has(alias.id)) {
+      result.push(alias)
+      seenIds.add(alias.id)
+    }
+  }
+
+  // 2. SDK probed models
+  for (const m of sdkModels.value) {
+    if (!seenIds.has(m.value) && !disabledSet.has(m.value)) {
+      const cleanLabel = m.displayName.replace(/\s*\(recommended\)\s*$/i, '')
+      result.push({ id: m.value, label: cleanLabel })
+      seenIds.add(m.value)
+    }
+  }
+
+  // 3. Custom models
+  for (const cm of customModels.value) {
+    if (!seenIds.has(cm.id) && !disabledSet.has(cm.id)) {
+      result.push({ id: cm.id, label: cm.name || cm.id })
+      seenIds.add(cm.id)
+    }
+  }
+
+  return result
+})
+
+// ── Label for trigger display ──
+
+const selectedModelLabel = computed(() => {
+  const found = availableModels.value.find((m) => m.id === props.selectedModel)
+  if (found) return found.label
+
+  // Fallback: check all sources even if disabled
+  const alias = MODEL_ALIASES.find((a) => a.id === props.selectedModel)
+  if (alias) return alias.label
+
+  const sdk = sdkModels.value.find((m) => m.value === props.selectedModel)
+  if (sdk) return sdk.displayName.replace(/\s*\(recommended\)\s*$/i, '')
+
+  const custom = customModels.value.find((m) => m.id === props.selectedModel)
+  if (custom) return custom.name || custom.id
+
+  // Last resort: show raw id
+  return props.selectedModel || 'Select model'
+})
 
 function handleModelSelect(item: DropdownItemData, close: () => void) {
   console.log('Selected model:', item)
