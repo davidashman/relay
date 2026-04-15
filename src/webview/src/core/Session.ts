@@ -5,6 +5,7 @@ import type { ModelOption } from '../../../shared/messages';
 import type { SessionSummary } from './types';
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
 import { processAndAttachMessage /*, mergeConsecutiveReadMessages */ } from '../utils/messageUtils';
+import { normalizeModelId } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
 import type { Message } from '../models/Message';
 
@@ -138,8 +139,9 @@ export class Session {
       const currentModel = this.modelSelection();
       console.log('[Session] Config model:', configModel, 'Current model:', currentModel);
       if (configModel && !currentModel) {
-        console.log('[Session] Setting modelSelection to:', configModel);
-        this.modelSelection(configModel);
+        const normalizedModel = normalizeModelId(configModel);
+        console.log('[Session] Setting modelSelection to:', normalizedModel, '(normalized from:', configModel, ')');
+        this.modelSelection(normalizedModel);
       }
     });
 
@@ -278,8 +280,10 @@ export class Session {
 
     if (!this.modelSelection()) {
       const configModel = connection.config()?.modelSetting;
-      console.log('[Session.launchClaude] Setting modelSelection to config:', configModel);
-      this.modelSelection(configModel);
+      // Normalize model aliases to full model IDs
+      const normalizedModel = normalizeModelId(configModel);
+      console.log('[Session.launchClaude] Setting modelSelection from config:', configModel, '-> normalized:', normalizedModel);
+      this.modelSelection(normalizedModel);
     } else {
       console.log('[Session.launchClaude] modelSelection already set:', this.modelSelection());
     }

@@ -160,4 +160,9 @@ export class AppContext {
     const connection = this.connectionManager.connection();
     return connection?.config()?.funSpinner ?? true;
   }
+
+  get expandToolOutput(): boolean {
+    const connection = this.connectionManager.connection();
+    return connection?.config()?.expandToolOutput ?? true;
+  }
 }

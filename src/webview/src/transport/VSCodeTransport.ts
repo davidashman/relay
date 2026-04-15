@@ -29,6 +29,7 @@ export class VSCodeTransport extends BaseTransport {
     constructor(atMentionEvents: EventEmitter<string>, selectionChangedEvents: EventEmitter<any>) {
         super(atMentionEvents, selectionChangedEvents);
 
+        // Acquire VS Code API (only called once per webview by this transport singleton)
         this.api = (window as any).acquireVsCodeApi();
 
         window.addEventListener('message', this.handleMessage);

@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { DropdownTrigger, DropdownItem, DropdownSeparator, type DropdownItemData } from './Dropdown'
+import { parseModelInfo, type ModelInfo } from '../utils/modelUtils'
 
 interface Props {
   selectedModel?: string
@@ -91,40 +92,8 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<Emits>()
 
-interface ModelInfo {
-  model?: string
-  version?: string
-  modelId?: string
-  label: string
-}
-
-// Regex to parse model names: (?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?
-// Captures: model name (opus/sonnet/haiku) and optional version (X-Y)
-const MODEL_REGEX = /^(?:claude-)?(?<model>opus|sonnet|haiku)(?:-(?<version>\d-\d))?$/
-
-const LATEST_MODELS: Record<string, string> = {
-  'haiku': '4-5',
-  'sonnet': '4-6',
-  'opus': '4-6'
-}
-
 const modelInfo = computed((): ModelInfo => {
-  if (!props.selectedModel) return { label: 'Select Model' }
-
-  const match = props.selectedModel.match(MODEL_REGEX)
-  if (!match?.groups) return { label: 'Select Model' }
-
-  const { model, version } = match.groups
-  const finalVersion = version || LATEST_MODELS[model]  
-  const modelLabel = model.charAt(0).toUpperCase() + model.slice(1)
-  const versionLabel = finalVersion.replace('-', '.')
-
-  return { 
-    model: model, 
-    version: versionLabel,
-    modelId: `claude-${model}-${finalVersion}`, 
-    label: `${modelLabel} ${versionLabel}` 
-  }
+  return parseModelInfo(props.selectedModel)
 })
 
 // Helper to check if selected model matches a given model ID (handles short names)

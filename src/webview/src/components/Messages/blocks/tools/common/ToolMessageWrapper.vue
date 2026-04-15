@@ -66,9 +66,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useSlots } from 'vue';
+import { ref, computed, useSlots, inject, watch } from 'vue';
 import Tooltip from '@/components/Common/Tooltip.vue';
 import ToolStatusIndicator from './ToolStatusIndicator.vue';
+import { RuntimeKey } from '@/composables/runtimeContext';
 
 interface Props {
   toolIcon?: string;
@@ -91,6 +92,7 @@ defineEmits<{
   deny: [];
 }>();
 
+const runtime = inject(RuntimeKey);
 const slots = useSlots();
 
 // 检测是否有展开内容
@@ -102,14 +104,26 @@ const hasExpandableContent = computed(() => {
 const userToggled = ref(false);
 const userToggledState = ref(false);
 
+// When permission resolves, reset user toggle so setting takes effect (collapses)
+watch(() => props.permissionState, (newState, oldState) => {
+  if (oldState === 'pending' && newState !== 'pending') {
+    userToggled.value = false;
+  }
+});
+
 const isExpanded = computed({
   get: () => {
     // 优先使用用户手动切换的状态
     if (userToggled.value) {
       return userToggledState.value;
     }
-    // 否则根据 defaultExpanded 或错误状态决定
-    return props.defaultExpanded || !!props.toolResult?.is_error;
+    // Permission pending: always expand so user can see what to approve
+    if (props.permissionState === 'pending') return true;
+    // Errors always expand regardless of setting
+    if (props.toolResult?.is_error) return true;
+    // Respect the global expandToolOutput setting; fall back to defaultExpanded
+    const globalExpand = runtime?.appContext.expandToolOutput ?? true;
+    return globalExpand && props.defaultExpanded;
   },
   set: (value) => {
     userToggled.value = true;

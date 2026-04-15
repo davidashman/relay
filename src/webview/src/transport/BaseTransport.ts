@@ -67,6 +67,13 @@ export abstract class BaseTransport {
 
   protected abstract send(message: WebViewToExtensionMessage): void;
 
+  /**
+   * Public method to send messages directly (e.g., for focus tracking)
+   */
+  sendMessage(message: WebViewToExtensionMessage): void {
+    this.send(message);
+  }
+
   async ensureInitialized(): Promise<void> {
     if (this.initialized) {
       return;
@@ -98,6 +105,7 @@ export abstract class BaseTransport {
       permissionMode: initResponse.state.permissionMode,
       funSpinner: initResponse.state.funSpinner ?? true,
       continueLastSession: initResponse.state.continueLastSession ?? false,
+      expandToolOutput: initResponse.state.expandToolOutput ?? true,
     } as InitResponse["state"]);
     console.log('[BaseTransport.init] Set config with modelSetting:', this.config().modelSetting);
 

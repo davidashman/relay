@@ -149,6 +149,7 @@ export interface InitResponse {
         permissionMode?: string;       // Permission mode (default | acceptEdits | plan)
         funSpinner?: boolean;          // Show fun rotating verbs in spinner
         continueLastSession?: boolean; // Continue the last session on startup
+        expandToolOutput?: boolean;    // Expand tool output by default
     };
 }
 
@@ -741,6 +742,14 @@ export interface UpdateStateRequest {
     config?: GetClaudeStateResponse['config'];
 }
 
+/**
+ * 焦点状态变化（WebView → Extension）
+ */
+export interface FocusChangedMessage extends BaseMessage {
+    type: "focus_changed";
+    focused: boolean;
+}
+
 // ============================================================================
 // 联合类型
 // ============================================================================
@@ -755,7 +764,8 @@ export type WebViewToExtensionMessage =
     | CloseChannelMessage
     | RequestMessage
     | ResponseMessage
-    | CancelRequestMessage;
+    | CancelRequestMessage
+    | FocusChangedMessage;
 
 /**
  * 所有 Extension → WebView 的消息

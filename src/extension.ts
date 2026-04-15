@@ -37,6 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
 		const claudeAgentService = accessor.get(IClaudeAgentService);
 		const subscriptions = context.subscriptions;
 
+		// Initialize claudixFocused context (will be updated by webview focus events)
+		vscode.commands.executeCommand('setContext', 'claudixFocused', false);
+
 		// Register WebView View Provider
 		const webviewProvider = vscode.window.registerWebviewViewProvider(
 			'claudix.chatView',
@@ -50,6 +53,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// Connect WebView messages to Claude Agent Service
 		webViewService.setMessageHandler((message) => {
+			// Handle focus_changed messages directly (for keyboard shortcuts)
+			if (message.type === 'focus_changed') {
+				const focused = (message as any).focused;
+				vscode.commands.executeCommand('setContext', 'claudixFocused', focused);
+				logService.info(`[Focus] Claudix focused: ${focused}`);
+				return;
+			}
+
+			// Forward all other messages to Claude Agent Service
 			claudeAgentService.fromClient(message);
 		});
 
@@ -67,13 +79,15 @@ export function activate(context: vscode.ExtensionContext) {
 			if (e.affectsConfiguration('claudix.disableFunSpinner') ||
 			    e.affectsConfiguration('claudix.continueLastSession') ||
 			    e.affectsConfiguration('claudix.defaultPermissionMode') ||
-			    e.affectsConfiguration('claudix.defaultThinkingLevel')) {
+			    e.affectsConfiguration('claudix.defaultThinkingLevel') ||
+			    e.affectsConfiguration('claudix.expandToolOutput')) {
 				const config = vscode.workspace.getConfiguration('claudix');
 				const disableFunSpinner = config.get<boolean>('disableFunSpinner') ?? false;
 				const funSpinner = !disableFunSpinner;
 				const continueLastSession = config.get<boolean>('continueLastSession') ?? false;
 				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
 				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
+				const expandToolOutput = config.get<boolean>('expandToolOutput') ?? true;
 
 				// Send update_state message to webview
 				webViewService.postMessage({
@@ -85,12 +99,13 @@ export function activate(context: vscode.ExtensionContext) {
 							funSpinner,
 							continueLastSession,
 							permissionMode,
-							thinkingLevel
+							thinkingLevel,
+							expandToolOutput
 						}
 					}
 				});
 
-				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}, permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}`);
+				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}, permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}`);
 			}
 		});
 

@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.76",
+  "version": "0.4.84",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -34,11 +34,7 @@
             "plan"
           ],
           "default": "default",
-          "enumItemLabels": [
-            "Default",
-            "Agent",
-            "Plan"
-          ],
+          "enumItemLabels": ["Default", "Agent", "Plan"],
           "enumDescriptions": [
             "Prompt for permission on first use of each operation",
             "Automatically accept file edits and common operations",
@@ -49,11 +45,7 @@
         },
         "claudix.defaultThinkingLevel": {
           "type": "string",
-          "enum": [
-            "off",
-            "on",
-            "extended"
-          ],
+          "enum": ["off", "on", "extended"],
           "default": "on",
           "enumItemLabels": [
             "Off",
@@ -81,11 +73,23 @@
           "description": "Show notifications and messages from Claudix",
           "order": 5
         },
+        "claudix.enableContextModeTools": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable context-mode tools (mdx__context-mode__**) for Claude SDK",
+          "order": 6
+        },
+        "claudix.expandToolOutput": {
+          "type": "boolean",
+          "default": true,
+          "description": "Expand tool output by default. When disabled, tool results start collapsed and must be clicked to expand.",
+          "order": 7
+        },
         "claudix.configurationDirectory": {
           "type": "string",
           "default": "",
           "description": "Path to the Claude configuration directory. Leave empty to use CLAUDE_CONFIG_DIR environment variable or default (~/.claude)",
-          "order": 6
+          "order": 7
         },
         "claudix.environmentVariables": {
           "type": "array",

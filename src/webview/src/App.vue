@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, provide } from 'vue';
+import { ref, onMounted, onUnmounted, provide } from 'vue';
 import { Motion } from 'motion-v';
 import SessionsPage from './pages/SessionsPage.vue';
 import ChatPage from './pages/ChatPage.vue';
@@ -50,6 +50,7 @@ import TabBar from './components/TabBar.vue';
 import './styles/claude-theme.css';
 import { useRuntime } from './composables/useRuntime';
 import { RuntimeKey } from './composables/runtimeContext';
+import { transport } from './core/runtimeTransport';
 // import IconTestPage from './pages/IconTestPage.vue';
 
 type PageName = 'sessions' | 'chat' | 'settings';
@@ -67,12 +68,41 @@ if (runtime) {
   provide(RuntimeKey, runtime);
 }
 
+// Send focus state to extension via transport
+function sendFocusState(focused: boolean) {
+  transport.sendMessage({
+    type: 'focus_changed',
+    focused
+  });
+}
+
+// Focus/blur event handlers
+function handleFocus() {
+  sendFocusState(true);
+}
+
+function handleBlur() {
+  sendFocusState(false);
+}
+
 onMounted(() => {
   if (runtime) {
     console.log('[App] runtime initialized', runtime);
   } else {
     console.log('[App] runtime not initialized for page', initialPage);
   }
+
+  // Set initial focus state and listen for focus changes
+  window.addEventListener('focus', handleFocus);
+  window.addEventListener('blur', handleBlur);
+
+  // Send initial focus state
+  sendFocusState(document.hasFocus());
+});
+
+onUnmounted(() => {
+  window.removeEventListener('focus', handleFocus);
+  window.removeEventListener('blur', handleBlur);
 });
 
 function switchToPage(page: 'sessions' | 'chat') {
