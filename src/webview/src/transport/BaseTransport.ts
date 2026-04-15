@@ -368,7 +368,7 @@ export abstract class BaseTransport {
             break;
           }
           case "request":
-            await this.processRequest(message as RequestMessage);
+            void this.processRequest(message as RequestMessage);
             break;
           case "response": {
             const handler = this.outstandingRequests.get(message.requestId);
