@@ -105,6 +105,7 @@ export async function handleInit(
     const disableFunSpinner = vscodeConfig.get<boolean>('disableFunSpinner') ?? false;
     const continueLastSession = vscodeConfig.get<boolean>('continueLastSession') ?? false;
     const expandToolOutput = vscodeConfig.get<boolean>('expandToolOutput') ?? true;
+    const showThinking = vscodeConfig.get<boolean>('showThinking') ?? false;
 
     const thinkingLevel = defaultThinkingLevel;
     const permissionMode = defaultPermissionMode;
@@ -122,7 +123,8 @@ export async function handleInit(
             permissionMode,
             funSpinner,
             continueLastSession,
-            expandToolOutput
+            expandToolOutput,
+            showThinking
         }
     };
 }

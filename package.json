@@ -85,6 +85,12 @@
           "description": "Expand tool output by default. When disabled, tool results start collapsed and must be clicked to expand.",
           "order": 7
         },
+        "claudix.showThinking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show Claude's internal thinking blocks in the chat. When disabled, thinking is hidden and only the final response is shown.",
+          "order": 8
+        },
         "claudix.configurationDirectory": {
           "type": "string",
           "default": "",

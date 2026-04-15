@@ -80,7 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
 			    e.affectsConfiguration('claudix.continueLastSession') ||
 			    e.affectsConfiguration('claudix.defaultPermissionMode') ||
 			    e.affectsConfiguration('claudix.defaultThinkingLevel') ||
-			    e.affectsConfiguration('claudix.expandToolOutput')) {
+			    e.affectsConfiguration('claudix.expandToolOutput') ||
+			    e.affectsConfiguration('claudix.showThinking')) {
 				const config = vscode.workspace.getConfiguration('claudix');
 				const disableFunSpinner = config.get<boolean>('disableFunSpinner') ?? false;
 				const funSpinner = !disableFunSpinner;
@@ -88,6 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
 				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
 				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
 				const expandToolOutput = config.get<boolean>('expandToolOutput') ?? true;
+				const showThinking = config.get<boolean>('showThinking') ?? false;
 
 				// Send update_state message to webview
 				webViewService.postMessage({
@@ -100,12 +102,13 @@ export function activate(context: vscode.ExtensionContext) {
 							continueLastSession,
 							permissionMode,
 							thinkingLevel,
-							expandToolOutput
+							expandToolOutput,
+							showThinking
 						}
 					}
 				});
 
-				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}, permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}`);
+				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}, permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}`);
 			}
 		});
 

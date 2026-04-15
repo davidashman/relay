@@ -10,7 +10,7 @@
   />
   <!-- 其他类型不需要 wrapper，避免渲染到 DOM -->
   <component
-    v-else
+    v-else-if="blockComponent"
     :is="blockComponent"
     :block="block"
     :context="context"
@@ -18,10 +18,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import type { ContentBlockType } from '../../models/ContentBlock';
 import type { ContentBlockWrapper } from '../../models/ContentBlockWrapper';
 import type { ToolContext } from '../../types/tool';
+import { RuntimeKey } from '../../composables/runtimeContext';
 
 // 导入所有内容块组件
 import TextBlock from './blocks/TextBlock.vue';
@@ -45,13 +46,15 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const runtime = inject(RuntimeKey);
+
 // 根据 block.type 选择对应的组件
 const blockComponent = computed(() => {
   switch (props.block.type) {
     case 'text':
       return TextBlock;
     case 'thinking':
-      return ThinkingBlock;
+      return (runtime?.appContext.showThinking ?? false) ? ThinkingBlock : null;
     case 'image':
       return ImageBlock;
     case 'document':

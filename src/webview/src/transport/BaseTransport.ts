@@ -106,6 +106,7 @@ export abstract class BaseTransport {
       funSpinner: initResponse.state.funSpinner ?? true,
       continueLastSession: initResponse.state.continueLastSession ?? false,
       expandToolOutput: initResponse.state.expandToolOutput ?? true,
+      showThinking: initResponse.state.showThinking ?? false,
     } as InitResponse["state"]);
     console.log('[BaseTransport.init] Set config with modelSetting:', this.config().modelSetting);
 
@@ -438,10 +439,16 @@ export abstract class BaseTransport {
 
       case "update_state": {
         this.config({
-          ...this.config(),
-          ...Object.fromEntries(
-            Object.entries(req.state).filter(([, v]) => v !== undefined)
-          ),
+          defaultCwd: req.state.defaultCwd,
+          openNewInTab: req.state.openNewInTab,
+          modelSetting: req.state.modelSetting,
+          platform: req.state.platform,
+          thinkingLevel: req.state.thinkingLevel,
+          funSpinner: req.state.funSpinner,
+          continueLastSession: req.state.continueLastSession,
+          permissionMode: req.state.permissionMode,
+          expandToolOutput: req.state.expandToolOutput,
+          showThinking: req.state.showThinking,
         } as InitResponse["state"]);
         if (req.config !== undefined) {
           this.claudeConfig(req.config);

@@ -165,4 +165,9 @@ export class AppContext {
     const connection = this.connectionManager.connection();
     return connection?.config()?.expandToolOutput ?? true;
   }
+
+  get showThinking(): boolean {
+    const connection = this.connectionManager.connection();
+    return connection?.config()?.showThinking ?? false;
+  }
 }

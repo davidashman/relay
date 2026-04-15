@@ -150,6 +150,7 @@ export interface InitResponse {
         funSpinner?: boolean;          // Show fun rotating verbs in spinner
         continueLastSession?: boolean; // Continue the last session on startup
         expandToolOutput?: boolean;    // Expand tool output by default
+        showThinking?: boolean;        // Show thinking blocks in chat
     };
 }
 
