@@ -51,6 +51,11 @@ const copyClaudeCliPlugin = {
                 await fs.copyFile(cliSrc, cliDst);
                 console.log(`[build] Copied Claude CLI -> ${path.relative(process.cwd(), cliDst)}`);
 
+                // write package.json with "type": "module" so Node.js loads cli.js as ESM
+                // regardless of which Node version the project pins (e.g. via mise/nvm)
+                await fs.writeFile(path.join(outDir, 'package.json'), '{ "type": "module" }\n');
+                console.log('[build] Wrote resources/claude-code/package.json (type: module)');
+
                 // copy all .wasm files (resvg.wasm, tree-sitter.wasm, tree-sitter-bash.wasm, etc.)
                 const entries = await fs.readdir(pkgDir);
                 for (const entry of entries) {
