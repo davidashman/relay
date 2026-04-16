@@ -3,7 +3,6 @@
     ref="containerRef"
     class="permission-request-container"
     tabIndex="0"
-    @keydown="handleContainerKeyDown"
     data-permission-panel="1"
   >
     <div class="tool-title">
@@ -12,39 +11,32 @@
       <span v-if="toolDescription" class="tool-description">{{ toolDescription }}</span>
     </div>
     <div class="permission-header">Do you approve?</div>
-    <div class="button-container">
-      <button
-        class="button"
-        :class="{ focused: focusedIndex === 0 }"
-        @click="handleApprove"
-        @mouseenter="focusedIndex = 0"
-      >
-        <span class="shortcut-num">1</span> Yes
+    <input
+      ref="inputRef"
+      class="reject-message-input"
+      placeholder="Tell Claude what to do instead (optional)"
+      v-model="rejectMessage"
+      @keydown="handleInputKeyDown"
+    />
+    <div class="button-row">
+      <button class="btn btn-decline" @click="handleReject">
+        Decline
+        <span class="shortcut-hint">Esc</span>
       </button>
-      <button
-        v-if="showSecondButton"
-        class="button"
-        :class="{ focused: focusedIndex === 1 }"
-        @click="handleApproveAndDontAsk"
-        @mouseenter="focusedIndex = 1"
-      >
-        <span class="shortcut-num">2</span> Yes, and don't ask again
-      </button>
-      <button
-        class="button"
-        :class="{ focused: focusedIndex === (showSecondButton ? 2 : 1) }"
-        @click="handleReject"
-        @mouseenter="focusedIndex = showSecondButton ? 2 : 1"
-      >
-        <span class="shortcut-num">{{ showSecondButton ? '3' : '2' }}</span> No
-      </button>
-      <input
-        ref="inputRef"
-        class="reject-message-input"
-        placeholder="Tell Claude what to do instead"
-        v-model="rejectMessage"
-        @keydown="handleKeyDown"
-      />
+      <div class="btn-group-right">
+        <button
+          v-if="showSecondButton"
+          class="btn btn-always-approve"
+          @click="handleApproveAndDontAsk"
+        >
+          Always Approve
+          <span class="shortcut-hint">⇧⌘↵</span>
+        </button>
+        <button class="btn btn-approve" @click="handleApprove">
+          Approve
+          <span class="shortcut-hint">⌘↵</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -53,6 +45,7 @@
 import { ref, computed, onMounted } from 'vue';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { ToolContext } from '../types/tool';
+import { useKeybinding } from '../utils/useKeybinding';
 
 interface Props {
   request: PermissionRequest;
@@ -64,12 +57,11 @@ const props = defineProps<Props>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
-const focusedIndex = ref(0);
+const rejectMessage = ref('');
 
 onMounted(() => {
   containerRef.value?.focus();
 });
-const rejectMessage = ref('');
 
 const showSecondButton = computed(
   () => props.request.suggestions && props.request.suggestions.length > 0
@@ -127,61 +119,40 @@ const handleReject = () => {
   props.request.reject(rejectionMessage, !trimmedMessage);
 };
 
-const handleKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    handleReject();
-  } else if (e.key === 'Escape') {
-    e.preventDefault();
-    handleReject();
-  }
-};
-
-const buttonCount = computed(() => (showSecondButton.value ? 3 : 2));
-
-const triggerFocusedButton = () => {
-  const idx = focusedIndex.value;
-  if (idx === 0) {
-    handleApprove();
-  } else if (showSecondButton.value && idx === 1) {
-    handleApproveAndDontAsk();
-  } else {
-    handleReject();
-  }
-};
-
-const handleContainerKeyDown = (e: KeyboardEvent) => {
-  if (inputRef.value && document.activeElement === inputRef.value) {
-    return;
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    focusedIndex.value = (focusedIndex.value + 1) % buttonCount.value;
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    focusedIndex.value = (focusedIndex.value - 1 + buttonCount.value) % buttonCount.value;
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    triggerFocusedButton();
-  } else if (e.key === '1') {
-    e.preventDefault();
-    handleApprove();
-  } else if (e.key === '2') {
-    e.preventDefault();
-    if (showSecondButton.value) {
-      handleApproveAndDontAsk();
-    } else {
-      handleReject();
-    }
-  } else if (e.key === '3' && showSecondButton.value) {
-    e.preventDefault();
-    handleReject();
-  } else if (e.key === 'Escape') {
+// Enter in the input (without modifiers) submits the rejection message
+const handleInputKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
     e.preventDefault();
     handleReject();
   }
 };
+
+// Global keybindings — registered only while this modal is mounted,
+// so they are naturally scoped to when a permission modal is showing.
+// The webview only receives keyboard events when the window is active,
+// so no additional window-focus guard is needed.
+useKeybinding([
+  {
+    keys: 'escape',
+    priority: 200,
+    allowInEditable: true,
+    handler: handleReject,
+  },
+  {
+    keys: 'cmd+enter',
+    priority: 200,
+    allowInEditable: true,
+    handler: handleApprove,
+  },
+  {
+    keys: 'cmd+shift+enter',
+    priority: 200,
+    allowInEditable: true,
+    handler: () => {
+      if (showSecondButton.value) handleApproveAndDontAsk();
+    },
+  },
+]);
 </script>
 
 <style scoped>
@@ -191,7 +162,9 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
   gap: 8px;
   outline: none;
   margin-bottom: 8px;
-  padding-top: 12px;
+  padding: 12px;
+  background: var(--vscode-editorWidget-background, color-mix(in srgb, var(--vscode-foreground) 5%, var(--vscode-editor-background)));
+  border-radius: 6px;
 }
 
 .tool-title {
@@ -226,54 +199,7 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
   font-size: 13px;
   font-weight: 600;
   color: var(--vscode-foreground);
-  margin-bottom: 4px;
-}
-
-.button-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.button {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 8px 12px;
-  font-size: 13px;
-  background: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-  border: 1px solid var(--vscode-button-border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  width: 100%;
-}
-
-.button:hover {
-  background: var(--vscode-button-secondaryHoverBackground);
-}
-
-.button.focused {
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-}
-
-.button.focused:hover {
-  background: var(--vscode-button-hoverBackground);
-}
-
-.shortcut-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  opacity: 0.7;
+  margin-bottom: 2px;
 }
 
 .reject-message-input {
@@ -294,5 +220,67 @@ const handleContainerKeyDown = (e: KeyboardEvent) => {
 
 .reject-message-input::placeholder {
   color: var(--vscode-input-placeholderForeground);
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-group-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--vscode-button-border, transparent);
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+
+.btn-decline {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.btn-decline:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-always-approve {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.btn-always-approve:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-approve {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.btn-approve:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.shortcut-hint {
+  font-size: 10px;
+  opacity: 0.6;
+  font-family: var(--vscode-editor-font-family, monospace);
+  letter-spacing: 0;
 }
 </style>

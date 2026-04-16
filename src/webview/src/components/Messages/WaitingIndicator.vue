@@ -29,6 +29,7 @@
   const currentIcon = computed(() => ANIMATION_ICONS[iconIndex.value]);
 
   let iconTimer: any;
+  let verbTimer: any;
   let rafId: number | null = null;
 
   const animatedText = ref(' '.repeat(DISPLAY_TEXT.length));
@@ -41,13 +42,23 @@
   onMounted(() => {
     iconTimer = setInterval(() => {
       iconIndex.value = (iconIndex.value + 1) % ANIMATION_ICONS.length;
-    }, 120);
+    }, 80);
+
+    const intervals = [2000, 3000, 5000];
+    let count = 0;
+    const schedule = () => {
+      startTextAnimation(DISPLAY_TEXT);
+      const next = count < intervals.length ? intervals[count++] : 5000;
+      verbTimer = setTimeout(schedule, next);
+    };
+    verbTimer = setTimeout(schedule, intervals[0]);
 
     startTextAnimation(DISPLAY_TEXT);
   });
 
   onBeforeUnmount(() => {
     if (iconTimer) clearInterval(iconTimer);
+    if (verbTimer) clearTimeout(verbTimer);
     stopTextAnimation();
   });
 

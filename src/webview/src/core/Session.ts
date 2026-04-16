@@ -145,11 +145,12 @@ export class Session {
       }
     });
 
-    // Initialize permissionMode from config when it becomes available
+    // Initialize permissionMode from config when it becomes available (one-shot)
+    let modeInitialized = false;
     effect(() => {
       const configMode = this.config()?.permissionMode;
-      const currentMode = this.permissionMode();
-      if (configMode && currentMode === 'default') {
+      if (configMode && !modeInitialized) {
+        modeInitialized = true;
         console.log('[Session] Setting permissionMode from config to:', configMode);
         this.permissionMode(configMode as PermissionMode);
       }
