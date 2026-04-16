@@ -156,11 +156,6 @@ export class AppContext {
     return connection?.config()?.platform ?? 'macos';
   }
 
-  get funSpinner(): boolean {
-    const connection = this.connectionManager.connection();
-    return connection?.config()?.funSpinner ?? true;
-  }
-
   get expandToolOutput(): boolean {
     const connection = this.connectionManager.connection();
     return connection?.config()?.expandToolOutput ?? true;

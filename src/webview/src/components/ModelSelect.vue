@@ -7,7 +7,7 @@
       <div class="model-dropdown">
         <div class="dropdown-content">
           <div class="dropdown-text">
-            <span class="dropdown-label">{{ modelInfo.label }}</span>
+            <span class="dropdown-label">{{ selectedModelLabel }}</span>
           </div>
         </div>
         <div class="codicon codicon-chevron-up chevron-icon text-[12px]!" />
@@ -118,7 +118,6 @@ onUnmounted(() => {
 // ── Static aliases ──
 
 const MODEL_ALIASES: Array<{ id: string; label: string }> = [
-  { id: 'default', label: 'Default' },
   { id: 'sonnet', label: 'Sonnet' },
   { id: 'opus', label: 'Opus' },
   { id: 'haiku', label: 'Haiku' },
@@ -179,7 +178,7 @@ const selectedModelLabel = computed(() => {
   const parsed = parseModelInfo(props.selectedModel)
   if (parsed.model) return parsed.label
 
-  return props.selectedModel || 'Select model'
+  return 'Select model'
 })
 
 function isModelSelected(modelId: string): boolean {

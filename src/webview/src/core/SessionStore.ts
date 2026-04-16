@@ -23,6 +23,10 @@ export class SessionStore {
 
   private currentConnectionPromise?: Promise<void>;
   private effectCleanups: Array<() => void> = [];
+  /** Tracks whether a session has ever been active; prevents renaming to the default title
+   *  before the first session loads (which would cause a spurious reactive re-fire when the
+   *  connection signal changes and turn the title to 'Claude Code' during the loading spinner). */
+  private hadActiveSession = false;
 
   constructor(
     private readonly connectionManager: ConnectionManager,
@@ -42,9 +46,18 @@ export class SessionStore {
         const defaultTitle = 'Claude Code';
 
         if (!session) {
-          this.context.renameTab?.(defaultTitle);
+          // Only reset to the default title after a session has been active at least once.
+          // Calling renameTab here before that point reads the connection signal inside
+          // panelRenameTab, which registers it as a reactive dependency. When the connection
+          // is first established the effect would re-fire with session=undefined and
+          // overwrite the correct bootstrap title with 'Claude Code'.
+          if (this.hadActiveSession) {
+            this.context.renameTab?.(defaultTitle);
+          }
           return;
         }
+
+        this.hadActiveSession = true;
 
         if (session.isOffline()) {
           session.loadFromServer();

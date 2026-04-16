@@ -102,14 +102,11 @@ export async function handleInit(
     const vscodeConfig = vscode.workspace.getConfiguration('claudix');
     const defaultThinkingLevel = vscodeConfig.get<string>('defaultThinkingLevel') ?? 'on';
     const defaultPermissionMode = vscodeConfig.get<string>('defaultPermissionMode') ?? 'default';
-    const disableFunSpinner = vscodeConfig.get<boolean>('disableFunSpinner') ?? false;
-    const continueLastSession = vscodeConfig.get<boolean>('continueLastSession') ?? false;
     const expandToolOutput = vscodeConfig.get<boolean>('expandToolOutput') ?? true;
     const showThinking = vscodeConfig.get<boolean>('showThinking') ?? false;
 
     const thinkingLevel = defaultThinkingLevel;
     const permissionMode = defaultPermissionMode;
-    const funSpinner = !disableFunSpinner;
 
     return {
         type: "init_response",
@@ -121,8 +118,6 @@ export async function handleInit(
             platform: process.platform,
             thinkingLevel,
             permissionMode,
-            funSpinner,
-            continueLastSession,
             expandToolOutput,
             showThinking
         }

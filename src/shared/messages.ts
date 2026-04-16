@@ -147,8 +147,6 @@ export interface InitResponse {
         platform: string;
         thinkingLevel?: string;        // Thinking 等级（off | on | extended）
         permissionMode?: string;       // Permission mode (default | acceptEdits | plan)
-        funSpinner?: boolean;          // Show fun rotating verbs in spinner
-        continueLastSession?: boolean; // Continue the last session on startup
         expandToolOutput?: boolean;    // Expand tool output by default
         showThinking?: boolean;        // Show thinking blocks in chat
     };

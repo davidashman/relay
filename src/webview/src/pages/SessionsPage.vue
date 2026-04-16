@@ -2,7 +2,6 @@
   <div class="sessions-page">
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">Sessions</h2>
       </div>
       <div class="header-center">
       </div>
@@ -68,7 +67,14 @@
         >
             <div class="session-card-header">
               <h3 class="session-title">{{ session.summary.value || 'New Conversation' }}</h3>
-              <div class="session-date">{{ formatRelativeTime(session.lastModifiedTime.value) }}</div>
+              <div class="session-card-badges">
+                <span
+                  v-if="(session.permissionRequests.value?.length ?? 0) > 0"
+                  class="session-permission-dot"
+                  title="Awaiting approval"
+                ></span>
+                <div class="session-date">{{ formatRelativeTime(session.lastModifiedTime.value) }}</div>
+              </div>
             </div>
 
             <div class="session-meta">
@@ -151,9 +157,11 @@ const refreshSessions = async () => {
 const openSession = async (wrappedSession: ReturnType<typeof useSession> | undefined) => {
   if (!wrappedSession) return;
   const connection = await runtime.connectionManager.get();
+  const summary = wrappedSession.summary.value || '';
+  const title = summary.length > 25 ? `${summary.slice(0, 24)}\u2026` : summary || 'Chat';
   await connection.openSessionPanel(
     wrappedSession.sessionId.value || null,
-    wrappedSession.summary.value || 'Chat'
+    title
   );
 };
 
@@ -219,7 +227,7 @@ onMounted(() => {
   align-items: center;
   border-bottom: 1px solid var(--vscode-panel-border);
   min-height: 32px;
-  padding: 0 12px 0 0;
+  padding: 0 12px 0 8px;
 }
 
 .header-left {
@@ -279,7 +287,7 @@ onMounted(() => {
 
 .search-bar {
   border-bottom: 1px solid var(--vscode-panel-border);
-  background: var(--vscode-sideBar-background);
+  background: var(--vscode-panel-background);
 }
 
 .search-bar .search-input {
@@ -436,10 +444,25 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.session-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .session-date {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
   white-space: nowrap;
+}
+
+.session-permission-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vscode-notificationsInfoIcon-foreground, #4fc3f7);
+  flex-shrink: 0;
 }
 
 .session-meta {

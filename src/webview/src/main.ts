@@ -16,6 +16,7 @@ declare global {
       host?: 'sidebar' | 'editor' | 'panel';
       page?: string;
       id?: string;
+      title?: string;
     };
   }
 }

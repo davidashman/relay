@@ -286,7 +286,7 @@ const currentTabComponent = computed(() => {
 }
 
 .cursor-settings-pane-outer-wrapper {
-  background-color: var(--vscode-editor-background);
+  background-color: var(--vscode-panel-background);
   color: var(--vscode-editor-foreground);
   display: flex;
   flex-direction: column;

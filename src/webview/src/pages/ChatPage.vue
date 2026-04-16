@@ -7,7 +7,17 @@
           ref="containerEl"
           :class="['messagesContainer', 'custom-scroll-container', { dimmed: permissionRequestsLen > 0 }]"
         >
-          <template v-if="messages.length === 0">
+          <template v-if="sessionLoading">
+            <div class="emptyState">
+              <div class="emptyWordmark">
+                <ClaudeWordmark class="emptyWordmarkSvg" />
+              </div>
+              <div class="spinnerRow">
+                <Spinner :size="20" :permission-mode="'default'" />
+              </div>
+            </div>
+          </template>
+          <template v-else-if="messages.length === 0">
             <div v-if="isBusy" class="emptyState">
               <div class="emptyWordmark">
                 <ClaudeWordmark class="emptyWordmarkSvg" />
@@ -30,7 +40,7 @@
               />
             <!-- </div> -->
             <div v-if="isBusy" class="spinnerRow">
-              <Spinner :size="16" :permission-mode="permissionMode" :fun-spinner="funSpinner" />
+              <Spinner :size="16" :permission-mode="permissionMode" />
             </div>
             <div v-if="queuedMessages.length > 0" class="queuedMessagesContainer">
               <div v-for="(msg, idx) in queuedMessages" :key="idx" class="queuedMessageRow">
@@ -133,6 +143,9 @@
     },
   }));
 
+  // Session loading state (true while fetching an existing session from sidebar click)
+  const sessionLoading = useSignal<boolean>(runtime.sessionLoading);
+
   // 订阅 activeSession（alien-signal → Vue ref）
   const activeSessionRaw = useSignal<Session | undefined>(
     runtime.sessionStore.activeSession
@@ -157,7 +170,6 @@
   const permissionRequestsLen = computed(() => permissionRequests.value.length);
   const pendingPermission = computed(() => permissionRequests.value[0] as any);
   const platform = computed(() => runtime.appContext.platform);
-  const funSpinner = computed(() => runtime.appContext.funSpinner);
 
   // 注册命令：permissionMode.toggle（在下方定义函数后再注册）
 
@@ -544,7 +556,7 @@
   /* 底部对话框区域钉在底部 */
   .main > :last-child {
     flex-shrink: 0;
-    background-color: var(--vscode-sideBar-background);
+    background-color: var(--vscode-panel-background);
     /* border-top: 1px solid var(--vscode-panel-border); */
     max-width: 1200px;
     width: 100%;

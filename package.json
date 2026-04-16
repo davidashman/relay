@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.5.0",
+  "version": "0.5.8",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -62,18 +62,6 @@
           ],
           "description": "Default extended thinking level for new sessions",
           "order": 2
-        },
-        "claudix.disableFunSpinner": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable fun rotating verbs while Claude is working. When enabled, shows plain 'Working...' instead of fun verbs like 'Reticulating...', 'Spelunking...', etc.",
-          "order": 3
-        },
-        "claudix.continueLastSession": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically resume the last session when Claudix starts instead of creating a new one",
-          "order": 4
         },
         "claudix.showNotifications": {
           "type": "boolean",
@@ -160,7 +148,8 @@
       },
       {
         "command": "claudix.newSession",
-        "title": "Claudix: New Chat"
+        "title": "Claudix: New Chat",
+        "icon": "$(comment-discussion)"
       },
       {
         "command": "claudix.clearSession",
@@ -192,6 +181,13 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "claudix.newSession",
+          "group": "navigation",
+          "when": "true"
+        }
+      ],
       "view/title": [
         {
           "command": "claudix.openSettings",

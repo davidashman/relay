@@ -103,8 +103,6 @@ export abstract class BaseTransport {
       platform: initResponse.state.platform,
       thinkingLevel: initResponse.state.thinkingLevel,
       permissionMode: initResponse.state.permissionMode,
-      funSpinner: initResponse.state.funSpinner ?? true,
-      continueLastSession: initResponse.state.continueLastSession ?? false,
       expandToolOutput: initResponse.state.expandToolOutput ?? true,
       showThinking: initResponse.state.showThinking ?? false,
     } as InitResponse["state"]);
@@ -238,6 +236,9 @@ export abstract class BaseTransport {
   }
   renameTab(title: string): Promise<any> {
     return this.sendRequest({ type: "rename_tab", title } as any);
+  }
+  setPanelBadge(count: number): Promise<any> {
+    return this.sendRequest({ type: "set_panel_badge", count } as any);
   }
   openClaudeInTerminal(): Promise<any> {
     return this.sendRequest({ type: "open_claude_in_terminal" });
@@ -455,8 +456,6 @@ export abstract class BaseTransport {
           ...(incoming.modelSetting !== undefined ? { modelSetting: incoming.modelSetting } : {}),
           ...(incoming.platform !== undefined ? { platform: incoming.platform } : {}),
           ...(incoming.thinkingLevel !== undefined ? { thinkingLevel: incoming.thinkingLevel } : {}),
-          ...(incoming.funSpinner !== undefined ? { funSpinner: incoming.funSpinner } : {}),
-          ...(incoming.continueLastSession !== undefined ? { continueLastSession: incoming.continueLastSession } : {}),
           ...(incoming.permissionMode !== undefined ? { permissionMode: incoming.permissionMode } : {}),
           ...(incoming.expandToolOutput !== undefined ? { expandToolOutput: incoming.expandToolOutput } : {}),
           ...(incoming.showThinking !== undefined ? { showThinking: incoming.showThinking } : {}),

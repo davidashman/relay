@@ -30,6 +30,9 @@ export interface ModelInfo {
 export function normalizeModelId(modelId?: string): string | undefined {
   if (!modelId) return undefined;
 
+  // 'default' means Claude's recommended default, which is Sonnet
+  if (modelId === 'default') return `claude-sonnet-${LATEST_MODELS['sonnet']}`;
+
   const match = modelId.match(MODEL_REGEX);
 
   if (!match?.groups) {

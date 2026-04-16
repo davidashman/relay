@@ -15,6 +15,7 @@ export interface RuntimeInstance {
   tabs: UseTabsReturn;
   atMentionEvents: EventEmitter<string>;
   selectionEvents: EventEmitter<any>;
+  sessionLoading: ReturnType<typeof signal<boolean>>;
 }
 
 export function useRuntime(): RuntimeInstance {
@@ -23,6 +24,12 @@ export function useRuntime(): RuntimeInstance {
   const isPanelMode = bootstrap?.host === 'panel';
   // The sessionId to pre-select in panel mode (empty string = create new)
   const panelSessionId = isPanelMode ? (bootstrap?.id ?? '') : '';
+  // The initial title for this panel (from bootstrap, set before sessions load)
+  const panelTitle = isPanelMode ? (bootstrap?.title ?? '') : '';
+
+  // True while the panel is loading an existing session (before activeSession is set)
+  const isLoadingExistingSession = isPanelMode && !!panelSessionId && !panelSessionId.startsWith('new-chat-');
+  const sessionLoadingSignal = signal(isLoadingExistingSession);
 
   // 复用全局 Transport 单例，确保同一 Webview 宿主只存在一条通信通道
   const connectionManager = new ConnectionManager(() => transport);
@@ -81,6 +88,17 @@ export function useRuntime(): RuntimeInstance {
     const s = session.summary();
     return s && s.length > 20 ? `${s.slice(0, 19)}\u2026` : (s || 'New Conversation');
   }
+
+  // In panel mode, keep the VSCode editor tab badge in sync with pending permission requests
+  const stopPanelBadgeEffect = isPanelMode
+    ? effect(() => {
+        const activeSession = sessionStore.activeSession();
+        const conn = connectionManager.connection();
+        if (!activeSession || !conn) return;
+        const count = activeSession.permissionRequests().length;
+        void conn.setPanelBadge(count);
+      })
+    : undefined;
 
   const removePermissionListener = sessionStore.onPermissionRequested(({ session }) => {
     if (sessionStore.activeSession() !== session && tabs.tabs.value?.includes(session)) {
@@ -200,9 +218,15 @@ export function useRuntime(): RuntimeInstance {
 
     (async () => {
       const connection = await connectionManager.get();
-      try { await connection.opened; } catch (e) { console.error('[runtime] open failed', e); return; }
+      try { await connection.opened; } catch (e) { console.error('[runtime] open failed', e); sessionLoadingSignal(false); return; }
 
       if (disposed) return;
+
+      // Immediately set the panel title from bootstrap before sessions load,
+      // so the tab title is correct from the first moment the webview is ready
+      if (panelTitle) {
+        void connection.renameTab(panelTitle);
+      }
 
       connection.newSessionEvents.add(() => {
         if (!disposed) void tabs.replaceCurrentTab();
@@ -253,17 +277,12 @@ export function useRuntime(): RuntimeInstance {
             await tabs.createNewTab({ isExplicit: false });
           }
         } else if (bootstrap?.host !== 'sidebar') {
-          // Legacy / non-panel non-sidebar mode: use continueLastSession setting
-          const continueLastSession = connection.config()?.continueLastSession ?? false;
-          const recentSessions = sessionStore.sessionsByLastModified();
-          if (continueLastSession && recentSessions.length > 0) {
-            tabs.addTab(recentSessions[0]);
-          } else {
-            await tabs.createNewTab({ isExplicit: false });
-          }
+          await tabs.createNewTab({ isExplicit: false });
         }
         // Sidebar mode: no tab creation needed — sidebar just shows session list
       }
+      // Clear loading state once sessions are resolved
+      sessionLoadingSignal(false);
     })();
 
     onUnmounted(() => {
@@ -275,6 +294,7 @@ export function useRuntime(): RuntimeInstance {
 
       // 清理通知监听器
       removePermissionListener();
+      stopPanelBadgeEffect?.();
       stopTabsWatch();
       for (const stop of completionWatchers.values()) stop();
       completionWatchers.clear();
@@ -283,6 +303,6 @@ export function useRuntime(): RuntimeInstance {
     });
   });
 
-  return { connectionManager, appContext, sessionStore, tabs, atMentionEvents, selectionEvents };
+  return { connectionManager, appContext, sessionStore, tabs, atMentionEvents, selectionEvents, sessionLoading: sessionLoadingSignal };
 }
 

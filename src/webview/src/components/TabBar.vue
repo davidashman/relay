@@ -115,7 +115,7 @@ const TabItem = defineComponent({
   height: 28px;
   min-height: 28px;
   border-bottom: 1px solid var(--vscode-panel-border);
-  background: var(--vscode-sideBar-background);
+  background: var(--vscode-panel-background);
   flex-shrink: 0;
 }
 

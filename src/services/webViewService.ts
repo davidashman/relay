@@ -21,6 +21,8 @@ export interface WebviewBootstrapConfig {
 	host: WebviewHost;
 	page?: string;
 	id?: string;
+	/** Initial panel title for chat panels, so the WebView can set it before sessions load */
+	title?: string;
 }
 
 export interface IWebViewService extends vscode.WebviewViewProvider {
@@ -62,6 +64,23 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * 更新聊天面板标题（通过 webviewId 定位面板）
 	 */
 	updateChatPanelTitle(webviewId: string, title: string): void;
+
+	/**
+	 * 关闭聊天面板（通过 webviewId 定位面板）
+	 */
+	closeChatPanel(webviewId: string): void;
+
+	/**
+	 * 更新聊天面板 badge 数字（通过 webviewId 定位面板）
+	 * count > 0 shows the badge; count === 0 clears it
+	 */
+	updateChatPanelBadge(webviewId: string, count: number): void;
+
+	/**
+	 * Re-open chat panels that were open when the workspace was last closed.
+	 * Should be called once during extension activation.
+	 */
+	restoreOpenSessions(): void;
 }
 
 /**
@@ -69,6 +88,8 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
  */
 export class WebViewService implements IWebViewService {
 	readonly _serviceBrand: undefined;
+
+	private static readonly OPEN_SESSIONS_KEY = 'claudix.openSessions';
 
 	private readonly webviews = new Set<vscode.Webview>();
 	private readonly webviewConfigs = new Map<vscode.Webview, WebviewBootstrapConfig>();
@@ -79,6 +100,8 @@ export class WebViewService implements IWebViewService {
 	private readonly chatPanels = new Map<string, vscode.WebviewPanel>();
 	/** Map from webviewId (e.g. 'panel:chat:key') to panel key, for title updates */
 	private readonly chatPanelWebviewIds = new Map<string, string>();
+	/** Tracks session IDs of currently-open chat panels for persistence (sessionId → title) */
+	private readonly openSessionIds = new Map<string, string>();
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -282,7 +305,7 @@ export class WebViewService implements IWebViewService {
 
 		// Use key as the bootstrap id so the webviewId is always unique and
 		// the webview knows which sessionId to pre-select (or '' for new session)
-		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key };
+		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, title };
 		this.registerWebview(panelWebview, bootstrap);
 
 		// Track webviewId → panelKey for title updates
@@ -294,11 +317,20 @@ export class WebViewService implements IWebViewService {
 				this.removeWebview(panelWebview);
 				this.chatPanels.delete(key);
 				this.chatPanelWebviewIds.delete(webviewId);
+				if (sessionId) {
+					this.openSessionIds.delete(sessionId);
+					this.persistOpenSessions();
+				}
 				this.logService.info(`[WebViewService] 聊天面板已销毁: sessionId=${sessionId}`);
 			},
 			undefined,
 			this.context.subscriptions
 		);
+
+		if (sessionId) {
+			this.openSessionIds.set(sessionId, title);
+			this.persistOpenSessions();
+		}
 
 		this.chatPanels.set(key, panel);
 	}
@@ -313,8 +345,46 @@ export class WebViewService implements IWebViewService {
 		const panel = this.chatPanels.get(panelKey);
 		if (panel) {
 			panel.title = title;
+			if (this.openSessionIds.has(panelKey)) {
+				this.openSessionIds.set(panelKey, title);
+				this.persistOpenSessions();
+			}
 			this.logService.info(`[WebViewService] 更新聊天面板标题: webviewId=${webviewId}, title=${title}`);
 		}
+	}
+
+	closeChatPanel(webviewId: string): void {
+		const panelKey = this.chatPanelWebviewIds.get(webviewId);
+		if (!panelKey) return;
+		const panel = this.chatPanels.get(panelKey);
+		if (panel) {
+			panel.dispose();
+			this.logService.info(`[WebViewService] 关闭聊天面板: webviewId=${webviewId}`);
+		}
+	}
+
+	updateChatPanelBadge(webviewId: string, count: number): void {
+		const panelKey = this.chatPanelWebviewIds.get(webviewId);
+		if (!panelKey) return;
+		const panel = this.chatPanels.get(panelKey);
+		if (panel) {
+			panel.badge = count > 0 ? { value: count, tooltip: 'Awaiting approval' } : undefined;
+		}
+	}
+
+	restoreOpenSessions(): void {
+		const sessions = this.context.workspaceState.get<Array<{ sessionId: string; title: string }>>(
+			WebViewService.OPEN_SESSIONS_KEY, []
+		);
+		for (const { sessionId, title } of sessions) {
+			this.openChatPanel(sessionId, title);
+		}
+		this.logService.info(`[WebViewService] Restored ${sessions.length} session panel(s) from workspace state`);
+	}
+
+	private persistOpenSessions(): void {
+		const sessions = Array.from(this.openSessionIds.entries()).map(([sessionId, title]) => ({ sessionId, title }));
+		this.context.workspaceState.update(WebViewService.OPEN_SESSIONS_KEY, sessions);
 	}
 
 	/**

@@ -36,16 +36,6 @@
           </button>
         </Tooltip>
 
-        <!-- Sparkle Button -->
-        <Tooltip content="Sparkle">
-          <button
-            class="action-button"
-            @click="handleSparkleClick"
-          >
-            <span class="codicon codicon-wand text-[16px]!" />
-          </button>
-        </Tooltip>
-
         <!-- Attach File Button -->
         <Tooltip content="Attach File">
           <button
@@ -114,7 +104,6 @@ interface Emits {
   (e: 'addAttachment', files: FileList): void
   (e: 'mention', filePath?: string): void
   (e: 'thinkingToggle'): void
-  (e: 'sparkle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
 }
@@ -164,10 +153,6 @@ function handleSubmit() {
 
 function handleThinkingToggle() {
   emit('thinkingToggle')
-}
-
-function handleSparkleClick() {
-  emit('sparkle')
 }
 
 function handleAttachClick() {

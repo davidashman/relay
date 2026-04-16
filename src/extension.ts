@@ -113,6 +113,22 @@ export function activate(context: vscode.ExtensionContext) {
 					});
 					return;
 				}
+
+				// Update the chat panel badge when permission requests change
+				if (req.type === 'set_panel_badge') {
+					const count: number = req.count ?? 0;
+					const webviewId: string | undefined = message.webviewId;
+					if (webviewId && webviewId.startsWith('panel:chat:')) {
+						webViewService.updateChatPanelBadge(webviewId, count);
+					}
+					webViewService.postMessage({
+						type: 'response',
+						requestId: message.requestId,
+						webviewId: message.webviewId,
+						response: { type: 'set_panel_badge_response' }
+					});
+					return;
+				}
 			}
 
 			// Forward all other messages to Claude Agent Service
@@ -128,18 +144,16 @@ export function activate(context: vscode.ExtensionContext) {
 		// Start message loop
 		claudeAgentService.start();
 
+		// Restore chat panels that were open when the workspace was last closed
+		webViewService.restoreOpenSessions();
+
 		// Listen for VSCode configuration changes and notify webview
 		const configChangeListener = vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('claudix.disableFunSpinner') ||
-			    e.affectsConfiguration('claudix.continueLastSession') ||
-			    e.affectsConfiguration('claudix.defaultPermissionMode') ||
+			if (e.affectsConfiguration('claudix.defaultPermissionMode') ||
 			    e.affectsConfiguration('claudix.defaultThinkingLevel') ||
 			    e.affectsConfiguration('claudix.expandToolOutput') ||
 			    e.affectsConfiguration('claudix.showThinking')) {
 				const config = vscode.workspace.getConfiguration('claudix');
-				const disableFunSpinner = config.get<boolean>('disableFunSpinner') ?? false;
-				const funSpinner = !disableFunSpinner;
-				const continueLastSession = config.get<boolean>('continueLastSession') ?? false;
 				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
 				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
 				const expandToolOutput = config.get<boolean>('expandToolOutput') ?? true;
@@ -152,8 +166,6 @@ export function activate(context: vscode.ExtensionContext) {
 					request: {
 						type: 'update_state',
 						state: {
-							funSpinner,
-							continueLastSession,
 							permissionMode,
 							thinkingLevel,
 							expandToolOutput,
@@ -162,7 +174,7 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 				});
 
-				logService.info(`VSCode configuration updated: funSpinner=${funSpinner}, continueLastSession=${continueLastSession}, permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}`);
+				logService.info(`VSCode configuration updated: permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}`);
 			}
 		});
 
@@ -193,9 +205,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 		context.subscriptions.push(
 			vscode.commands.registerCommand('claudix.closeSession', () => {
-				// Send close_tab to the last focused panel; runtime handles it
 				const targetId = lastFocusedWebviewId;
-				if (targetId) {
+				if (!targetId) return;
+				if (targetId.startsWith('panel:')) {
+					// In panel mode, dispose the VSCode panel directly
+					webViewService.closeChatPanel(targetId);
+				} else {
+					// In sidebar/editor tab mode, ask the webview to close its internal tab
 					webViewService.postMessage({
 						type: 'request',
 						requestId: `close-tab-${Date.now()}`,
