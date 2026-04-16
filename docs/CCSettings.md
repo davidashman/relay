@@ -63,7 +63,7 @@ Claudix 扩展需要维护三条独立的数据管道：
 | Key | 类型 | 描述 | 示例值 | 归属 Tab |
 |-----|------|------|-------|---------|
 | `model` | string | 覆盖默认模型（alias 或完整 model ID） | `"opus"`, `"claude-sonnet-4-5-20250929"` | Models |
-| `effortLevel` | `"low" \| "medium" \| "high"` | Opus 4.6 adaptive reasoning effort | `"high"` | Models |
+| `effortLevel` | `"low" \| "medium" \| "high"` | Opus 4.6+ adaptive reasoning effort | `"high"` | Models |
 | `alwaysThinkingEnabled` | boolean | 默认启用 extended thinking | `true` | Models |
 | `language` | string | Claude 响应语言偏好 | `"japanese"` | General |
 | `outputStyle` | string | 输出风格调整 | `"Explanatory"` | Agent |
@@ -235,7 +235,7 @@ Claudix 扩展需要维护三条独立的数据管道：
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | Override `sonnet` / `default` alias 路由的实际模型 |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Override `haiku` alias 路由的实际模型 |
 | `CLAUDE_CODE_SUBAGENT_MODEL` | 子代理使用的模型 |
-| `CLAUDE_CODE_EFFORT_LEVEL` | Opus 4.6 effort level: `low`, `medium`, `high` |
+| `CLAUDE_CODE_EFFORT_LEVEL` | Opus 4.6+ effort level: `low`, `medium`, `high` |
 | `MAX_THINKING_TOKENS` | Extended thinking token 上限（0=禁用） |
 | `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | 最大输出 token（默认 32000，最大 64000） |
 | `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS` | 文件读取 token 上限 |
@@ -354,14 +354,14 @@ Claudix 扩展需要维护三条独立的数据管道：
 
 | Alias | 行为 |
 |-------|------|
-| `default` | 推荐设置，按账户类型决定（Max/Teams/Pro → Opus 4.6） |
+| `default` | 推荐设置，按账户类型决定（Max/Teams/Pro → Opus 4.7） |
 | `sonnet` | 最新 Sonnet（当前 Sonnet 4.5），日常编码 |
-| `opus` | 最新 Opus（当前 Opus 4.6），复杂推理 |
+| `opus` | 最新 Opus（当前 Opus 4.7），复杂推理 |
 | `haiku` | 快速高效，简单任务 |
 | `sonnet[1m]` | Sonnet + 1M context window |
 | `opusplan` | Plan mode 用 Opus，执行用 Sonnet |
 
-Alias 始终指向最新版本。要锁定特定版本，使用完整 model name（如 `claude-opus-4-6`）。
+Alias 始终指向最新版本。要锁定特定版本，使用完整 model name（如 `claude-opus-4-7`）。
 
 ### 4.2 模型选择优先级
 
@@ -381,7 +381,7 @@ Alias 始终指向最新版本。要锁定特定版本，使用完整 model name
 
 ### 4.4 Effort Level
 
-Opus 4.6 的 adaptive reasoning，动态分配思考量：
+Opus 4.6+ 的 adaptive reasoning，动态分配思考量：
 
 - `low` — 快速廉价，适合简单任务
 - `medium` — 平衡

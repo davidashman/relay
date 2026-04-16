@@ -6,7 +6,7 @@
 export const LATEST_MODELS: Record<string, string> = {
   'haiku': '4-5',
   'sonnet': '4-6',
-  'opus': '4-6'
+  'opus': '4-7'
 };
 
 // Regex to parse model names, including date-suffixed full IDs like claude-sonnet-4-5-20250929

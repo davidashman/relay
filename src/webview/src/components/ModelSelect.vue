@@ -17,12 +17,12 @@
     <template #content="{ close }">
       <DropdownItem
         :item="{
-          id: 'claude-opus-4-6',
-          label: 'Opus 4.6',
-          checked: isModelSelected('claude-opus-4-6'),
+          id: 'claude-opus-4-7',
+          label: 'Opus 4.7',
+          checked: isModelSelected('claude-opus-4-7'),
           type: 'model'
         }"
-        :is-selected="isModelSelected('claude-opus-4-6')"
+        :is-selected="isModelSelected('claude-opus-4-7')"
         :index="0"
         @click="(item) => handleModelSelect(item, close)"
       />
@@ -51,13 +51,24 @@
       <DropdownSeparator />
       <DropdownItem
         :item="{
+          id: 'claude-opus-4-6',
+          label: 'Opus 4.6',
+          checked: isModelSelected('claude-opus-4-6'),
+          type: 'model'
+        }"
+        :is-selected="isModelSelected('claude-opus-4-6')"
+        :index="3"
+        @click="(item) => handleModelSelect(item, close)"
+      />
+      <DropdownItem
+        :item="{
           id: 'claude-opus-4-5',
           label: 'Opus 4.5',
           checked: isModelSelected('claude-opus-4-5'),
           type: 'model'
         }"
         :is-selected="isModelSelected('claude-opus-4-5')"
-        :index="3"
+        :index="4"
         @click="(item) => handleModelSelect(item, close)"
       />
       <DropdownItem
@@ -68,7 +79,7 @@
           type: 'model'
         }"
         :is-selected="isModelSelected('claude-sonnet-4-5')"
-        :index="4"
+        :index="5"
         @click="(item) => handleModelSelect(item, close)"
       />
     </template>

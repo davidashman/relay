@@ -529,12 +529,12 @@ const effortLevelOptions = [
 
 const effortEnabled = computed(() => {
   const model = ((settings.value.model as string) || 'default').toLowerCase()
-  return model.includes('opus-4-6')
+  return model.includes('opus-4-6') || model.includes('opus-4-7')
 })
 
 const effortLevelDescription = computed(() => {
   if (!effortEnabled.value) {
-    return 'Controls reasoning effort level. Only available for Opus 4.6 — current model does not support effort level.'
+    return 'Controls reasoning effort level. Only available for Opus 4.6+ — current model does not support effort level.'
   }
   return 'Controls reasoning effort level (low, medium, high)'
 })

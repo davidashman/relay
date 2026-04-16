@@ -4,7 +4,7 @@
     :close-on-click-outside="true"
   >
     <template #trigger>
-      <div class="mode-dropdown">
+      <div :class="['mode-dropdown', `mode-dropdown--${permissionMode}`]">
         <div class="dropdown-content">
           <div :class="['codicon', selectedModeIcon, 'dropdown-icon', 'text-[14px]!']" />
           <div class="dropdown-text">
@@ -127,9 +127,21 @@ function handleModeSelect(item: DropdownItemData, close: () => void) {
   flex-shrink: 0;
   cursor: pointer;
   border: none;
-  background: color-mix(in srgb, var(--vscode-foreground) 20%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 15%, transparent);
   transition: background-color 0.2s ease;
   opacity: .8;
+}
+
+.mode-dropdown--default {
+  background: color-mix(in srgb, var(--vscode-foreground) 15%, transparent);
+}
+
+.mode-dropdown--acceptEdits {
+  background: color-mix(in srgb, #a855f7 35%, transparent);
+}
+
+.mode-dropdown--plan {
+  background: color-mix(in srgb, #3b82f6 35%, transparent);
 }
 
 .mode-dropdown:hover {
