@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudix - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
-  "version": "0.4.85",
+  "version": "0.4.87",
   "publisher": "Haleclipse",
   "engines": {
     "vscode": "^1.98.0",
@@ -143,8 +143,8 @@
         {
           "icon": "resources/claude-logo.svg",
           "type": "webview",
-          "id": "claudix.chatView",
-          "name": "Claudix"
+          "id": "claudix.sessionList",
+          "name": "Sessions"
         }
       ]
     },
@@ -160,7 +160,7 @@
       },
       {
         "command": "claudix.newSession",
-        "title": "Claudix: New Session Tab"
+        "title": "Claudix: New Chat"
       },
       {
         "command": "claudix.clearSession",
@@ -168,7 +168,7 @@
       },
       {
         "command": "claudix.closeSession",
-        "title": "Claudix: Close Session Tab"
+        "title": "Claudix: Close Chat Panel"
       }
     ],
     "keybindings": [
@@ -195,7 +195,7 @@
       "view/title": [
         {
           "command": "claudix.openSettings",
-          "when": "view == claudix.chatView",
+          "when": "view == claudix.sessionList",
           "group": "navigation"
         }
       ]

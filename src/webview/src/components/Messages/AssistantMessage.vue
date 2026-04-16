@@ -1,5 +1,5 @@
 <template>
-  <div class="assistant-message" :class="messageClasses">
+  <div v-if="hasVisibleContent" class="assistant-message" :class="messageClasses">
     <template v-if="typeof message.message.content === 'string'">
       <ContentBlock :block="{ type: 'text', text: message.message.content }" :context="context" />
     </template>
@@ -16,10 +16,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import type { Message } from '../../models/Message';
 import type { ToolContext } from '../../types/tool';
 import ContentBlock from './ContentBlock.vue';
+import { RuntimeKey } from '../../composables/runtimeContext';
 
 interface Props {
   message: Message;
@@ -27,6 +28,16 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const runtime = inject(RuntimeKey);
+
+// Returns true if there is at least one block that will actually be rendered
+const hasVisibleContent = computed(() => {
+  const content = props.message.message.content;
+  if (typeof content === 'string') return !!content;
+  if (!Array.isArray(content)) return false;
+  const showThinking = runtime?.appContext.showThinking ?? false;
+  return content.some(wrapper => wrapper.content.type !== 'thinking' || showThinking);
+});
 
 // 计算动态 class
 const messageClasses = computed(() => {
@@ -34,9 +45,11 @@ const messageClasses = computed(() => {
 
   // content 总是数组，检查是否包含 tool_use
   if (Array.isArray(content)) {
-    // Show dot only for pure-text messages; suppress for tool_use and thinking blocks
+    const showThinking = runtime?.appContext.showThinking ?? false;
+    // Show dot only for pure-text messages; suppress for tool_use and visible thinking blocks
     const hasNonTextBlock = content.some(wrapper =>
-      wrapper.content.type === 'tool_use' || wrapper.content.type === 'thinking'
+      wrapper.content.type === 'tool_use' ||
+      (wrapper.content.type === 'thinking' && showThinking)
     );
     return hasNonTextBlock ? [] : ['prefix'];
   }

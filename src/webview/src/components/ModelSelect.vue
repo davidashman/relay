@@ -182,6 +182,10 @@ const selectedModelLabel = computed(() => {
   return props.selectedModel || 'Select model'
 })
 
+function isModelSelected(modelId: string): boolean {
+  return props.selectedModel === modelId
+}
+
 function handleModelSelect(item: DropdownItemData, close: () => void) {
   console.log('Selected model:', item)
   close()

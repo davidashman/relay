@@ -18,6 +18,12 @@ export interface RuntimeInstance {
 }
 
 export function useRuntime(): RuntimeInstance {
+  // Detect host context from bootstrap config
+  const bootstrap = window.CLAUDIX_BOOTSTRAP;
+  const isPanelMode = bootstrap?.host === 'panel';
+  // The sessionId to pre-select in panel mode (empty string = create new)
+  const panelSessionId = isPanelMode ? (bootstrap?.id ?? '') : '';
+
   // 复用全局 Transport 单例，确保同一 Webview 宿主只存在一条通信通道
   const connectionManager = new ConnectionManager(() => transport);
   const appContext = new AppContext(connectionManager);
@@ -36,13 +42,31 @@ export function useRuntime(): RuntimeInstance {
     { immediate: true }
   );
 
+  // In panel mode, bypass the openNewInTab check so renameTab always fires
+  // (panels always have openNewInTab semantics regardless of the config flag)
+  const panelRenameTab = isPanelMode
+    ? (title: string) => {
+        const connection = connectionManager.connection();
+        if (connection) { void connection.renameTab(title); return true; }
+        return false;
+      }
+    : appContext.renameTab?.bind(appContext);
+
+  const panelStartNewConversationTab = isPanelMode
+    ? (initialPrompt?: string) => {
+        const connection = connectionManager.connection();
+        if (connection) { void connection.startNewConversationTab(initialPrompt); return true; }
+        return false;
+      }
+    : appContext.startNewConversationTab?.bind(appContext);
+
   const sessionStore = new SessionStore(connectionManager, {
     commandRegistry: appContext.commandRegistry,
     currentSelection: currentSelectionSignal,
     fileOpener: appContext.fileOpener,
     showNotification: appContext.showNotification?.bind(appContext),
-    startNewConversationTab: appContext.startNewConversationTab?.bind(appContext),
-    renameTab: appContext.renameTab?.bind(appContext),
+    startNewConversationTab: panelStartNewConversationTab,
+    renameTab: panelRenameTab,
     openURL: appContext.openURL.bind(appContext)
   });
 
@@ -153,16 +177,21 @@ export function useRuntime(): RuntimeInstance {
     }
   );
 
-  // Register built-in /new command - opens a new session in a new tab
+  // Register built-in /new command - in panel mode opens a new panel, otherwise new tab
   appContext.commandRegistry.registerAction(
     {
       id: 'slash-command-new',
       label: '/new',
-      description: 'Open a new session in a new tab'
+      description: isPanelMode ? 'Open a new chat panel' : 'Open a new session in a new tab'
     },
     'Slash Commands',
     () => {
-      void tabs.createNewTab();
+      if (isPanelMode) {
+        const connection = connectionManager.connection();
+        if (connection) void connection.startNewConversationTab();
+      } else {
+        void tabs.createNewTab();
+      }
     }
   );
 
@@ -180,11 +209,18 @@ export function useRuntime(): RuntimeInstance {
       });
 
       connection.newTabEvents.add(() => {
-        if (!disposed) void tabs.createNewTab();
+        if (disposed) return;
+        if (isPanelMode) {
+          // In panel mode, open a new panel instead of an internal tab
+          void connection.startNewConversationTab();
+        } else {
+          void tabs.createNewTab();
+        }
       });
 
       connection.closeTabEvents.add(() => {
-        if (!disposed) tabs.closeTab(tabs.activeTabIndex.value);
+        if (!disposed && !isPanelMode) tabs.closeTab(tabs.activeTabIndex.value);
+        // In panel mode the user closes the panel with the native VSCode X button
       });
 
       try {
@@ -199,13 +235,34 @@ export function useRuntime(): RuntimeInstance {
 
       await sessionStore.listSessions();
       if (!disposed && !sessionStore.activeSession()) {
-        const continueLastSession = connection.config()?.continueLastSession ?? false;
-        const recentSessions = sessionStore.sessionsByLastModified();
-        if (continueLastSession && recentSessions.length > 0) {
-          tabs.addTab(recentSessions[0]);
-        } else {
-          await tabs.createNewTab({ isExplicit: false });
+        if (isPanelMode) {
+          // Panel mode: pre-select the session from bootstrap.id, or create new
+          const isNewSession = !panelSessionId || panelSessionId.startsWith('new-chat-');
+          if (!isNewSession) {
+            // Find the session with matching ID in the loaded sessions
+            const targetSession = sessionStore.sessions().find(
+              s => s.sessionId() === panelSessionId
+            );
+            if (targetSession) {
+              tabs.addTab(targetSession);
+            } else {
+              // Session not found (maybe from another workspace), create new
+              await tabs.createNewTab({ isExplicit: false });
+            }
+          } else {
+            await tabs.createNewTab({ isExplicit: false });
+          }
+        } else if (bootstrap?.host !== 'sidebar') {
+          // Legacy / non-panel non-sidebar mode: use continueLastSession setting
+          const continueLastSession = connection.config()?.continueLastSession ?? false;
+          const recentSessions = sessionStore.sessionsByLastModified();
+          if (continueLastSession && recentSessions.length > 0) {
+            tabs.addTab(recentSessions[0]);
+          } else {
+            await tabs.createNewTab({ isExplicit: false });
+          }
         }
+        // Sidebar mode: no tab creation needed — sidebar just shows session list
       }
     })();
 

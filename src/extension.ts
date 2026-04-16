@@ -40,9 +40,12 @@ export function activate(context: vscode.ExtensionContext) {
 		// Initialize claudixFocused context (will be updated by webview focus events)
 		vscode.commands.executeCommand('setContext', 'claudixFocused', false);
 
-		// Register WebView View Provider
+		// Track the last focused webviewId for targeted commands (e.g. clearSession)
+		let lastFocusedWebviewId: string | undefined;
+
+		// Register WebView View Provider (sidebar session list)
 		const webviewProvider = vscode.window.registerWebviewViewProvider(
-			'claudix.chatView',
+			'claudix.sessionList',
 			webViewService,
 			{
 				webviewOptions: {
@@ -57,8 +60,59 @@ export function activate(context: vscode.ExtensionContext) {
 			if (message.type === 'focus_changed') {
 				const focused = (message as any).focused;
 				vscode.commands.executeCommand('setContext', 'claudixFocused', focused);
+				if (focused && message.webviewId) {
+					lastFocusedWebviewId = message.webviewId;
+				}
 				logService.info(`[Focus] Claudix focused: ${focused}`);
 				return;
+			}
+
+			// Handle request messages that need extension-level processing
+			if (message.type === 'request') {
+				const req = (message as any).request;
+
+				// Open (or focus) a chat panel for a specific session
+				if (req.type === 'open_session_panel') {
+					const sessionId: string | null = req.sessionId || null;
+					const title: string = req.title || (sessionId ? 'Chat' : 'New Chat');
+					webViewService.openChatPanel(sessionId, title);
+					// Send response back to the requesting webview
+					webViewService.postMessage({
+						type: 'response',
+						requestId: message.requestId,
+						webviewId: message.webviewId,
+						response: { type: 'open_session_panel_response' }
+					});
+					return;
+				}
+
+				// Open a new chat panel (from sidebar or panel /new command)
+				if (req.type === 'new_conversation_tab') {
+					webViewService.openChatPanel(null, 'New Chat');
+					webViewService.postMessage({
+						type: 'response',
+						requestId: message.requestId,
+						webviewId: message.webviewId,
+						response: { type: 'new_conversation_tab_response' }
+					});
+					return;
+				}
+
+				// Update the chat panel title when a session summary changes
+				if (req.type === 'rename_tab') {
+					const title: string = req.title || 'Claude Chat';
+					const webviewId: string | undefined = message.webviewId;
+					if (webviewId && webviewId.startsWith('panel:chat:')) {
+						webViewService.updateChatPanelTitle(webviewId, title);
+					}
+					webViewService.postMessage({
+						type: 'response',
+						requestId: message.requestId,
+						webviewId: message.webviewId,
+						response: { type: 'rename_tab_response' }
+					});
+					return;
+				}
 			}
 
 			// Forward all other messages to Claude Agent Service
@@ -118,31 +172,37 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(webviewProvider);
 		context.subscriptions.push(
 			vscode.commands.registerCommand('claudix.newSession', () => {
-				webViewService.postMessage({
-					type: 'request',
-					requestId: `new-tab-${Date.now()}`,
-					request: { type: 'new_tab' }
-				});
+				webViewService.openChatPanel(null, 'New Chat');
 			})
 		);
 
 		context.subscriptions.push(
 			vscode.commands.registerCommand('claudix.clearSession', () => {
-				webViewService.postMessage({
-					type: 'request',
-					requestId: `clear-session-${Date.now()}`,
-					request: { type: 'new_session' }
-				});
+				// Send new_session to the last focused panel/webview
+				const targetId = lastFocusedWebviewId;
+				if (targetId) {
+					webViewService.postMessage({
+						type: 'request',
+						requestId: `clear-session-${Date.now()}`,
+						webviewId: targetId,
+						request: { type: 'new_session' }
+					});
+				}
 			})
 		);
 
 		context.subscriptions.push(
 			vscode.commands.registerCommand('claudix.closeSession', () => {
-				webViewService.postMessage({
-					type: 'request',
-					requestId: `close-tab-${Date.now()}`,
-					request: { type: 'close_tab' }
-				});
+				// Send close_tab to the last focused panel; runtime handles it
+				const targetId = lastFocusedWebviewId;
+				if (targetId) {
+					webViewService.postMessage({
+						type: 'request',
+						requestId: `close-tab-${Date.now()}`,
+						webviewId: targetId,
+						request: { type: 'close_tab' }
+					});
+				}
 			})
 		);
 
@@ -162,13 +222,13 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		logService.info('✓ Claude Agent Service connected to Transport');
-		logService.info('✓ WebView Service registered as View Provider');
+		logService.info('✓ WebView Service registered as Session List sidebar provider');
 		logService.info('✓ Settings command registered');
 	});
 
 	// 6. Register commands
 	const showChatCommand = vscode.commands.registerCommand('claudix.showChat', () => {
-		vscode.commands.executeCommand('claudix.chatView.focus');
+		vscode.commands.executeCommand('claudix.sessionList.focus');
 	});
 
 	context.subscriptions.push(showChatCommand);
@@ -176,7 +236,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// 7. Log completion
 	instantiationService.invokeFunction(accessor => {
 		const logService = accessor.get(ILogService);
-		logService.info('✓ Claude Chat view registered');
+		logService.info('✓ Claude Session List view registered');
 		logService.info('');
 	});
 

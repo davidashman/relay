@@ -15,7 +15,7 @@ import { ILogService } from './logService';
 
 export const IWebViewService = createDecorator<IWebViewService>('webViewService');
 
-export type WebviewHost = 'sidebar' | 'editor';
+export type WebviewHost = 'sidebar' | 'editor' | 'panel';
 
 export interface WebviewBootstrapConfig {
 	host: WebviewHost;
@@ -49,6 +49,19 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * @param instanceId 页面实例 ID，用于区分多标签（不传则默认为 page，实现单例）
 	 */
 	openEditorPage(page: string, title: string, instanceId?: string): void;
+
+	/**
+	 * 打开（或聚焦）一个聊天面板
+	 *
+	 * @param sessionId 要加载的会话 ID；null 表示新会话
+	 * @param title 面板标题
+	 */
+	openChatPanel(sessionId: string | null, title: string): void;
+
+	/**
+	 * 更新聊天面板标题（通过 webviewId 定位面板）
+	 */
+	updateChatPanelTitle(webviewId: string, title: string): void;
 }
 
 /**
@@ -62,6 +75,10 @@ export class WebViewService implements IWebViewService {
 	private readonly webviewIdMap = new Map<string, vscode.Webview>();
 	private messageHandler?: (message: any) => void;
 	private readonly editorPanels = new Map<string, vscode.WebviewPanel>();
+	/** Map from panelKey (sessionId or generated key) to chat panel */
+	private readonly chatPanels = new Map<string, vscode.WebviewPanel>();
+	/** Map from webviewId (e.g. 'panel:chat:key') to panel key, for title updates */
+	private readonly chatPanelWebviewIds = new Map<string, string>();
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -80,7 +97,7 @@ export class WebViewService implements IWebViewService {
 
 		this.registerWebview(webviewView.webview, {
 			host: 'sidebar',
-			page: 'chat'
+			page: 'sessions'
 		});
 
 		// WebviewView 的销毁由 VSCode 管理，这里仅作日志记录
@@ -137,15 +154,10 @@ export class WebViewService implements IWebViewService {
 			return;
 		}
 
-		// 默认仅向侧边栏 chat WebView 发送消息，避免误广播
+		// 广播到所有已注册的 WebView（侧边栏 + 所有聊天面板）
 		const toRemove: vscode.Webview[] = [];
 
 		for (const webview of this.webviews) {
-			const config = this.webviewConfigs.get(webview);
-			if (!config || config.host !== 'sidebar' || (config.page && config.page !== 'chat')) {
-				continue;
-			}
-
 			try {
 				webview.postMessage(payload);
 			} catch (error) {
@@ -222,6 +234,87 @@ export class WebViewService implements IWebViewService {
 		);
 
 		this.editorPanels.set(key, panel);
+	}
+
+	/**
+	 * 打开（或聚焦）一个聊天面板
+	 */
+	openChatPanel(sessionId: string | null, title: string): void {
+		const key = sessionId || `new-chat-${Date.now()}`;
+		const existing = this.chatPanels.get(key);
+		if (existing) {
+			try {
+				existing.reveal(vscode.ViewColumn.Active);
+				this.logService.info(`[WebViewService] 复用已存在的聊天面板: sessionId=${sessionId}`);
+				return;
+			} catch (error) {
+				this.logService.warn(
+					`[WebViewService] 现有聊天面板已失效，将重新创建: sessionId=${sessionId}`,
+					error as Error
+				);
+				this.chatPanels.delete(key);
+			}
+		}
+
+		this.logService.info(`[WebViewService] 创建聊天面板: sessionId=${sessionId}, title=${title}`);
+
+		const panel = vscode.window.createWebviewPanel(
+			'claudix.chatPanel',
+			title,
+			vscode.ViewColumn.Active,
+			{
+				enableScripts: true,
+				retainContextWhenHidden: true,
+				localResourceRoots: [
+					vscode.Uri.file(path.join(this.context.extensionPath, 'dist')),
+					vscode.Uri.file(path.join(this.context.extensionPath, 'resources'))
+				]
+			}
+		);
+
+		// Set Claude star icon
+		panel.iconPath = {
+			light: vscode.Uri.file(path.join(this.context.extensionPath, 'resources', 'claude-logo.svg')),
+			dark: vscode.Uri.file(path.join(this.context.extensionPath, 'resources', 'claude-logo.svg'))
+		};
+
+		const panelWebview = panel.webview;
+
+		// Use key as the bootstrap id so the webviewId is always unique and
+		// the webview knows which sessionId to pre-select (or '' for new session)
+		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key };
+		this.registerWebview(panelWebview, bootstrap);
+
+		// Track webviewId → panelKey for title updates
+		const webviewId = this.getWebviewId(bootstrap);
+		this.chatPanelWebviewIds.set(webviewId, key);
+
+		panel.onDidDispose(
+			() => {
+				this.removeWebview(panelWebview);
+				this.chatPanels.delete(key);
+				this.chatPanelWebviewIds.delete(webviewId);
+				this.logService.info(`[WebViewService] 聊天面板已销毁: sessionId=${sessionId}`);
+			},
+			undefined,
+			this.context.subscriptions
+		);
+
+		this.chatPanels.set(key, panel);
+	}
+
+	/**
+	 * 更新聊天面板标题
+	 * @param webviewId  webviewId 格式 'panel:chat:<key>'，由 extension.ts 从消息中提取
+	 */
+	updateChatPanelTitle(webviewId: string, title: string): void {
+		const panelKey = this.chatPanelWebviewIds.get(webviewId);
+		if (!panelKey) return;
+		const panel = this.chatPanels.get(panelKey);
+		if (panel) {
+			panel.title = title;
+			this.logService.info(`[WebViewService] 更新聊天面板标题: webviewId=${webviewId}, title=${title}`);
+		}
 	}
 
 	/**

@@ -229,6 +229,13 @@ export abstract class BaseTransport {
       initialPrompt,
     } as any);
   }
+  openSessionPanel(sessionId: string | null, title?: string): Promise<any> {
+    return this.sendRequest({
+      type: "open_session_panel",
+      sessionId,
+      title,
+    } as any);
+  }
   renameTab(title: string): Promise<any> {
     return this.sendRequest({ type: "rename_tab", title } as any);
   }
@@ -438,17 +445,21 @@ export abstract class BaseTransport {
       }
 
       case "update_state": {
+        // Merge with existing config: only overwrite fields that are explicitly provided
+        const existing = this.config() ?? {} as InitResponse["state"];
+        const incoming = req.state as Partial<InitResponse["state"]>;
         this.config({
-          defaultCwd: req.state.defaultCwd,
-          openNewInTab: req.state.openNewInTab,
-          modelSetting: req.state.modelSetting,
-          platform: req.state.platform,
-          thinkingLevel: req.state.thinkingLevel,
-          funSpinner: req.state.funSpinner,
-          continueLastSession: req.state.continueLastSession,
-          permissionMode: req.state.permissionMode,
-          expandToolOutput: req.state.expandToolOutput,
-          showThinking: req.state.showThinking,
+          ...existing,
+          ...(incoming.defaultCwd !== undefined ? { defaultCwd: incoming.defaultCwd } : {}),
+          ...(incoming.openNewInTab !== undefined ? { openNewInTab: incoming.openNewInTab } : {}),
+          ...(incoming.modelSetting !== undefined ? { modelSetting: incoming.modelSetting } : {}),
+          ...(incoming.platform !== undefined ? { platform: incoming.platform } : {}),
+          ...(incoming.thinkingLevel !== undefined ? { thinkingLevel: incoming.thinkingLevel } : {}),
+          ...(incoming.funSpinner !== undefined ? { funSpinner: incoming.funSpinner } : {}),
+          ...(incoming.continueLastSession !== undefined ? { continueLastSession: incoming.continueLastSession } : {}),
+          ...(incoming.permissionMode !== undefined ? { permissionMode: incoming.permissionMode } : {}),
+          ...(incoming.expandToolOutput !== undefined ? { expandToolOutput: incoming.expandToolOutput } : {}),
+          ...(incoming.showThinking !== undefined ? { showThinking: incoming.showThinking } : {}),
         } as InitResponse["state"]);
         if (req.config !== undefined) {
           this.claudeConfig(req.config);

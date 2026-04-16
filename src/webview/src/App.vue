@@ -1,8 +1,9 @@
 <template>
   <div class="app-wrapper">
     <main class="app-main">
+      <!-- TabBar is hidden for panel and sidebar hosts; panels use VSCode native tabs -->
       <TabBar
-        v-if="currentPage === 'chat' && runtime"
+        v-if="currentPage === 'chat' && runtime && bootstrap?.host !== 'panel' && bootstrap?.host !== 'sidebar'"
         :tabs="runtime.tabs.tabs.value"
         :active-tab-index="runtime.tabs.activeTabIndex.value"
         @menu="switchToPage('sessions')"

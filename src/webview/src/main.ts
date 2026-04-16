@@ -13,8 +13,9 @@ declare global {
       setState(data: any): void;
     };
     CLAUDIX_BOOTSTRAP?: {
-      host?: 'sidebar' | 'editor';
+      host?: 'sidebar' | 'editor' | 'panel';
       page?: string;
+      id?: string;
     };
   }
 }

@@ -2,9 +2,6 @@
   <div class="sessions-page">
     <div class="page-header">
       <div class="header-left">
-        <button class="back-btn" @click="$emit('switchToChat')">
-          <span class="codicon codicon-arrow-left"></span>
-        </button>
         <h2 class="page-title">Sessions</h2>
       </div>
       <div class="header-center">
@@ -109,11 +106,6 @@ const sessionList = computed(() => {
   return rawSessions.map(raw => useSession(raw));
 });
 
-// Define events
-const emit = defineEmits<{
-  switchToChat: [sessionId?: string];
-}>();
-
 // Component state
 const loading = ref(true);
 const error = ref('');
@@ -156,22 +148,23 @@ const refreshSessions = async () => {
 };
 
 
-const openSession = (wrappedSession: ReturnType<typeof useSession> | undefined) => {
+const openSession = async (wrappedSession: ReturnType<typeof useSession> | undefined) => {
   if (!wrappedSession) return;
-  // 🔥 从包装对象中获取原始 Session 实例
-  const rawSession = wrappedSession.__session;
-  runtime.tabs.openSessionInNewTab(rawSession);
-  emit('switchToChat', wrappedSession.sessionId.value);
+  const connection = await runtime.connectionManager.get();
+  await connection.openSessionPanel(
+    wrappedSession.sessionId.value || null,
+    wrappedSession.summary.value || 'Chat'
+  );
 };
-
 
 const createNewSession = async () => {
-  await runtime.tabs.createNewTab();
-  emit('switchToChat');
+  const connection = await runtime.connectionManager.get();
+  await connection.startNewConversationTab();
 };
 
-const startNewChat = () => {
-  emit('switchToChat');
+const startNewChat = async () => {
+  const connection = await runtime.connectionManager.get();
+  await connection.startNewConversationTab();
 };
 
 // Search functionality
@@ -240,28 +233,6 @@ onMounted(() => {
   align-items: center;
   flex: 1;
   justify-content: center;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: var(--vscode-titleBar-activeForeground);
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.back-btn .codicon {
-  font-size: 12px;
-}
-
-.back-btn:hover {
-  background: var(--vscode-toolbar-hoverBackground);
 }
 
 .page-title {

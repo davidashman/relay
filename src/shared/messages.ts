@@ -455,6 +455,19 @@ export interface ShowNotificationResponse {
 }
 
 /**
+ * 在编辑器面板中打开会话（侧边栏 → 扩展）
+ */
+export interface OpenSessionPanelRequest {
+    type: "open_session_panel";
+    sessionId: string | null; // null = new session
+    title?: string;
+}
+
+export interface OpenSessionPanelResponse {
+    type: "open_session_panel_response";
+}
+
+/**
  * 新建会话标签
  */
 export interface NewConversationTabRequest {
@@ -827,7 +840,8 @@ export type WebViewRequest =
     | CreateProfileRequest
     | DeleteProfileRequest
     | GetExtensionConfigRequest
-    | UpdateExtensionConfigRequest;
+    | UpdateExtensionConfigRequest
+    | OpenSessionPanelRequest;
 
 /**
  * Extension → WebView 的所有响应类型
@@ -867,7 +881,8 @@ export type WebViewRequestResponse =
     | CreateProfileResponse
     | DeleteProfileResponse
     | GetExtensionConfigResponse
-    | UpdateExtensionConfigResponse;
+    | UpdateExtensionConfigResponse
+    | OpenSessionPanelResponse;
 
 /**
  * 新建会话标签页（Extension → WebView）

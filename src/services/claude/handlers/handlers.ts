@@ -493,7 +493,7 @@ export async function handleNewConversationTab(
     const { logService } = context;
 
     try {
-        await vscode.commands.executeCommand("claudix.chatView.focus");
+        await vscode.commands.executeCommand("claudix.sessionList.focus");
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         logService.warn(`Failed to focus chat view: ${message}`);
