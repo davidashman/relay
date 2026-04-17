@@ -313,8 +313,10 @@
   // Queued messages (submitted while busy)
   const queuedMessages = ref<string[]>([]);
 
-  function handleQueueMessage(content: string) {
+  async function handleQueueMessage(content: string) {
     queuedMessages.value.push(content);
+    await nextTick();
+    scrollToBottom(true);
   }
 
   watch(isBusy, async (busy) => {
@@ -417,13 +419,6 @@
       }
     }
   );
-
-  watch(queuedMessages, async (val) => {
-    if (val.length > 0) {
-      await nextTick();
-      scrollToBottom(true); // Force scroll to show queued message
-    }
-  });
 
   watch(permissionRequestsLen, async (newLen) => {
     // 有权限请求出现时也确保滚动到底部

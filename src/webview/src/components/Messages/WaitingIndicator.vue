@@ -150,15 +150,15 @@
     display: inline-flex;
     flex-direction: row;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     color: var(--app-spinner-foreground, var(--vscode-descriptionForeground));
-    padding-left: 24px;
+    padding-left: 5px;
   }
   .icon {
     /* color: var(--app-spinner-foreground, var(--vscode-descriptionForeground)); */
     font-family: monospace;
     display: inline-block;
-    width: 1.5em;
+    width: 1em;
     text-align: center;
   }
   /* .spinner[data-permission-mode='acceptEdits'] .icon {

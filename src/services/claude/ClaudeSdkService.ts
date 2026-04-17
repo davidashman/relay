@@ -162,10 +162,6 @@ export class ClaudeSdkService implements IClaudeSdkService {
         // 获取环境变量
         const env = await this.getMergedEnvironmentVariables();
 
-        // 读取 context-mode tools 设置
-        const vscodeConfig = vscode.workspace.getConfiguration('claudix');
-        const enableContextModeTools = vscodeConfig.get<boolean>('enableContextModeTools', false);
-
         // 记录环境变量
         this.logService.info(`🌍 环境变量 (env):`);
         if (env && Object.keys(env).length > 0) {
@@ -175,9 +171,6 @@ export class ClaudeSdkService implements IClaudeSdkService {
         } else {
             this.logService.info(`  (empty)`);
         }
-
-        // 记录 context-mode 设置
-        this.logService.info(`🔧 Context Mode Tools: ${enableContextModeTools ? 'Enabled' : 'Disabled'}`);
 
         // 记录 CLI 路径
         const claudixPath = path.join(os.homedir(), '.claude', 'claudix.json');
@@ -213,11 +206,6 @@ export class ClaudeSdkService implements IClaudeSdkService {
 
             // CanUseTool 回调
             canUseTool,
-
-            // 允许的工具 (如果启用 context-mode)
-            ...(enableContextModeTools && {
-                allowedTools: ['mdx__context-mode__**']
-            }),
 
             // 日志回调 - 捕获 SDK 进程的所有标准错误输出
             stderr: (data: string) => {

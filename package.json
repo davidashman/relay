@@ -69,12 +69,6 @@
           "description": "Show notifications and messages from Claudix",
           "order": 5
         },
-        "claudix.enableContextModeTools": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable context-mode tools (mdx__context-mode__**) for Claude SDK",
-          "order": 6
-        },
         "claudix.expandToolOutput": {
           "type": "boolean",
           "default": true,

@@ -16,6 +16,11 @@
         <div class="section-header">
           <span class="codicon codicon-comment-discussion"></span>
           <span>Prompt</span>
+          <Tooltip content="Rerun prompt">
+            <button class="rerun-button" @click.stop="handleRerun">
+              <span class="codicon codicon-redo"></span>
+            </button>
+          </Tooltip>
         </div>
         <pre class="prompt-content">{{ prompt }}</pre>
       </div>
@@ -27,9 +32,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import ToolMessageWrapper from './common/ToolMessageWrapper.vue';
 import ToolError from './common/ToolError.vue';
+import Tooltip from '@/components/Common/Tooltip.vue';
+import { RuntimeKey } from '@/composables/runtimeContext';
 
 interface Props {
   toolUse?: any;
@@ -38,6 +45,18 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const runtime = inject(RuntimeKey);
+
+function handleRerun() {
+  const promptText = prompt.value?.trim();
+  if (promptText && runtime) {
+    const session = runtime.sessionStore.activeSession();
+    if (session) {
+      void session.send(promptText, []);
+    }
+  }
+}
 
 // 子代理类型
 const subagentType = computed(() => {
@@ -113,7 +132,31 @@ const shouldExpand = computed(() => {
   color: color-mix(in srgb, var(--vscode-foreground) 80%, transparent);
 }
 
-.section-header .codicon {
+.rerun-button {
+  background: transparent;
+  border: none;
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.rerun-button:hover {
+  background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+  color: var(--vscode-foreground);
+}
+
+.rerun-button .codicon {
+  font-size: 12px;
+}
+
+.section-header > .codicon {
   font-size: 14px;
 }
 
