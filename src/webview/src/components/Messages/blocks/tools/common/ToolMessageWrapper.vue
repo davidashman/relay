@@ -171,7 +171,7 @@ function toggleExpand() {
 .tool-message-wrapper {
   display: flex;
   flex-direction: column;
-  padding: 0px 8px;
+  padding: 0px 8px 0px 0px;
 }
 
 /* Group provides the margin; don't double-pad inside a collapsed group */
@@ -184,6 +184,7 @@ function toggleExpand() {
   align-items: center;
   gap: 6px;
   padding: 3px 0;
+  min-height: 28px;
   user-select: none;
 }
 

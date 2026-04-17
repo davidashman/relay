@@ -54,6 +54,7 @@ export interface SdkQueryParams {
     cwd: string;
     permissionMode: PermissionMode | string;  // ← 接受字符串
     maxThinkingTokens?: number;  // ← Thinking tokens 上限
+    effortLevel?: string | null; // ← Opus 4.6+ adaptive reasoning effort (low | medium | high)
     /** 当 stderr 检测到致命错误（流式请求回退失败）时的回调 */
     onStderrError?: (error: LLMRequestError) => void;
 }
@@ -134,7 +135,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
      * 调用 Claude SDK 进行查询
      */
     async query(params: SdkQueryParams): Promise<Query> {
-        const { inputStream, resume, canUseTool, model, cwd, permissionMode, maxThinkingTokens, onStderrError } = params;
+        const { inputStream, resume, canUseTool, model, cwd, permissionMode, maxThinkingTokens, effortLevel, onStderrError } = params;
 
         this.logService.info('========================================');
         this.logService.info('ClaudeSdkService.query() 开始调用');
@@ -145,6 +146,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
         this.logService.info(`  - permissionMode: ${permissionMode}`);
         this.logService.info(`  - resume: ${resume}`);
         this.logService.info(`  - maxThinkingTokens: ${maxThinkingTokens ?? 'undefined'}`);
+        this.logService.info(`  - effortLevel: ${effortLevel ?? 'undefined'}`);
 
         // 参数转换
         const modelParam = model === null ? "default" : model;
@@ -161,6 +163,13 @@ export class ClaudeSdkService implements IClaudeSdkService {
 
         // 获取环境变量
         const env = await this.getMergedEnvironmentVariables();
+
+        // Inject effort level for Opus 4.6+ adaptive reasoning. CLI reads
+        // CLAUDE_CODE_EFFORT_LEVEL at spawn time. If the user already set this
+        // env var explicitly via settings/env config, respect that.
+        if (effortLevel && !env.CLAUDE_CODE_EFFORT_LEVEL) {
+            env.CLAUDE_CODE_EFFORT_LEVEL = effortLevel;
+        }
 
         // 记录环境变量
         this.logService.info(`🌍 环境变量 (env):`);

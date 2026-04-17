@@ -92,6 +92,9 @@ export async function handleInit(
     // 获取模型设置（读 CLI settings.json 的 'model' 字段，与 Settings 页 Model Manage 一致）
     const modelSetting = (await configService.getSetting<string>('model')) || 'default';
 
+    // 读取 CLI settings.json 中的 effortLevel（Opus 4.6+ adaptive reasoning）
+    const effortLevel = (await configService.getSetting<string>('effortLevel')) || 'high';
+
     // 获取默认工作目录
     const defaultCwd = workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
 
@@ -117,6 +120,7 @@ export async function handleInit(
             modelSetting,
             platform: process.platform,
             thinkingLevel,
+            effortLevel,
             permissionMode,
             expandToolOutput,
             showThinking

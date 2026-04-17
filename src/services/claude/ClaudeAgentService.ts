@@ -138,7 +138,8 @@ export interface IClaudeAgentService {
         cwd: string,
         model: string | null,
         permissionMode: string,
-        thinkingLevel: string | null
+        thinkingLevel: string | null,
+        effortLevel: string | null
     ): Promise<void>;
 
     /**
@@ -175,6 +176,11 @@ export interface IClaudeAgentService {
      * 设置 Thinking Level
      */
     setThinkingLevel(channelId: string, level: string): Promise<void>;
+
+    /**
+     * 设置 Effort Level（Opus 4.6+ adaptive reasoning）
+     */
+    setEffortLevel(channelId: string, level: string): Promise<void>;
 
     /**
      * 设置模型
@@ -217,6 +223,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
     // Thinking Level 配置
     private thinkingLevel: string = 'on';
+
+    // Effort Level 配置（Opus 4.6+ adaptive reasoning）
+    private effortLevel: string | null = null;
 
     constructor(
         @ILogService private readonly logService: ILogService,
@@ -291,7 +300,8 @@ export class ClaudeAgentService implements IClaudeAgentService {
                             message.cwd || this.getCwd(),
                             message.model || null,
                             message.permissionMode || "default",
-                            message.thinkingLevel || null
+                            message.thinkingLevel || null,
+                            message.effortLevel || null
                         );
                         break;
 
@@ -341,11 +351,17 @@ export class ClaudeAgentService implements IClaudeAgentService {
         cwd: string,
         model: string | null,
         permissionMode: string,
-        thinkingLevel: string | null
+        thinkingLevel: string | null,
+        effortLevel: string | null
     ): Promise<void> {
         // 保存 thinkingLevel
         if (thinkingLevel) {
             this.thinkingLevel = thinkingLevel;
+        }
+
+        // 保存 effortLevel
+        if (effortLevel) {
+            this.effortLevel = effortLevel;
         }
 
         // 计算 maxThinkingTokens
@@ -362,6 +378,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         this.logService.info(`  Permission: ${permissionMode}`);
         this.logService.info(`  Thinking Level: ${this.thinkingLevel}`);
         this.logService.info(`  Max Thinking Tokens: ${maxThinkingTokens}`);
+        this.logService.info(`  Effort Level: ${this.effortLevel ?? 'null'}`);
         this.logService.info('');
 
         // 检查是否已存在
@@ -401,6 +418,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 cwd,
                 permissionMode,
                 maxThinkingTokens,
+                this.effortLevel,
                 // onStderrError: 将 SDK stderr 致命错误实时推给前端
                 (error) => {
                     const now = Date.now();
@@ -548,6 +566,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         cwd: string,
         permissionMode: string,
         maxThinkingTokens: number,
+        effortLevel: string | null,
         onStderrError?: SdkQueryParams['onStderrError']
     ): Promise<Query> {
         return this.sdkService.query({
@@ -558,6 +577,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
             cwd,
             permissionMode,
             maxThinkingTokens,
+            effortLevel,
             onStderrError
         });
     }
@@ -733,6 +753,17 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 await this.setThinkingLevel(channelId, thinkReq.thinkingLevel);
                 return {
                     type: "set_thinking_level_response"
+                };
+            }
+
+            case "set_effort_level": {
+                if (!channelId) {
+                    throw new Error('channelId is required for set_effort_level');
+                }
+                const effortReq = request as any;
+                await this.setEffortLevel(channelId, effortReq.effortLevel);
+                return {
+                    type: "set_effort_level_response"
                 };
             }
 
@@ -927,6 +958,17 @@ export class ClaudeAgentService implements IClaudeAgentService {
             await channel.query.setMaxThinkingTokens(maxTokens);
             this.logService.info(`[setThinkingLevel] Updated channel ${channelId} to ${level} (${maxTokens} tokens)`);
         }
+    }
+
+    /**
+     * 设置 effort level（Opus 4.6+ adaptive reasoning）
+     *
+     * Claude Agent SDK 无运行时 effort setter；新值通过 CLAUDE_CODE_EFFORT_LEVEL
+     * 环境变量在下次 launchClaude 时传递给 CLI。这里只更新 service 内缓存。
+     */
+    async setEffortLevel(_channelId: string, level: string): Promise<void> {
+        this.effortLevel = level;
+        this.logService.info(`[setEffortLevel] Stored effort level: ${level} (applied on next launch)`);
     }
 
     /**

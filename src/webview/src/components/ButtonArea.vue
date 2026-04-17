@@ -14,6 +14,14 @@
           :selected-model="selectedModel"
           @model-select="(modelId) => emit('modelSelect', modelId)"
         />
+
+        <!-- Effort Select (Opus 4.6/4.7 and Sonnet 4.6) -->
+        <EffortSelect
+          v-if="supportsEffort(selectedModel)"
+          :effort-level="effortLevel"
+          :selected-model="selectedModel"
+          @effort-select="(level) => emit('effortSelect', level)"
+        />
       </div>
 
       <!-- Right Section: Token Indicator + Action Buttons -->
@@ -83,6 +91,8 @@ import Tooltip from './Common/Tooltip.vue'
 import TokenIndicator from './TokenIndicator.vue'
 import ModeSelect from './ModeSelect.vue'
 import ModelSelect from './ModelSelect.vue'
+import EffortSelect from './EffortSelect.vue'
+import { supportsEffort } from '../utils/modelUtils'
 
 interface Props {
   disabled?: boolean
@@ -94,6 +104,7 @@ interface Props {
   progressPercentage?: number
   contextTooltip?: string
   thinkingLevel?: string
+  effortLevel?: string
   permissionMode?: PermissionMode
 }
 
@@ -106,6 +117,7 @@ interface Emits {
   (e: 'thinkingToggle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
+  (e: 'effortSelect', level: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -118,6 +130,7 @@ const props = withDefaults(defineProps<Props>(), {
   progressPercentage: 48.7,
   contextTooltip: '',
   thinkingLevel: 'default_on',
+  effortLevel: 'high',
   permissionMode: 'default'
 })
 

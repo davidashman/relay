@@ -47,6 +47,7 @@ export interface UseSessionReturn {
   summary: Ref<string | undefined>;
   modelSelection: Ref<string | undefined>;
   thinkingLevel: Ref<string>;
+  effortLevel: Ref<string | undefined>;
   todos: Ref<any[]>;
   worktree: Ref<{ name: string; path: string } | undefined>;
   selection: Ref<SelectionRange | undefined>;
@@ -82,6 +83,7 @@ export interface UseSessionReturn {
   setPermissionMode: (mode: PermissionMode, applyToConnection?: boolean) => Promise<boolean>;
   setModel: (model: ModelOption) => Promise<boolean>;
   setThinkingLevel: (level: string) => Promise<void>;
+  setEffortLevel: (level: string) => Promise<void>;
   getMcpServers: () => Promise<any>;
   openConfigFile: (configType: string) => Promise<void>;
   onPermissionRequested: (callback: (request: PermissionRequest) => void) => () => void;
@@ -116,6 +118,7 @@ export function useSession(session: Session): UseSessionReturn {
   const summary = useSignal(session.summary);
   const modelSelection = useSignal(session.modelSelection);
   const thinkingLevel = useSignal(session.thinkingLevel);
+  const effortLevel = useSignal(session.effortLevel);
   const todos = useSignal(session.todos);
   const worktree = useSignal(session.worktree);
   const selection = useSignal(session.selection);
@@ -141,6 +144,7 @@ export function useSession(session: Session): UseSessionReturn {
   const setPermissionMode = session.setPermissionMode.bind(session);
   const setModel = session.setModel.bind(session);
   const setThinkingLevel = session.setThinkingLevel.bind(session);
+  const setEffortLevel = session.setEffortLevel.bind(session);
   const getMcpServers = session.getMcpServers.bind(session);
   const openConfigFile = session.openConfigFile.bind(session);
   const onPermissionRequested = session.onPermissionRequested.bind(session);
@@ -165,6 +169,7 @@ export function useSession(session: Session): UseSessionReturn {
     summary,
     modelSelection,
     thinkingLevel,
+    effortLevel,
     todos,
     worktree,
     selection,
@@ -188,6 +193,7 @@ export function useSession(session: Session): UseSessionReturn {
     setPermissionMode,
     setModel,
     setThinkingLevel,
+    setEffortLevel,
     getMcpServers,
     openConfigFile,
     onPermissionRequested,

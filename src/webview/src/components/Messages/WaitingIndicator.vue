@@ -152,7 +152,7 @@
     align-items: center;
     gap: 5px;
     color: var(--app-spinner-foreground, var(--vscode-descriptionForeground));
-    padding-left: 5px;
+    padding-left: 0;
   }
   .icon {
     /* color: var(--app-spinner-foreground, var(--vscode-descriptionForeground)); */

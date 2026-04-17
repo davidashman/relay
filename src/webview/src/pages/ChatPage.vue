@@ -92,6 +92,7 @@
             :conversation-working="isBusy"
             :attachments="attachments"
             :thinking-level="session?.thinkingLevel.value"
+            :effort-level="session?.effortLevel.value"
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
             @submit="handleSubmit"
@@ -102,6 +103,7 @@
             @thinking-toggle="handleToggleThinking"
             @mode-select="handleModeSelect"
             @model-select="handleModelSelect"
+            @effort-select="handleEffortSelect"
           />
         </div>
       <!-- </div> -->
@@ -537,6 +539,13 @@
     if (!s) return;
 
     await s.setModel({ value: modelId });
+  }
+
+  async function handleEffortSelect(level: string) {
+    const s = session.value;
+    if (!s) return;
+
+    await s.setEffortLevel(level);
   }
 
   function handleStop() {

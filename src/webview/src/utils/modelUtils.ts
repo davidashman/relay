@@ -48,6 +48,44 @@ export function normalizeModelId(modelId?: string): string | undefined {
 }
 
 /**
+ * Whether the given model supports the `effortLevel` knob.
+ * Supported: Opus 4.6, Opus 4.7, and Sonnet 4.6 (including the `opus`/`sonnet`
+ * aliases and `default`, which normalizes to Sonnet 4.6). Earlier versions
+ * (Opus 4.5, Sonnet 4.5) and Haiku return false.
+ */
+export function supportsEffort(modelId?: string): boolean {
+  const normalized = normalizeModelId(modelId);
+  if (!normalized) return false;
+  return (
+    normalized.includes('opus-4-6') ||
+    normalized.includes('opus-4-7') ||
+    normalized.includes('sonnet-4-6')
+  );
+}
+
+/**
+ * Return the effort levels available for a given model. The effort scale is
+ * calibrated per model; if an unsupported level is requested Claude Code falls
+ * back to the highest supported level at or below the requested one.
+ *
+ * - Opus 4.7: low | medium | high | xhigh | max (xhigh is Opus 4.7-only)
+ * - Opus 4.6: low | medium | high | max
+ * - Sonnet 4.6: low | medium | high | max
+ * - Others: [] (unsupported)
+ */
+export function getEffortLevels(modelId?: string): string[] {
+  const normalized = normalizeModelId(modelId);
+  if (!normalized) return [];
+  if (normalized.includes('opus-4-7')) {
+    return ['low', 'medium', 'high', 'xhigh', 'max'];
+  }
+  if (normalized.includes('opus-4-6') || normalized.includes('sonnet-4-6')) {
+    return ['low', 'medium', 'high', 'max'];
+  }
+  return [];
+}
+
+/**
  * Parse a model ID and return detailed information
  *
  * @param modelId - The model ID to parse

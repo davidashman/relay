@@ -49,6 +49,7 @@
       :progress-percentage="progressPercentage"
       :context-tooltip="contextTooltip"
       :thinking-level="thinkingLevel"
+      :effort-level="effortLevel"
       :permission-mode="permissionMode"
       @submit="handleSubmit"
       @stop="handleStop"
@@ -57,6 +58,7 @@
       @thinking-toggle="() => emit('thinkingToggle')"
       @mode-select="(mode) => emit('modeSelect', mode)"
       @model-select="(modelId) => emit('modelSelect', modelId)"
+      @effort-select="(level) => emit('effortSelect', level)"
     />
 
     <!-- Slash Command Dropdown -->
@@ -159,6 +161,7 @@ interface Props {
   conversationWorking?: boolean
   attachments?: AttachmentItem[]
   thinkingLevel?: string
+  effortLevel?: string
   permissionMode?: PermissionMode
 }
 
@@ -173,6 +176,7 @@ interface Emits {
   (e: 'thinkingToggle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
+  (e: 'effortSelect', level: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -180,12 +184,23 @@ const props = withDefaults(defineProps<Props>(), {
   progressPercentage: 48.7,
   contextTooltip: '',
   // Enter: send (interleaves mid-turn). Cmd/Ctrl+Enter: interrupt then send.
-  placeholder: 'Plan, @ for context, / for commands — Enter: send • Cmd/Ctrl+Enter: interrupt then send',
+  // IIFE-wrapped so defineProps defaults don't reference a setup-local binding.
+  placeholder: (() => {
+    const isMac = typeof navigator !== 'undefined'
+      && /Mac|iPhone|iPad|iPod/i.test(
+        (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
+          || navigator.platform
+          || navigator.userAgent
+      )
+    const modifierKey = isMac ? 'Cmd' : 'Ctrl'
+    return `Plan, @ for context, / for commands — Enter: send • ${modifierKey}+Enter: interrupt then send`
+  })(),
   readonly: false,
   showSearch: false,
   conversationWorking: false,
   attachments: () => [],
   thinkingLevel: 'default_on',
+  effortLevel: 'high',
   permissionMode: 'default'
 })
 

@@ -58,7 +58,7 @@ const latestWrapper = computed(() => props.wrappers[props.wrappers.length - 1]);
   cursor: pointer;
   display: flex;
   align-items: center;
-  margin: 0 8px;
+  margin: 0 8px 0 0;
 }
 
 .collapsed-content {

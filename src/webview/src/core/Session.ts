@@ -90,6 +90,7 @@ export class Session {
   readonly summary = signal<string | undefined>(undefined);
   readonly modelSelection = signal<string | undefined>(undefined);
   readonly thinkingLevel = signal<string>('default_on');
+  readonly effortLevel = signal<string | undefined>(undefined);
   readonly todos = signal<any[]>([]);
   readonly worktree = signal<{ name: string; path: string } | undefined>(undefined);
   readonly selection = signal<SelectionRange | undefined>(undefined);
@@ -179,6 +180,15 @@ export class Session {
         const normalizedModel = normalizeModelId(configModel);
         console.log('[Session] Setting modelSelection to:', normalizedModel, '(normalized from:', configModel, ')');
         this.modelSelection(normalizedModel);
+      }
+    });
+
+    // Initialize effortLevel from config when it becomes available
+    effect(() => {
+      const configEffort = (this.config() as any)?.effortLevel;
+      const currentEffort = this.effortLevel();
+      if (configEffort && !currentEffort) {
+        this.effortLevel(configEffort);
       }
     });
 
@@ -403,13 +413,18 @@ export class Session {
       this.thinkingLevel(connection.config()?.thinkingLevel || 'default_on');
     }
 
+    if (!this.effortLevel()) {
+      this.effortLevel((connection.config() as any)?.effortLevel || 'high');
+    }
+
     const stream = connection.launchClaude(
       channelId,
       this.sessionId() ?? undefined,
       this.cwd() ?? undefined,
       this.modelSelection() ?? undefined,
       this.permissionMode(),
-      this.thinkingLevel()
+      this.thinkingLevel(),
+      this.effortLevel()
     );
 
     void this.readMessages(stream);
@@ -490,6 +505,18 @@ export class Session {
 
     const connection = await this.getConnection();
     await connection.setThinkingLevel(channelId, level);
+  }
+
+  async setEffortLevel(level: string): Promise<void> {
+    this.effortLevel(level);
+
+    const channelId = this.claudeChannelId();
+    if (!channelId) {
+      return;
+    }
+
+    const connection = await this.getConnection();
+    await connection.setEffortLevel(channelId, level);
   }
 
   async getMcpServers(): Promise<any> {

@@ -41,6 +41,7 @@ export interface LaunchClaudeMessage extends BaseMessage {
     model?: string | null;         // 模型名称
     permissionMode?: PermissionMode; // 权限模式
     thinkingLevel?: string | null; // Thinking 等级（off | default_on）
+    effortLevel?: string | null;   // Effort 等级（low | medium | high），仅 Opus 4.6+ 生效
 }
 
 /**
@@ -146,6 +147,7 @@ export interface InitResponse {
         modelSetting: string;
         platform: string;
         thinkingLevel?: string;        // Thinking 等级（off | on | extended）
+        effortLevel?: string;          // Effort 等级（low | medium | high），仅 Opus 4.6+ 生效
         permissionMode?: string;       // Permission mode (default | acceptEdits | plan)
         expandToolOutput?: boolean;    // Expand tool output by default
         showThinking?: boolean;        // Show thinking blocks in chat
@@ -241,6 +243,19 @@ export interface SetThinkingLevelRequest {
 
 export interface SetThinkingLevelResponse {
     type: "set_thinking_level_response";
+}
+
+/**
+ * 设置 Effort Level（Opus 4.6+ adaptive reasoning）
+ */
+export interface SetEffortLevelRequest {
+    type: "set_effort_level";
+    channelId: string;
+    effortLevel: string;  // "low" | "medium" | "high"
+}
+
+export interface SetEffortLevelResponse {
+    type: "set_effort_level_response";
 }
 
 /**
@@ -812,6 +827,7 @@ export type WebViewRequest =
     | SetPermissionModeRequest
     | SetModelRequest
     | SetThinkingLevelRequest
+    | SetEffortLevelRequest
     | GetCurrentSelectionRequest
     | ShowNotificationRequest
     | NewConversationTabRequest
@@ -852,6 +868,7 @@ export type WebViewRequestResponse =
     | SetPermissionModeResponse
     | SetModelResponse
     | SetThinkingLevelResponse
+    | SetEffortLevelResponse
     | GetCurrentSelectionResponse
     | ShowNotificationResponse
     | NewConversationTabResponse

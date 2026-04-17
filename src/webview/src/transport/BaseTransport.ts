@@ -121,7 +121,8 @@ export abstract class BaseTransport {
     cwd?: string,
     model?: string,
     permissionMode?: PermissionMode,
-    thinkingLevel?: string
+    thinkingLevel?: string,
+    effortLevel?: string
   ): AsyncQueue<any> {
     const queue = new AsyncQueue<any>();
     this.streams.set(channelId, queue);
@@ -133,6 +134,7 @@ export abstract class BaseTransport {
       model,
       permissionMode,
       thinkingLevel,
+      effortLevel,
     });
     return queue;
   }
@@ -207,6 +209,10 @@ export abstract class BaseTransport {
 
   async setThinkingLevel(channelId: string, thinkingLevel: string): Promise<void> {
     await this.sendRequest({ type: "set_thinking_level", channelId, thinkingLevel }, channelId);
+  }
+
+  async setEffortLevel(channelId: string, effortLevel: string): Promise<void> {
+    await this.sendRequest({ type: "set_effort_level", channelId, effortLevel }, channelId);
   }
 
   listSessions(): Promise<any> {
