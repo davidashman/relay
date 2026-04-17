@@ -83,6 +83,7 @@ const lineRangeLabel = computed(() => {
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family);
   font-size: 0.9em;
 }
 </style>

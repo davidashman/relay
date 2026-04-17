@@ -171,7 +171,7 @@
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
 
   // Only these tool types are collapsed into a group; others render individually
-  const GROUPABLE_TOOLS = new Set(['Bash', 'BashOutput', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch']);
+  const GROUPABLE_TOOLS = new Set(['Bash', 'BashOutput', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch', 'Write']);
 
   // True if the message contains only groupable tool_use blocks (ignoring empty text
   // and thinking blocks, which the Claude API commonly emits alongside tool_use on reload).

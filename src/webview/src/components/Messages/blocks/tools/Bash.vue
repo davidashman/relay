@@ -76,12 +76,16 @@ const shouldExpand = computed(() => {
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family);
   font-size: 0.9em;
+  line-height: 1.4;
 }
 
 .tool-description {
   color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
-  font-size: 0.85em;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  line-height: 1.4;
   font-style: italic;
 }
 

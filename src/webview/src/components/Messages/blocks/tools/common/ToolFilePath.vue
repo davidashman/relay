@@ -53,31 +53,28 @@ function handleClick(event: MouseEvent) {
 </script>
 
 <style scoped>
+/* Pill styling matches Grep .pattern-text and WebSearch .query-text. */
 .tool-filepath {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: none;
   border: none;
-  padding: 0px 4px;
-  border-radius: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
   cursor: pointer;
   font-family: var(--vscode-editor-font-family);
   font-size: 0.9em;
-  color: var(--vscode-foreground);
+  font-weight: 500;
+  color: var(--vscode-textLink-foreground);
+  background-color: color-mix(in srgb, var(--vscode-textLink-foreground) 15%, transparent);
   transition: background-color 0.2s;
 }
 
 .tool-filepath:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-list-hoverBackground) 50%,
-    transparent
-  );
+  background-color: color-mix(in srgb, var(--vscode-textLink-foreground) 25%, transparent);
 }
 
 .filepath-name {
-  font-weight: 500;
-  color: var(--vscode-textLink-foreground);
+  color: inherit;
 }
 </style>
