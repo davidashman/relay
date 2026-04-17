@@ -36,6 +36,7 @@ import OpenedFileBlock from './blocks/OpenedFileBlock.vue';
 import DiagnosticsBlock from './blocks/DiagnosticsBlock.vue';
 import ToolBlock from './blocks/ToolBlock.vue';
 import ToolResultBlock from './blocks/ToolResultBlock.vue';
+import CompactionBlock from './blocks/CompactionBlock.vue';
 import UnknownBlock from './blocks/UnknownBlock.vue';
 
 interface Props {
@@ -73,6 +74,8 @@ const blockComponent = computed(() => {
       return ToolBlock;
     case 'tool_result':
       return ToolResultBlock;
+    case 'compaction':
+      return CompactionBlock;
     default:
       return UnknownBlock;
   }

@@ -14,7 +14,7 @@ import { ContentBlockWrapper } from '../models/ContentBlockWrapper';
 /**
  * 消息类型
  */
-export type MessageRole = 'user' | 'assistant' | 'system' | 'result' | 'tip' | 'slash_command_result';
+export type MessageRole = 'user' | 'assistant' | 'system' | 'result' | 'tip' | 'slash_command_result' | 'compaction';
 
 /**
  * 消息内容数据

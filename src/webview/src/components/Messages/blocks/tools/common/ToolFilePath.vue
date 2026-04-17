@@ -59,7 +59,7 @@ function handleClick(event: MouseEvent) {
   align-items: center;
   gap: 6px;
   border: none;
-  padding: 2px 6px;
+  padding: 2px 6px 1px;
   border-radius: 3px;
   cursor: pointer;
   font-family: var(--vscode-editor-font-family);

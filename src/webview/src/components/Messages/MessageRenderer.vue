@@ -18,6 +18,7 @@ import SystemMessage from './SystemMessage.vue';
 import ResultMessage from './ResultMessage.vue';
 import TipMessage from './TipMessage.vue';
 import SlashCommandResultMessage from './SlashCommandResultMessage.vue';
+import CompactionMessage from './CompactionMessage.vue';
 
 interface Props {
   message: Message;
@@ -41,6 +42,8 @@ const messageComponent = computed(() => {
       return SystemMessage;
     case 'result':
       return ResultMessage;
+    case 'compaction':
+      return CompactionMessage;
     default:
       return null;
   }

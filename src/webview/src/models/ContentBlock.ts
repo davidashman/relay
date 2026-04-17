@@ -97,6 +97,13 @@ export type ToolUseContentBlock = ToolUseBlock & {
   toolResult?: ToolResultBlock;
 };
 
+export interface CompactionBlock {
+  type: 'compaction';
+  summary: string;
+  preTokens?: number;
+  trigger?: 'auto' | 'manual';
+}
+
 export type ContentBlockType =
   | TextBlock
   | ThinkingBlock
@@ -109,4 +116,5 @@ export type ContentBlockType =
   | DiagnosticsBlock
   | SlashCommandResultBlock
   | ToolUseContentBlock
-  | ToolResultBlock;
+  | ToolResultBlock
+  | CompactionBlock;

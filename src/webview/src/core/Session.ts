@@ -8,6 +8,7 @@ import { processAndAttachMessage /*, mergeConsecutiveReadMessages */ } from '../
 import { normalizeModelId } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
 import type { Message } from '../models/Message';
+import { ContentBlockWrapper } from '../models/ContentBlockWrapper';
 import type { QueuedMessage } from '../types/queue';
 
 export interface SelectionRange {
@@ -67,6 +68,12 @@ export class Session {
   private currentConnectionPromise?: Promise<BaseTransport>;
   private lastSentSelection?: SelectionRange;
   private effectCleanup?: () => void;
+
+  // Context-compaction interception state. When the SDK streams a compacting
+  // window, we buffer the summary assistant output here and surface it as a
+  // single collapsible "compaction" message once `compact_boundary` arrives.
+  private compactingMode = false;
+  private compactionBuffer: string[] = [];
 
   readonly connection = signal<BaseTransport | undefined>(undefined);
 
@@ -620,6 +627,53 @@ export class Session {
       return;
     }
 
+    // Context-compaction interception.
+    // SDK emits: system/status(compacting) → assistant summary turns → system/compact_boundary
+    // We fold the summary turns into a single synthetic "compaction" Message so
+    // they render as a collapsible one-liner instead of a long assistant bubble.
+    if (event?.type === 'system' && event?.subtype === 'status') {
+      if (event.status === 'compacting') {
+        this.compactingMode = true;
+        this.compactionBuffer = [];
+      } else if (this.compactingMode) {
+        // Status cleared without boundary (e.g. interrupted): drop buffer.
+        this.compactingMode = false;
+        this.compactionBuffer = [];
+      }
+      return;
+    }
+    if (event?.type === 'system' && event?.subtype === 'compact_boundary') {
+      const summary = this.compactionBuffer.join('\n\n').trim();
+      this.compactingMode = false;
+      this.compactionBuffer = [];
+      const block = new ContentBlockWrapper({
+        type: 'compaction',
+        summary,
+        preTokens: event.compact_metadata?.pre_tokens,
+        trigger: event.compact_metadata?.trigger,
+      });
+      const msg = new MessageModel(
+        'compaction',
+        { role: 'system', content: [block] },
+        Date.now(),
+      );
+      const next = [...this.messages(), msg] as Message[];
+      this.messages(next);
+      return;
+    }
+    if (
+      this.compactingMode &&
+      (event?.type === 'assistant' || event?.type === 'user') &&
+      Array.isArray(event.message?.content)
+    ) {
+      for (const part of event.message.content) {
+        if (part?.type === 'text' && typeof part.text === 'string' && part.text.length > 0) {
+          this.compactionBuffer.push(part.text);
+        }
+      }
+      return;
+    }
+
     // 🔥 使用完整的消息处理流程
 
     // 1. 获取当前消息数组（转为可变数组）
@@ -666,6 +720,12 @@ export class Session {
           'todos' in block.input
         ) {
           this.todos(block.input.todos);
+        }
+
+        // 当 Claude 调用 EnterPlanMode 时，同步 UI 的模式选择器。
+        // SDK 内部已处理模式切换，这里只更新本地信号。
+        if (block.type === 'tool_use' && block.name === 'EnterPlanMode') {
+          void this.setPermissionMode('plan', false);
         }
       }
 
