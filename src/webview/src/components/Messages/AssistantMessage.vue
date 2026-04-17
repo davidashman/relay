@@ -4,13 +4,19 @@
       <ContentBlock :block="{ type: 'text', text: message.message.content }" :context="context" />
     </template>
     <template v-else>
-      <ContentBlock
-        v-for="(wrapper, index) in message.message.content"
-        :key="index"
-        :block="wrapper.content"
-        :wrapper="wrapper"
-        :context="context"
-      />
+      <template v-for="(segment, index) in segments" :key="index">
+        <ToolGroup
+          v-if="segment.type === 'tool-group'"
+          :wrappers="segment.wrappers"
+          :context="context"
+        />
+        <ContentBlock
+          v-else
+          :block="segment.wrapper.content"
+          :wrapper="segment.wrapper"
+          :context="context"
+        />
+      </template>
     </template>
   </div>
 </template>
@@ -19,7 +25,9 @@
 import { computed, inject } from 'vue';
 import type { Message } from '../../models/Message';
 import type { ToolContext } from '../../types/tool';
+import type { ContentBlockWrapper } from '../../models/ContentBlockWrapper';
 import ContentBlock from './ContentBlock.vue';
+import ToolGroup from './blocks/ToolGroup.vue';
 import { RuntimeKey } from '../../composables/runtimeContext';
 
 interface Props {
@@ -55,6 +63,49 @@ const messageClasses = computed(() => {
   }
 
   return [];
+});
+
+type Segment =
+  | { type: 'single'; wrapper: ContentBlockWrapper }
+  | { type: 'tool-group'; wrappers: ContentBlockWrapper[] };
+
+// Edit and Write always stand alone — they break any current group and are never grouped.
+const STANDALONE_TOOLS = new Set(['Edit', 'Write']);
+
+// Group consecutive tool_use blocks into ToolGroup segments.
+// Edit/Write break out of groups and render individually, starting a fresh group after them.
+const segments = computed((): Segment[] => {
+  const content = props.message.message.content;
+  if (typeof content === 'string' || !Array.isArray(content)) return [];
+
+  const result: Segment[] = [];
+  let currentGroup: ContentBlockWrapper[] | null = null;
+
+  for (const wrapper of content) {
+    if (wrapper.content.type === 'tool_use' && STANDALONE_TOOLS.has(wrapper.content.name)) {
+      // Close any open group, then render this tool standalone
+      if (currentGroup) {
+        result.push({ type: 'tool-group', wrappers: currentGroup });
+        currentGroup = null;
+      }
+      result.push({ type: 'single', wrapper });
+    } else if (wrapper.content.type === 'tool_use') {
+      if (!currentGroup) currentGroup = [];
+      currentGroup.push(wrapper);
+    } else {
+      if (currentGroup) {
+        result.push({ type: 'tool-group', wrappers: currentGroup });
+        currentGroup = null;
+      }
+      result.push({ type: 'single', wrapper });
+    }
+  }
+
+  if (currentGroup) {
+    result.push({ type: 'tool-group', wrappers: currentGroup });
+  }
+
+  return result;
 });
 </script>
 

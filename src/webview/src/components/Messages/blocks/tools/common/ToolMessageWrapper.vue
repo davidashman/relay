@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-message-wrapper">
+  <div :class="['tool-message-wrapper', { 'in-collapsed-group': inCollapsedGroup }]">
     <!-- 自定义布局模式 -->
     <template v-if="isCustomLayout">
       <slot name="custom"></slot>
@@ -39,6 +39,9 @@
           <slot name="main"></slot>
         </div>
 
+        <!-- Group count badge (shown left of status dot when collapsed) -->
+        <span v-if="inCollapsedGroup && toolGroupCount > 0" class="tool-count-badge">+{{ toolGroupCount }}</span>
+
         <!-- 状态指示器 -->
         <ToolStatusIndicator
           v-if="indicatorState"
@@ -66,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useSlots, inject, watch } from 'vue';
+import { ref, computed, useSlots, inject, watch, type Ref } from 'vue';
 import Tooltip from '@/components/Common/Tooltip.vue';
 import ToolStatusIndicator from './ToolStatusIndicator.vue';
 import { RuntimeKey } from '@/composables/runtimeContext';
@@ -96,9 +99,14 @@ defineEmits<{
 
 const runtime = inject(RuntimeKey);
 const slots = useSlots();
+const toolGroupExpanded = inject<Ref<boolean> | null>('toolGroupExpanded', null);
+const toolGroupCount = inject<Ref<number>>('toolGroupCount', ref(0));
 
 // 检测是否有展开内容
 const hasExpandableContent = computed(() => {
+  // In a collapsed group: disable per-tool expand so clicks bubble up to ToolGroup.
+  // Exception: keep expandable when permission is pending so user can see what to approve.
+  if (toolGroupExpanded !== null && !toolGroupExpanded.value && props.permissionState !== 'pending') return false;
   return !!slots.expandable || !!props.toolResult?.is_error;
 });
 
@@ -123,6 +131,8 @@ const isExpanded = computed({
     if (props.permissionState === 'pending') return true;
     // Errors always expand regardless of setting
     if (props.toolResult?.is_error) return true;
+    // Inside an expanded group: force expand so all tools are visible
+    if (toolGroupExpanded?.value) return true;
     // File-modifying tools always expand when they have content to show
     if (props.alwaysExpanded && props.defaultExpanded) return true;
     // Respect the global expandToolOutput setting; fall back to defaultExpanded
@@ -136,6 +146,10 @@ const isExpanded = computed({
 });
 
 const isHovered = ref(false);
+
+// True when this wrapper is inside a ToolGroup that is currently collapsed.
+// In that case the group provides the outer horizontal margin so we skip our own padding.
+const inCollapsedGroup = computed(() => toolGroupExpanded !== null && !toolGroupExpanded.value);
 
 // 状态计算
 const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
@@ -158,6 +172,11 @@ function toggleExpand() {
   display: flex;
   flex-direction: column;
   padding: 0px 8px;
+}
+
+/* Group provides the margin; don't double-pad inside a collapsed group */
+.tool-message-wrapper.in-collapsed-group {
+  padding: 0;
 }
 
 .main-line {
@@ -201,8 +220,15 @@ function toggleExpand() {
   min-width: 0;
 }
 
-.status-indicator-trailing {
-  margin-left: auto;
+.tool-count-badge {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  background-color: color-mix(in srgb, var(--vscode-badge-background) 60%, transparent);
+  border-radius: 10px;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
 .expandable-content {

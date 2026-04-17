@@ -32,12 +32,19 @@
           </template>
           <template v-else>
             <!-- <div class="msg-list"> -->
-              <MessageRenderer
-                v-for="(m, i) in messages"
-                :key="m?.id ?? i"
-                :message="m"
-                :context="toolContext"
-              />
+              <template v-for="segment in messageSegments" :key="segment.key">
+                <div v-if="segment.type === 'tool-group'" class="tool-group-msg">
+                  <ToolGroup
+                    :wrappers="getGroupWrappers(segment.messages)"
+                    :context="toolContext"
+                  />
+                </div>
+                <MessageRenderer
+                  v-else
+                  :message="segment.message"
+                  :context="toolContext"
+                />
+              </template>
             <!-- </div> -->
             <div v-if="isBusy" class="spinnerRow">
               <Spinner :size="16" :permission-mode="permissionMode" />
@@ -121,6 +128,8 @@
   import ClaudeWordmark from '../components/ClaudeWordmark.vue';
   import RandomTip from '../components/RandomTip.vue';
   import MessageRenderer from '../components/Messages/MessageRenderer.vue';
+  import ToolGroup from '../components/Messages/blocks/ToolGroup.vue';
+  import type { ContentBlockWrapper } from '../models/ContentBlockWrapper';
   import { useKeybinding } from '../utils/useKeybinding';
   import { useSignal } from '@gn8/alien-signals-vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
@@ -160,6 +169,107 @@
   // 现在所有访问都使用 Vue Ref（.value）
   const title = computed(() => session.value?.summary.value || 'New Conversation');
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
+
+  // Only these tool types are collapsed into a group; others render individually
+  const GROUPABLE_TOOLS = new Set(['Bash', 'BashOutput', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch']);
+
+  // True if the message contains only groupable tool_use blocks (ignoring empty text
+  // and thinking blocks, which the Claude API commonly emits alongside tool_use on reload).
+  function isToolOnlyAssistantMessage(msg: any): boolean {
+    if (msg.type !== 'assistant') return false;
+    const content = msg.message?.content;
+    if (!Array.isArray(content) || content.length === 0) return false;
+
+    let hasGroupableTool = false;
+    for (const w of content) {
+      const type = w?.content?.type;
+      if (type === 'tool_use') {
+        if (!GROUPABLE_TOOLS.has(w?.content?.name)) return false;
+        hasGroupableTool = true;
+      } else if (type === 'text') {
+        // Ignore empty text blocks (Claude often emits these alongside tool_use)
+        if (w?.content?.text?.trim()) return false;
+      } else if (type === 'thinking' || type === 'redacted_thinking') {
+        // Ignore thinking blocks
+      } else {
+        return false;
+      }
+    }
+    return hasGroupableTool;
+  }
+
+  // True for messages that are visually transparent and should not break a tool group.
+  // - User messages containing only tool_results
+  // - Assistant messages containing only thinking/redacted_thinking or empty text blocks
+  //   (the SDK emits these between tool calls during streaming)
+  function isTransparentMessage(msg: any): boolean {
+    if (msg.type === 'user') {
+      const content = msg.message?.content;
+      if (!Array.isArray(content)) return false;
+      return content.length === 0 || content.every((w: any) => w?.content?.type === 'tool_result');
+    }
+    if (msg.type === 'assistant') {
+      const content = msg.message?.content;
+      if (!Array.isArray(content) || content.length === 0) return false;
+      return content.every((w: any) => {
+        const type = w?.content?.type;
+        return type === 'thinking' || type === 'redacted_thinking' ||
+               (type === 'text' && !w?.content?.text?.trim());
+      });
+    }
+    return false;
+  }
+
+  // Collect all ContentBlockWrappers from a list of messages
+  function getGroupWrappers(groupMessages: any[]): ContentBlockWrapper[] {
+    return groupMessages.flatMap((msg: any) => {
+      const content = msg.message?.content;
+      return Array.isArray(content) ? content : [];
+    });
+  }
+
+  type MessageSegment =
+    | { type: 'single'; message: any; key: string }
+    | { type: 'tool-group'; messages: any[]; key: string };
+
+  // Group consecutive tool-only assistant messages into a single ToolGroup segment.
+  // User messages containing only tool_results are "transparent" — they don't break a group.
+  const messageSegments = computed((): MessageSegment[] => {
+    const result: MessageSegment[] = [];
+    let currentGroup: any[] | null = null;
+    let groupKey = '';
+
+    for (let i = 0; i < messages.value.length; i++) {
+      const msg = messages.value[i];
+
+      if (isTransparentMessage(msg)) {
+        // Invisible user messages — render as singles but don't break the current group
+        result.push({ type: 'single', message: msg, key: `m-${i}` });
+        continue;
+      }
+
+      if (isToolOnlyAssistantMessage(msg)) {
+        if (!currentGroup) {
+          currentGroup = [];
+          groupKey = `g-${i}`;
+        }
+        currentGroup.push(msg);
+      } else {
+        if (currentGroup) {
+          result.push({ type: 'tool-group', messages: currentGroup, key: groupKey });
+          currentGroup = null;
+        }
+        result.push({ type: 'single', message: msg, key: `m-${i}` });
+      }
+    }
+
+    if (currentGroup) {
+      result.push({ type: 'tool-group', messages: currentGroup, key: groupKey });
+    }
+
+    return result;
+  });
+
   const isBusy = computed(() => session.value?.busy.value ?? false);
   const permissionMode = computed(
     () => session.value?.permissionMode.value ?? 'default'
@@ -325,6 +435,14 @@
     }
   });
 
+  function handleWindowFocus() {
+    // Restore focus to the input box when the tab/window regains focus,
+    // but only when there is no permission modal blocking the input.
+    if (!pendingPermission.value) {
+      chatInputRef.value?.focus();
+    }
+  }
+
   onMounted(async () => {
     prevCount = messages.value.length;
     await nextTick();
@@ -336,6 +454,8 @@
     if (container) {
       container.addEventListener('scroll', checkScrollPosition);
     }
+
+    window.addEventListener('focus', handleWindowFocus);
   });
 
   onUnmounted(() => {
@@ -346,6 +466,8 @@
     if (container) {
       container.removeEventListener('scroll', checkScrollPosition);
     }
+
+    window.removeEventListener('focus', handleWindowFocus);
   });
 
   // ChatInput 事件处理
@@ -505,6 +627,16 @@
     overflow-x: hidden;
     padding: 8px 0 12px;
     position: relative;
+  }
+
+  /* Mirror AssistantMessage padding so grouped tool messages align with regular messages */
+  .tool-group-msg {
+    padding: 0 16px 0.4rem 24px;
+    background-color: var(--vscode-sideBar-background);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--vscode-editor-foreground);
+    word-wrap: break-word;
   }
   .messagesContainer.dimmed {
     filter: blur(1px);
