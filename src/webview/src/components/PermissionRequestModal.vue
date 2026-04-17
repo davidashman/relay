@@ -60,7 +60,12 @@ const inputRef = ref<HTMLInputElement | null>(null);
 const rejectMessage = ref('');
 
 onMounted(() => {
-  containerRef.value?.focus();
+  // Only grab focus if this webview's document is already focused. Otherwise,
+  // a permission prompt arriving in one window would steal focus from an
+  // input box the user is actively typing in elsewhere.
+  if (document.hasFocus()) {
+    containerRef.value?.focus();
+  }
 });
 
 const showSecondButton = computed(
