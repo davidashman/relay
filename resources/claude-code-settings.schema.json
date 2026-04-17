@@ -1044,10 +1044,6 @@
       "description": "Reduce or disable UI animations (spinners, shimmer, flash effects) for accessibility",
       "default": false
     },
-    "alwaysThinkingEnabled": {
-      "type": "boolean",
-      "description": "Enable extended thinking by default for all sessions. Typically configured via the /config command rather than editing directly. See https://code.claude.com/docs/en/common-workflows#use-extended-thinking-thinking-mode"
-    },
     "companyAnnouncements": {
       "type": "array",
       "items": {

@@ -113,24 +113,12 @@ const segments = computed((): Segment[] => {
 .assistant-message {
   display: block;
   outline: none;
-  padding: 0px 16px 0.4rem;
+  padding: 0px 16px 0.4rem 12px;
   background-color: var(--vscode-sideBar-background);
   opacity: 1;
   font-size: 13px;
   line-height: 1.6;
   color: var(--vscode-editor-foreground);
   word-wrap: break-word;
-  padding-left: 24px;
-}
-
-/* 只在纯文本消息时显示圆点 */
-.assistant-message.prefix::before {
-  content: "\25cf";
-  position: absolute;
-  left: 8px;
-  padding-top: 2px;
-  font-size: 10px;
-  color: var(--vscode-input-border);
-  z-index: 1;
 }
 </style>

@@ -49,15 +49,6 @@
             <div v-if="isBusy" class="spinnerRow">
               <Spinner :size="16" :permission-mode="permissionMode" />
             </div>
-            <div v-if="queuedMessages.length > 0" class="queuedMessagesContainer">
-              <div v-for="(msg, idx) in queuedMessages" :key="idx" class="queuedMessageRow">
-                <div class="queuedMessageBubble">
-                  <span class="queuedMessageLabel">Queued</span>
-                  <span class="queuedMessageText">{{ msg }}</span>
-                  <button class="queuedMessageCancel" @click="queuedMessages.splice(idx, 1)" title="Cancel">✕</button>
-                </div>
-              </div>
-            </div>
             <div ref="endEl" />
           </template>
 
@@ -87,6 +78,12 @@
             :on-resolve="handleResolvePermission"
             data-permission-panel="1"
           />
+          <MessageQueueList
+            :queued-messages="outboundQueue"
+            :visible="outboundQueue.length > 0"
+            @remove="handleQueueRemove"
+            @send-now="handleQueueSendNow"
+          />
           <ChatInputBox
             ref="chatInputRef"
             :show-progress="true"
@@ -98,7 +95,7 @@
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
             @submit="handleSubmit"
-            @queue-message="handleQueueMessage"
+            @submit-and-interrupt="handleSubmitAndInterrupt"
             @stop="handleStop"
             @add-attachment="handleAddAttachment"
             @remove-attachment="handleRemoveAttachment"
@@ -122,6 +119,7 @@
   import type { AttachmentItem } from '../types/attachment';
   import { convertFileToAttachment } from '../types/attachment';
   import ChatInputBox from '../components/ChatInputBox.vue';
+  import MessageQueueList from '../components/MessageQueueList.vue';
   import PermissionRequestModal from '../components/PermissionRequestModal.vue';
   import AskUserQuestionModal from '../components/AskUserQuestionModal.vue';
   import Spinner from '../components/Messages/WaitingIndicator.vue';
@@ -271,6 +269,7 @@
   });
 
   const isBusy = computed(() => session.value?.busy.value ?? false);
+  const outboundQueue = computed(() => session.value?.outboundQueue.value ?? []);
   const permissionMode = computed(
     () => session.value?.permissionMode.value ?? 'default'
   );
@@ -308,36 +307,6 @@
       return `${n}`;
     };
     return `${fmt(totalTokens)} / ${fmt(contextWindow)} context used`;
-  });
-
-  // Queued messages (submitted while busy)
-  const queuedMessages = ref<string[]>([]);
-
-  async function handleQueueMessage(content: string) {
-    queuedMessages.value.push(content);
-    await nextTick();
-    scrollToBottom(true);
-  }
-
-  watch(isBusy, async (busy) => {
-    if (!busy && queuedMessages.value.length > 0) {
-      // Process all queued messages sequentially
-      while (queuedMessages.value.length > 0) {
-        const msg = queuedMessages.value.shift();
-        if (msg) {
-          await handleSubmit(msg);
-          // Wait for this message to complete before sending the next one
-          await new Promise<void>((resolve) => {
-            const unwatch = watch(isBusy, (newBusy) => {
-              if (!newBusy) {
-                unwatch();
-                resolve();
-              }
-            });
-          });
-        }
-      }
-    }
   });
 
   // DOM refs
@@ -401,7 +370,6 @@
   watch(session, async () => {
     // 切换会话：复位并滚动底部
     prevCount = 0;
-    queuedMessages.value = [];
     await nextTick();
     scrollToBottom(true); // Force scroll on session change
   });
@@ -476,10 +444,12 @@
     }
 
     const s = session.value;
-    if (!s || (!trimmed && attachments.value.length === 0) || isBusy.value) return;
+    if (!s || (!trimmed && attachments.value.length === 0)) return;
 
     try {
       // 传递附件给 send 方法
+      // Note: we no longer gate on isBusy — the SDK's long-lived query loop
+      // interleaves user turns, so submitting mid-turn is expected.
       await s.send(trimmed || ' ', attachments.value);
 
       // 发送成功后清空附件
@@ -491,6 +461,26 @@
     } catch (e) {
       console.error('[ChatPage] send failed', e);
     }
+  }
+
+  // "Interrupt then send" path — triggered by Cmd/Ctrl+Enter.
+  async function handleSubmitAndInterrupt(content: string) {
+    const s = session.value;
+    if (!s) return;
+    try {
+      await s.interrupt();
+    } catch (e) {
+      console.error('[ChatPage] interrupt before send failed', e);
+    }
+    await handleSubmit(content);
+  }
+
+  function handleQueueRemove(id: string) {
+    session.value?.removeFromQueue(id);
+  }
+
+  function handleQueueSendNow(id: string) {
+    session.value?.sendQueuedNow(id);
   }
 
   async function handleToggleThinking() {
@@ -626,12 +616,16 @@
 
   /* Mirror AssistantMessage padding so grouped tool messages align with regular messages */
   .tool-group-msg {
-    padding: 0 16px 0.4rem 24px;
+    padding: 0 16px 0.4rem 12px;
     background-color: var(--vscode-sideBar-background);
     font-size: 13px;
     line-height: 1.6;
     color: var(--vscode-editor-foreground);
     word-wrap: break-word;
+  }
+
+  .spinnerRow {
+    padding-left: 12px;
   }
   .messagesContainer.dimmed {
     filter: blur(1px);
@@ -705,65 +699,6 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-  }
-
-  .queuedMessagesContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .queuedMessageRow {
-    padding: 4px 12px 8px;
-  }
-
-  .queuedMessageBubble {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--vscode-input-background);
-    border: 1px dashed var(--vscode-input-border);
-    border-radius: 6px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .queuedMessageLabel {
-    flex-shrink: 0;
-    font-size: 11px;
-    font-style: italic;
-    color: var(--vscode-descriptionForeground);
-    opacity: 0.8;
-    padding-top: 1px;
-  }
-
-  .queuedMessageText {
-    flex: 1;
-    font-size: 13px;
-    font-style: italic;
-    color: var(--vscode-descriptionForeground);
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  .queuedMessageCancel {
-    flex-shrink: 0;
-    background: none;
-    border: 1px solid var(--vscode-input-border);
-    border-radius: 4px;
-    color: var(--vscode-foreground);
-    cursor: pointer;
-    font-size: 13px;
-    opacity: 0.8;
-    padding: 1px 5px;
-    line-height: 1.4;
-  }
-
-  .queuedMessageCancel:hover {
-    opacity: 1;
-    background: var(--vscode-button-hoverBackground);
-    border-color: var(--vscode-focusBorder);
   }
 
   /* Jump to latest button */

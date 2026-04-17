@@ -23,6 +23,7 @@ import type { Session, SelectionRange } from '../core/Session';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { BaseTransport } from '../transport/BaseTransport';
 import type { ModelOption } from '../../../shared/messages';
+import type { QueuedMessage } from '../types/queue';
 
 /**
  * useSession 返回类型
@@ -40,6 +41,7 @@ export interface UseSessionReturn {
   // 核心数据
   messages: Ref<any[]>;
   messageCount: Ref<number>;
+  outboundQueue: Ref<QueuedMessage[]>;
   cwd: Ref<string | undefined>;
   permissionMode: Ref<PermissionMode>;
   summary: Ref<string | undefined>;
@@ -83,6 +85,8 @@ export interface UseSessionReturn {
   getMcpServers: () => Promise<any>;
   openConfigFile: (configType: string) => Promise<void>;
   onPermissionRequested: (callback: (request: PermissionRequest) => void) => () => void;
+  removeFromQueue: (id: string) => void;
+  sendQueuedNow: (id: string) => void;
   dispose: () => void;
 
   // 原始实例（用于高级场景）
@@ -106,6 +110,7 @@ export function useSession(session: Session): UseSessionReturn {
   const lastModifiedTime = useSignal(session.lastModifiedTime);
   const messages = useSignal(session.messages);
   const messageCount = useSignal(session.messageCount);
+  const outboundQueue = useSignal(session.outboundQueue);
   const cwd = useSignal(session.cwd);
   const permissionMode = useSignal(session.permissionMode);
   const summary = useSignal(session.summary);
@@ -139,6 +144,8 @@ export function useSession(session: Session): UseSessionReturn {
   const getMcpServers = session.getMcpServers.bind(session);
   const openConfigFile = session.openConfigFile.bind(session);
   const onPermissionRequested = session.onPermissionRequested.bind(session);
+  const removeFromQueue = session.removeFromQueue.bind(session);
+  const sendQueuedNow = session.sendQueuedNow.bind(session);
   const dispose = session.dispose.bind(session);
 
   return {
@@ -152,6 +159,7 @@ export function useSession(session: Session): UseSessionReturn {
     lastModifiedTime,
     messages,
     messageCount,
+    outboundQueue,
     cwd,
     permissionMode,
     summary,
@@ -183,6 +191,8 @@ export function useSession(session: Session): UseSessionReturn {
     getMcpServers,
     openConfigFile,
     onPermissionRequested,
+    removeFromQueue,
+    sendQueuedNow,
     dispose,
 
     // 原始实例

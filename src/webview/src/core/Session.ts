@@ -8,6 +8,7 @@ import { processAndAttachMessage /*, mergeConsecutiveReadMessages */ } from '../
 import { normalizeModelId } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
 import type { Message } from '../models/Message';
+import type { QueuedMessage } from '../types/queue';
 
 export interface SelectionRange {
   filePath: string;
@@ -69,7 +70,14 @@ export class Session {
 
   readonly connection = signal<BaseTransport | undefined>(undefined);
 
-  readonly busy = signal(false);
+  // Counter of user turns that have been sent but not yet completed (init → result).
+  // Exposed directly so callers that care can read it; `busy` (below) is the derived
+  // boolean that most of the app uses.
+  readonly outstandingTurns = signal(0);
+  // Derived boolean view of `outstandingTurns` — true whenever any turn is in flight.
+  // Kept as a computed signal so existing call-sites that subscribe to `session.busy`
+  // (TabBar, useSession, useRuntime, etc.) keep working unchanged.
+  readonly busy = computed(() => this.outstandingTurns() > 0);
   readonly isLoading = signal(false);
   readonly error = signal<string | undefined>(undefined);
   readonly sessionId = signal<string | undefined>(undefined);
@@ -90,6 +98,13 @@ export class Session {
     totalCost: 0,
     contextWindow: 200000
   });
+
+  // Local outbound queue: when the user submits while a turn is already in
+  // flight we buffer the new message here instead of pushing it into the SDK
+  // input stream. This keeps entries cancellable/editable up until the prior
+  // turn's `result` arrives, at which point the next queued entry is drained
+  // into the SDK.
+  readonly outboundQueue = signal<QueuedMessage[]>([]);
 
   readonly claudeConfig = computed(() => {
     const conn = this.connection();
@@ -121,6 +136,28 @@ export class Session {
       !this.currentConnectionPromise
     );
   }
+
+  /** Mark a new user turn as in-flight. */
+  private incrementOutstandingTurns(): void {
+    this.outstandingTurns(this.outstandingTurns() + 1);
+  }
+
+  /** Mark a turn as finished. Floors at 0 and warns on underflow. */
+  private decrementOutstandingTurns(): void {
+    const current = this.outstandingTurns();
+    if (current <= 0) {
+      console.warn('[Session] outstandingTurns underflow prevented (already 0)');
+      this.outstandingTurns(0);
+      return;
+    }
+    this.outstandingTurns(current - 1);
+  }
+
+  /** Reset the counter (used by restartClaude and terminal error paths). */
+  private resetOutstandingTurns(): void {
+    this.outstandingTurns(0);
+  }
+
 
   constructor(
     private readonly connectionProvider: () => Promise<BaseTransport>,
@@ -222,13 +259,38 @@ export class Session {
     attachments: AttachmentPayload[] = [],
     includeSelection = false
   ): Promise<void> {
-    const connection = await this.getConnection();
+    // Ensure a channel is up so `busy` reflects real SDK state (the first
+    // send may create the channel before there's a turn in flight).
+    await this.launchClaude();
 
-    // 官方路线：不在 slash 命令时临时切换 thinkingLevel，保持会话一致性，
-    // 由 SDK/服务端在 assistant 消息中提供 thinking/redacted_thinking 块以满足约束
+    // If a turn is already in flight OR entries are already queued ahead of
+    // us, buffer locally. The queued entry stays cancellable/editable until
+    // it drains into the SDK on the next `result`.
+    if (this.outstandingTurns() > 0 || this.outboundQueue().length > 0) {
+      const entry: QueuedMessage = {
+        id: Math.random().toString(36).slice(2),
+        content: input,
+        timestamp: Date.now(),
+        attachments: attachments.length ? attachments : undefined,
+        includeSelection,
+      };
+      this.outboundQueue([...this.outboundQueue(), entry]);
+      this.lastModifiedTime(Date.now());
+      return;
+    }
+
+    await this.submitToSdk(input, attachments, includeSelection);
+  }
+
+  /** Push a user message directly into the SDK input stream. */
+  private async submitToSdk(
+    input: string,
+    attachments: AttachmentPayload[] = [],
+    includeSelection = false
+  ): Promise<void> {
+    const connection = await this.getConnection();
     const isSlash = this.isSlashCommand(input);
 
-    // 启动 channel（确保已带上当前 thinkingLevel）
     await this.launchClaude();
 
     const shouldIncludeSelection = includeSelection && !isSlash;
@@ -251,15 +313,63 @@ export class Session {
     }
     this.isExplicit(false);
     this.lastModifiedTime(Date.now());
-    this.busy(true);
+    this.incrementOutstandingTurns();
 
     try {
       const channelId = this.claudeChannelId();
       if (!channelId) throw new Error('No active channel');
       connection.sendInput(channelId, userMessage, false);
     } catch (error) {
-      this.busy(false);
+      this.decrementOutstandingTurns();
       throw error;
+    }
+  }
+
+  /** Remove a queued message by id (before it reaches the SDK). */
+  removeFromQueue(id: string): void {
+    const next = this.outboundQueue().filter((m) => m.id !== id);
+    if (next.length !== this.outboundQueue().length) {
+      this.outboundQueue(next);
+    }
+  }
+
+  /**
+   * Move a queued message to the front of the queue so it drains next. If
+   * no turn is in flight, drain it immediately.
+   */
+  sendQueuedNow(id: string): void {
+    const queue = this.outboundQueue();
+    const idx = queue.findIndex((m) => m.id === id);
+    if (idx <= 0) {
+      // Already at front or not present — if it's the single front entry
+      // and the SDK is idle, drain now.
+      if (this.outstandingTurns() === 0 && queue.length > 0) {
+        void this.drainOutboundQueue();
+      }
+      return;
+    }
+    const entry = queue[idx];
+    const reordered = [entry, ...queue.slice(0, idx), ...queue.slice(idx + 1)];
+    this.outboundQueue(reordered);
+    if (this.outstandingTurns() === 0) {
+      void this.drainOutboundQueue();
+    }
+  }
+
+  /** Pop the oldest queued message and push it into the SDK. */
+  private async drainOutboundQueue(): Promise<void> {
+    const queue = this.outboundQueue();
+    if (queue.length === 0) return;
+    const [next, ...rest] = queue;
+    this.outboundQueue(rest);
+    try {
+      await this.submitToSdk(
+        next.content,
+        next.attachments ?? [],
+        next.includeSelection ?? false
+      );
+    } catch (err) {
+      console.error('[Session] Failed to drain queued message', err);
     }
   }
 
@@ -313,12 +423,19 @@ export class Session {
     }
     const connection = await this.getConnection();
     connection.interruptClaude(channelId);
+    // The SDK may not emit a `result` for interrupted turns. Clear the
+    // counter and drop any queued work now so the UI recovers immediately
+    // rather than waiting on the stream to tear down.
+    this.resetOutstandingTurns();
+    this.outboundQueue([]);
   }
 
   async restartClaude(): Promise<void> {
     await this.interrupt();
     this.claudeChannelId(undefined);
-    this.busy(false);
+    // Channel is gone — any turns that were in flight will never produce a
+    // `result`, so clear the counter.
+    this.resetOutstandingTurns();
     await this.launchClaude();
   }
 
@@ -413,13 +530,29 @@ export class Session {
       }
     } catch (error) {
       this.error(error instanceof Error ? error.message : String(error));
-      this.busy(false);
     } finally {
+      // Stream ended (cleanly or via error): any turns that never produced
+      // a `result` are orphaned. Reset unconditionally so the UI recovers.
+      this.resetOutstandingTurns();
+      // Don't drop the outbound queue here — if the stream ended because the
+      // SDK naturally closed between turns, we still want the next queued
+      // entry to drain when the channel comes back up. `interrupt()` is the
+      // explicit path that clears the queue.
       this.claudeChannelId(undefined);
     }
   }
 
   private processIncomingMessage(event: any): void {
+    // Settle counter FIRST, before heavier processing that might throw.
+    // If we crash rendering a `result`, we still want the spinner to stop
+    // and the queue to drain.
+    if (event?.type === 'result') {
+      this.decrementOutstandingTurns();
+      if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
+        void this.drainOutboundQueue();
+      }
+    }
+
     // 处理 LLM 请求错误（来自 SDK stderr 致命错误）
     // 双路分发：
     //   - 用户触发的请求（busy=true）→ 以 tip 消息追加到消息流，由 LLMErrorBlock 渲染
@@ -438,11 +571,25 @@ export class Session {
         const currentMessages = [...this.messages()] as Message[];
         processAndAttachMessage(currentMessages, syntheticEvent);
         this.messages(currentMessages);
-        this.busy(false);
+        // Terminal error for this turn — decrement the in-flight counter.
+        this.decrementOutstandingTurns();
+        if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
+          void this.drainOutboundQueue();
+        }
       } else {
         // 非用户触发（Profile 切换预热、channel 启动探测等）：VSCode Notification
         this.context.showNotification?.(event.error, 'error');
       }
+      return;
+    }
+
+    // Skip messages originating from a Task subagent — they share the same
+    // stream but should not be rendered in the main chat. The SDK tags such
+    // messages with a non-null `parent_tool_use_id`.
+    if (
+      (event?.type === 'user' || event?.type === 'assistant') &&
+      event.parent_tool_use_id != null
+    ) {
       return;
     }
 
@@ -466,14 +613,10 @@ export class Session {
     // this.messages(merged);
     this.messages(currentMessages);
 
-    // 6. 更新其他状态
+    // 6. 更新其他状态 — counter/pending already handled at the top of this
+    // method; only `system/init` still needs to update the session id here.
     if (event?.type === 'system') {
       this.sessionId(event.session_id);
-      if (event.subtype === 'init') {
-        this.busy(true);
-      }
-    } else if (event?.type === 'result') {
-      this.busy(false);
     }
   }
 

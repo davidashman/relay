@@ -164,7 +164,7 @@ interface Props {
 
 interface Emits {
   (e: 'submit', content: string): void
-  (e: 'queueMessage', content: string): void
+  (e: 'submitAndInterrupt', content: string): void
   (e: 'stop'): void
   (e: 'input', content: string): void
   (e: 'attach'): void
@@ -179,7 +179,8 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
-  placeholder: 'Plan, @ for context, / for commands...',
+  // Enter: send (interleaves mid-turn). Cmd/Ctrl+Enter: interrupt then send.
+  placeholder: 'Plan, @ for context, / for commands — Enter: send • Cmd/Ctrl+Enter: interrupt then send',
   readonly: false,
   showSearch: false,
   conversationWorking: false,
@@ -444,13 +445,16 @@ function handleKeydown(event: KeyboardEvent) {
   }
 
   // 其他按键处理
+  // Enter / Cmd+Enter / Ctrl+Enter all submit. Shift+Enter keeps inserting
+  // a newline. Cmd/Ctrl+Enter additionally interrupts the current turn first.
   if (event.key === 'Enter' && !event.shiftKey) {
     // 检查是否正在输入法组合状态(中文输入法等)
     if (event.isComposing) {
       return
     }
+    const interrupt = event.metaKey || event.ctrlKey
     event.preventDefault()
-    handleSubmit()
+    handleSubmit(interrupt)
   }
 
   // 延迟检查内容是否为空（在按键处理后）
@@ -714,7 +718,7 @@ function navigateHistoryDown() {
   }
 }
 
-function handleSubmit() {
+function handleSubmit(interrupt: boolean = false) {
   if (!content.value.trim()) return
 
   // Save to history (skip exact duplicate of most recent entry)
@@ -725,8 +729,10 @@ function handleSubmit() {
   historyIndex.value = -1
   draftContent.value = ''
 
-  if (props.conversationWorking) {
-    emit('queueMessage', content.value)
+  // Default: straight send (SDK interleaves mid-turn).
+  // Modifier (Cmd/Ctrl+Enter): interrupt the current turn, then send.
+  if (interrupt) {
+    emit('submitAndInterrupt', content.value)
   } else {
     emit('submit', content.value)
   }

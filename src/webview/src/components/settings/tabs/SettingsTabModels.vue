@@ -140,24 +140,9 @@
       </SettingsSubSection>
     </SettingsSection>
 
-    <!-- Section 2: Thinking & Effort -->
-    <SettingsSection title="Thinking & Effort">
+    <!-- Section 2: Effort -->
+    <SettingsSection title="Effort">
       <SettingsSubSection>
-        <SettingsItem
-          setting-key="alwaysThinkingEnabled"
-          label="Always Thinking"
-          description="Enable extended thinking for all requests"
-        >
-          <template #default="{ effectiveValue, update }">
-            <div class="cursor-settings-cell-switch-container">
-              <Switch
-                :model-value="effectiveValue ?? false"
-                @update:model-value="update"
-                title="Always Thinking"
-              />
-            </div>
-          </template>
-        </SettingsItem>
         <SettingsItem
           setting-key="effortLevel"
           label="Effort Level"
