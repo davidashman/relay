@@ -109,10 +109,11 @@ const shouldExpand = computed(() => {
   font-family: var(--vscode-editor-font-family);
   color: var(--vscode-charts-blue);
   background-color: color-mix(in srgb, var(--vscode-charts-blue) 15%, transparent);
-  padding: 2px 6px;
+  padding: 4px 5px 2px;
   border-radius: 3px;
   font-weight: 500;
   font-size: 0.9em;
+  line-height: 13px;
 }
 
 .detail-item {
