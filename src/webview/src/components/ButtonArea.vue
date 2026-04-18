@@ -123,7 +123,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
-  selectedModel: 'default',
+  selectedModel: undefined,
   conversationWorking: false,
   hasInputContent: false,
   showProgress: true,
@@ -219,6 +219,11 @@ function handleFileUpload(event: Event) {
   min-width: 0;
   height: 20px;
   max-width: 100%;
+}
+
+/* Tighten only the Model ↔ Effort pair */
+.controls-section :deep(.effort-dropdown) {
+  margin-left: -8px;
 }
 
 .actions-section {

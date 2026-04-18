@@ -83,15 +83,13 @@ function handleSelect(item: DropdownItemData, close: () => void) {
   font-size: 12px;
   align-items: center;
   line-height: 24px;
-  min-width: 0;
-  max-width: 100%;
+  min-width: max-content;
   padding: 2.5px 6px;
   border-radius: 23px;
-  flex-shrink: 1;
+  flex-shrink: 0;
   cursor: pointer;
   border: none;
   background: transparent;
-  overflow: hidden;
   transition: background-color 0.2s ease;
 }
 
@@ -124,12 +122,9 @@ function handleSelect(item: DropdownItemData, close: () => void) {
 
 .dropdown-label {
   opacity: 0.8;
-  max-width: 120px;
-  overflow: hidden;
   height: 13px;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .chevron-icon {

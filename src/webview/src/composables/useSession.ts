@@ -81,6 +81,7 @@ export interface UseSessionReturn {
   restartClaude: () => Promise<void>;
   listFiles: (pattern?: string) => Promise<any>;
   setPermissionMode: (mode: PermissionMode, applyToConnection?: boolean) => Promise<boolean>;
+  exitPlanMode: () => Promise<void>;
   setModel: (model: ModelOption) => Promise<boolean>;
   setThinkingLevel: (level: string) => Promise<void>;
   setEffortLevel: (level: string) => Promise<void>;
@@ -142,6 +143,7 @@ export function useSession(session: Session): UseSessionReturn {
   const restartClaude = session.restartClaude.bind(session);
   const listFiles = session.listFiles.bind(session);
   const setPermissionMode = session.setPermissionMode.bind(session);
+  const exitPlanMode = session.exitPlanMode.bind(session);
   const setModel = session.setModel.bind(session);
   const setThinkingLevel = session.setThinkingLevel.bind(session);
   const setEffortLevel = session.setEffortLevel.bind(session);
@@ -191,6 +193,7 @@ export function useSession(session: Session): UseSessionReturn {
     restartClaude,
     listFiles,
     setPermissionMode,
+    exitPlanMode,
     setModel,
     setThinkingLevel,
     setEffortLevel,

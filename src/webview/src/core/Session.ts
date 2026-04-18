@@ -94,6 +94,7 @@ export class Session {
   readonly messageCount = signal<number>(0);
   readonly cwd = signal<string | undefined>(undefined);
   readonly permissionMode = signal<PermissionMode>('default');
+  private prePlanMode: PermissionMode | null = null;
   readonly summary = signal<string | undefined>(undefined);
   readonly modelSelection = signal<string | undefined>(undefined);
   readonly thinkingLevel = signal<string>('default_on');
@@ -468,6 +469,13 @@ export class Session {
 
   async setPermissionMode(mode: PermissionMode, applyToConnection = true): Promise<boolean> {
     const previous = this.permissionMode();
+    // Remember the mode in effect before entering plan mode, so we can
+    // restore it when the user approves ExitPlanMode.
+    if (mode === 'plan' && previous !== 'plan') {
+      this.prePlanMode = previous;
+    } else if (mode !== 'plan') {
+      this.prePlanMode = null;
+    }
     this.permissionMode(mode);
 
     const channelId = this.claudeChannelId();
@@ -480,6 +488,18 @@ export class Session {
       this.permissionMode(previous);
     }
     return success;
+  }
+
+  /**
+   * Called after the user approves an ExitPlanMode tool call. Restores the
+   * permission mode that was active before entering plan mode. Falls back to
+   * 'default' if no pre-plan mode was recorded (e.g. on a session loaded mid-plan).
+   */
+  async exitPlanMode(): Promise<void> {
+    const restore = this.prePlanMode ?? 'default';
+    this.prePlanMode = null;
+    if (this.permissionMode() === restore) return;
+    await this.setPermissionMode(restore);
   }
 
   async setModel(model: ModelOption): Promise<boolean> {

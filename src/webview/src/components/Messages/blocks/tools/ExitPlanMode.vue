@@ -1,38 +1,23 @@
 <template>
   <ToolMessageWrapper
+    tool-icon="codicon-tasklist"
+    tool-name="Plan"
     :tool-result="toolResult"
-    :is-custom-layout="true"
+    :default-expanded="false"
   >
-    <template #custom>
-      <div class="plan-card">
-        <!-- Plan 标题栏 -->
-        <div class="plan-header">
-          <span class="codicon codicon-tasklist"></span>
-          <span class="plan-title">Plan</span>
-        </div>
+    <template #main>
+      <span class="tool-label">Plan</span>
+    </template>
 
-        <!-- Plan 内容 -->
-        <div v-if="plan" class="plan-body" :class="{ 'is-expanded': isExpanded }">
-          <div class="plan-content" v-html="renderedPlan"></div>
-        </div>
-
-        <!-- 展开按钮 -->
-        <div v-if="plan && !toolResult?.is_error" class="plan-footer">
-          <button @click="toggleExpand" class="expand-button">
-            <span class="codicon" :class="isExpanded ? 'codicon-chevron-up' : 'codicon-chevron-down'"></span>
-            <span>{{ isExpanded ? 'Collapse' : 'Expand' }}</span>
-          </button>
-        </div>
-
-        <!-- 错误内容 -->
-        <ToolError v-if="toolResult?.is_error" :tool-result="toolResult" />
-      </div>
+    <template #expandable>
+      <div v-if="plan" class="plan-content" v-html="renderedPlan"></div>
+      <ToolError v-if="toolResult?.is_error" :tool-result="toolResult" />
     </template>
   </ToolMessageWrapper>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { marked } from 'marked';
 import ToolMessageWrapper from './common/ToolMessageWrapper.vue';
 import ToolError from './common/ToolError.vue';
@@ -45,84 +30,21 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Auto-expand during permission phase (no toolResult yet); user can toggle after
-const isPermissionPhase = computed(() => !props.toolResult && !props.toolUseResult);
-const userToggled = ref(false);
-const userExpandedState = ref(false);
-
-const isExpanded = computed(() => {
-  if (userToggled.value) return userExpandedState.value;
-  return isPermissionPhase.value;
-});
-
-// Plan内容
 const plan = computed(() => {
   return props.toolUse?.input?.plan || props.toolUseResult?.plan;
 });
 
-// 使用marked渲染Markdown
 const renderedPlan = computed(() => {
   if (!plan.value) return '';
   return marked(plan.value);
 });
-
-// 切换展开/收起
-const toggleExpand = () => {
-  userToggled.value = true;
-  userExpandedState.value = !isExpanded.value;
-};
 </script>
 
 <style scoped>
-.plan-card {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.plan-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 8px;
-  background-color: color-mix(in srgb, var(--vscode-editor-background) 95%, transparent);
-  border-bottom: 1px solid var(--vscode-panel-border);
-}
-
-.plan-header .codicon {
-  font-size: 16px;
-}
-
-.plan-title {
-  font-size: 1em;
-  font-weight: 600;
+.tool-label {
+  font-weight: 500;
   color: var(--vscode-foreground);
-}
-
-.plan-body {
-  padding: 16px;
-  max-height: 200px;
-  overflow: hidden;
-  position: relative;
-  transition: max-height 0.3s ease;
-}
-
-.plan-body.is-expanded {
-  max-height: none;
-}
-
-.plan-body:not(.is-expanded)::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: linear-gradient(to bottom, transparent, var(--vscode-editor-background));
-  pointer-events: none;
+  font-size: 0.9em;
 }
 
 .plan-content {
@@ -130,9 +52,9 @@ const toggleExpand = () => {
   font-size: 0.9em;
   line-height: 1.6;
   color: var(--vscode-editor-foreground);
+  padding: 4px 0;
 }
 
-/* Markdown 样式 */
 .plan-content :deep(h1) {
   font-size: 1.4em;
   font-weight: 600;
@@ -196,35 +118,4 @@ const toggleExpand = () => {
   background: none;
   padding: 0;
 }
-
-/* 展开按钮 */
-.plan-footer {
-  display: flex;
-  justify-content: center;
-  padding: 4px;
-  border-top: 1px solid var(--vscode-panel-border);
-  background-color: color-mix(in srgb, var(--vscode-editor-background) 95%, transparent);
-}
-
-.expand-button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  background: transparent;
-  border: none;
-  color: var(--vscode-textLink-foreground);
-  cursor: pointer;
-  font-size: 0.85em;
-  transition: color 0.15s ease;
-}
-
-.expand-button:hover {
-  color: var(--vscode-textLink-activeForeground);
-}
-
-.expand-button .codicon {
-  font-size: 12px;
-}
-
 </style>

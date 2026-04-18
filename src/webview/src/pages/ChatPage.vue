@@ -5,7 +5,7 @@
       <!-- <div class="chatContainer"> -->
         <div
           ref="containerEl"
-          :class="['messagesContainer', 'custom-scroll-container', { dimmed: permissionRequestsLen > 0 }]"
+          :class="['messagesContainer', 'custom-scroll-container']"
         >
           <template v-if="sessionLoading">
             <div class="emptyState">
@@ -583,6 +583,13 @@
     try {
       if (allow) {
         request.accept(request.inputs);
+        // Approving an ExitPlanMode call means the user has accepted the plan
+        // and wants Claude to proceed. Restore the permission mode that was
+        // active before entering plan mode so Claude actually has the tools to
+        // execute.
+        if (request.toolName === 'ExitPlanMode') {
+          void session.value?.exitPlanMode();
+        }
       } else {
         request.reject('User denied', true);
       }
@@ -636,12 +643,6 @@
   .spinnerRow {
     padding-left: 12px;
   }
-  .messagesContainer.dimmed {
-    filter: blur(1px);
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
   .msg-list {
     display: flex;
     flex-direction: column;

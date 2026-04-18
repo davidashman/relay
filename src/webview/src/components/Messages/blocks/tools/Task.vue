@@ -103,8 +103,8 @@ const shouldExpand = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 2px 6px;
-  background-color: color-mix(in srgb, var(--vscode-charts-orange) 20%, transparent);
-  color: var(--vscode-charts-orange);
+  background-color: color-mix(in srgb, var(--vscode-charts-orange) 25%, transparent);
+  color: var(--vscode-foreground);
   border-radius: 3px;
   font-size: 0.75em;
   font-weight: 600;

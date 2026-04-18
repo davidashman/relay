@@ -62,24 +62,13 @@
       />
       <DropdownItem
         :item="{
-          id: 'claude-opus-4-5',
-          label: 'Opus 4.5',
-          checked: isModelSelected('claude-opus-4-5'),
-          type: 'model'
-        }"
-        :is-selected="isModelSelected('claude-opus-4-5')"
-        :index="4"
-        @click="(item) => handleModelSelect(item, close)"
-      />
-      <DropdownItem
-        :item="{
           id: 'claude-sonnet-4-5',
           label: 'Sonnet 4.5',
           checked: isModelSelected('claude-sonnet-4-5'),
           type: 'model'
         }"
         :is-selected="isModelSelected('claude-sonnet-4-5')"
-        :index="5"
+        :index="4"
         @click="(item) => handleModelSelect(item, close)"
       />
     </template>
