@@ -30,6 +30,14 @@ export class ContentBlockWrapper {
   private readonly toolResultSignal = signal<ToolResultBlock | undefined>(undefined);
 
   /**
+   * Child tool wrappers (响应式).
+   * Populated for Task tool_use blocks: holds the tool_use blocks emitted by
+   * the Task's subagent (tagged with parent_tool_use_id). The Task UI
+   * renders these as an indented group under the Task header.
+   */
+  private readonly childToolsSignal = signal<ContentBlockWrapper[]>([]);
+
+  /**
    * Tool Use Result（普通属性）
    * 用于会话加载时的 toolUseResult（不需要响应式）
    */
@@ -71,5 +79,27 @@ export class ContentBlockWrapper {
    */
   getToolResultValue(): ToolResultBlock | undefined {
     return this.toolResultSignal();
+  }
+
+  /**
+   * Child tools signal (响应式).
+   */
+  get childTools() {
+    return this.childToolsSignal;
+  }
+
+  /**
+   * Append a child tool wrapper. Emits a new array reference so signal
+   * subscribers (e.g. the Task UI) re-render.
+   */
+  addChildTool(child: ContentBlockWrapper): void {
+    this.childToolsSignal([...this.childToolsSignal(), child]);
+  }
+
+  /**
+   * Non-reactive snapshot of the current child tool list.
+   */
+  getChildToolsValue(): ContentBlockWrapper[] {
+    return this.childToolsSignal();
   }
 }

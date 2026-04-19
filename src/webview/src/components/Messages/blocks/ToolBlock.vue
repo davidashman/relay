@@ -4,6 +4,7 @@
     :tool-use="toolUse"
     :tool-result="toolResult"
     :tool-use-result="toolUseResult"
+    :wrapper="wrapper"
     :context="context"
   />
 </template>

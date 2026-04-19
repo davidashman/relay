@@ -69,8 +69,9 @@ type Segment =
   | { type: 'single'; wrapper: ContentBlockWrapper }
   | { type: 'tool-group'; wrappers: ContentBlockWrapper[] };
 
-// Edit and Write always stand alone — they break any current group and are never grouped.
-const STANDALONE_TOOLS = new Set(['Edit', 'Write']);
+// Edit, Write, and Task always stand alone — they break any current group and are never grouped.
+// Task renders as its own inline group (with subagent tool calls indented under the header).
+const STANDALONE_TOOLS = new Set(['Edit', 'Write', 'Task']);
 
 // Group consecutive tool_use blocks into ToolGroup segments.
 // Edit/Write break out of groups and render individually, starting a fresh group after them.

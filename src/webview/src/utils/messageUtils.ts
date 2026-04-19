@@ -44,18 +44,35 @@ export function findToolUseBlock(
             // content 应该是 ContentBlockWrapper[]
             if (Array.isArray(content)) {
                 for (const wrapper of content) {
-                    // 检查是否是 tool_use 且 id 匹配
-                    if (
-                        wrapper.content.type === 'tool_use' &&
-                        (wrapper.content as ToolUseContentBlock).id === toolUseId
-                    ) {
-                        return wrapper;
-                    }
+                    const found = findInWrapper(wrapper, toolUseId);
+                    if (found) return found;
                 }
             }
         }
     }
 
+    return undefined;
+}
+
+/**
+ * Recursively search a wrapper and its child tools for a matching tool_use id.
+ * Task wrappers hold their subagent's tool_use blocks under `childTools`; this
+ * walk lets tool_result attachment reach those nested tools.
+ */
+function findInWrapper(
+    wrapper: ContentBlockWrapper,
+    toolUseId: string
+): ContentBlockWrapper | undefined {
+    if (
+        wrapper.content.type === 'tool_use' &&
+        (wrapper.content as ToolUseContentBlock).id === toolUseId
+    ) {
+        return wrapper;
+    }
+    for (const child of wrapper.getChildToolsValue()) {
+        const found = findInWrapper(child, toolUseId);
+        if (found) return found;
+    }
     return undefined;
 }
 

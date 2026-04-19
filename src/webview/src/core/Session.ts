@@ -4,7 +4,8 @@ import type { PermissionRequest } from './PermissionRequest';
 import type { ModelOption } from '../../../shared/messages';
 import type { SessionSummary } from './types';
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
-import { processAndAttachMessage /*, mergeConsecutiveReadMessages */ } from '../utils/messageUtils';
+import { processAndAttachMessage, findToolUseBlock /*, mergeConsecutiveReadMessages */ } from '../utils/messageUtils';
+import { parseMessageContent } from '../models/contentParsers';
 import { normalizeModelId } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
 import type { Message } from '../models/Message';
@@ -637,13 +638,41 @@ export class Session {
       return;
     }
 
-    // Skip messages originating from a Task subagent — they share the same
-    // stream but should not be rendered in the main chat. The SDK tags such
-    // messages with a non-null `parent_tool_use_id`.
+    // Messages originating from a Task subagent share the SDK stream but
+    // should not be rendered as top-level chat messages. Instead, hoist
+    // their tool_use blocks into the parent Task wrapper's childTools so
+    // the Task UI can display them as an inline group, and attach any
+    // tool_result blocks to the matching child tool_use.
     if (
       (event?.type === 'user' || event?.type === 'assistant') &&
       event.parent_tool_use_id != null
     ) {
+      const parentId = event.parent_tool_use_id as string;
+      const currentMessages = this.messages() as Message[];
+
+      if (event.type === 'assistant' && Array.isArray(event.message?.content)) {
+        const parentWrapper = findToolUseBlock(currentMessages, parentId);
+        if (parentWrapper) {
+          const parsedBlocks = parseMessageContent(event.message.content);
+          for (const block of parsedBlocks) {
+            if (block.type === 'tool_use') {
+              parentWrapper.addChildTool(new ContentBlockWrapper(block));
+            }
+          }
+        }
+      } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
+        for (const block of event.message.content) {
+          if (block?.type === 'tool_result') {
+            const childWrapper = findToolUseBlock(currentMessages, block.tool_use_id);
+            if (childWrapper) {
+              childWrapper.setToolResult(block);
+              if ((event as any).toolUseResult) {
+                childWrapper.toolUseResult = (event as any).toolUseResult;
+              }
+            }
+          }
+        }
+      }
       return;
     }
 

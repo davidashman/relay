@@ -1,17 +1,63 @@
 <template>
-  <ToolMessageWrapper
-    tool-icon="codicon-tasklist"
-    :tool-result="toolResult"
-    :default-expanded="shouldExpand"
-  >
-    <template #main>
-      <span class="tool-label">Task</span>
-      <span v-if="subagentType" class="agent-badge">{{ subagentType }}</span>
-      <span v-if="description" class="description-text">{{ description }}</span>
-    </template>
+  <div class="task-wrapper">
+    <!-- Task header (purpose line) — always visible -->
+    <div
+      class="main-line"
+      :class="{ 'is-expandable': isInteractive }"
+      @click="toggleExpand"
+      @mouseenter="isHovered = true"
+      @mouseleave="isHovered = false"
+    >
+      <Tooltip content="Task">
+        <button class="tool-icon-btn">
+          <span
+            v-if="!isHovered || !isInteractive"
+            class="codicon codicon-tasklist"
+          ></span>
+          <span v-else-if="isExpanded" class="codicon codicon-fold"></span>
+          <span v-else class="codicon codicon-chevron-up-down"></span>
+        </button>
+      </Tooltip>
 
-    <template #expandable>
-      <!-- Prompt内容 -->
+      <div class="main-content">
+        <span class="tool-label">Task</span>
+        <span v-if="subagentType" class="agent-badge">{{ subagentType }}</span>
+        <span v-if="description" class="description-text">{{ description }}</span>
+      </div>
+
+      <ToolStatusIndicator
+        v-if="indicatorState"
+        :state="indicatorState"
+        class="status-indicator-trailing"
+      />
+    </div>
+
+    <!-- Subagent tool calls, indented under the header -->
+    <div v-if="children.length > 0" class="task-children">
+      <template v-if="!isExpanded">
+        <!-- Collapsed: show only the latest tool. It renders its own header
+             (child ToolMessageWrappers see toolGroupExpanded=false, so they
+             collapse to a one-liner and surface a +N badge inline). -->
+        <ContentBlock
+          :block="latestChild.content"
+          :wrapper="latestChild"
+          :context="context"
+        />
+      </template>
+      <template v-else>
+        <!-- Expanded: every child tool renders fully expanded -->
+        <ContentBlock
+          v-for="(child, idx) in children"
+          :key="`task-child-${idx}`"
+          :block="child.content"
+          :wrapper="child"
+          :context="context"
+        />
+      </template>
+    </div>
+
+    <!-- Expanded-only: prompt + errors, also indented -->
+    <div v-if="isExpanded && (prompt || hasError)" class="task-expandable">
       <div v-if="prompt" class="prompt-section">
         <div class="section-header">
           <span class="codicon codicon-comment-discussion"></span>
@@ -25,28 +71,118 @@
         <pre class="prompt-content">{{ prompt }}</pre>
       </div>
 
-      <!-- 错误内容 -->
       <ToolError :tool-result="toolResult" />
-    </template>
-  </ToolMessageWrapper>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from 'vue';
-import ToolMessageWrapper from './common/ToolMessageWrapper.vue';
-import ToolError from './common/ToolError.vue';
+import { computed, inject, provide, ref, type Ref } from 'vue';
+import { useSignal } from '@gn8/alien-signals-vue';
 import Tooltip from '@/components/Common/Tooltip.vue';
+import ToolError from './common/ToolError.vue';
+import ToolStatusIndicator from './common/ToolStatusIndicator.vue';
+import ContentBlock from '../../ContentBlock.vue';
+import type { ContentBlockWrapper } from '@/models/ContentBlockWrapper';
+import type { ToolContext } from '@/types/tool';
 import { RuntimeKey } from '@/composables/runtimeContext';
 
 interface Props {
   toolUse?: any;
   toolResult?: any;
   toolUseResult?: any;
+  wrapper?: ContentBlockWrapper;
+  context?: ToolContext;
 }
 
 const props = defineProps<Props>();
 
 const runtime = inject(RuntimeKey);
+
+// Reactive view of the wrapper's childTools signal. The Session hoists
+// subagent tool_use blocks onto this list as they stream in, so the Task
+// re-renders automatically as more tools run.
+// (Cast retains the ContentBlockWrapper class identity — Vue's Ref type
+// otherwise strips private-field brands from class instances.)
+const children = (
+  props.wrapper
+    ? useSignal(props.wrapper.childTools)
+    : ref<ContentBlockWrapper[]>([])
+) as Ref<ContentBlockWrapper[]>;
+
+const latestChild = computed(
+  () => children.value[children.value.length - 1]
+);
+
+const subagentType = computed(
+  () => props.toolUse?.input?.subagent_type ?? props.toolUseResult?.subagent_type
+);
+
+const description = computed(
+  () => props.toolUse?.input?.description ?? props.toolUseResult?.description
+);
+
+const prompt = computed(
+  () => props.toolUse?.input?.prompt ?? props.toolUseResult?.prompt
+);
+
+const hasError = computed(() => !!props.toolResult?.is_error);
+
+// Treat "no result yet" as permission-pending — same proxy used by the
+// previous implementation.
+const isPermissionRequest = computed(() => {
+  const hasToolUseResult = !!props.toolUseResult;
+  const hasToolResult = !!props.toolResult && !props.toolResult.is_error;
+  return !hasToolUseResult && !hasToolResult;
+});
+
+const isInteractive = computed(
+  () => children.value.length > 0 || !!prompt.value || hasError.value
+);
+
+// Expansion state — user toggle overrides the default.
+const userToggled = ref(false);
+const userToggledState = ref(false);
+
+const defaultExpanded = computed(() => {
+  if (isPermissionRequest.value) return true;
+  if (hasError.value) return true;
+  return false;
+});
+
+const isExpanded = computed<boolean>({
+  get: () => (userToggled.value ? userToggledState.value : defaultExpanded.value),
+  set: (value) => {
+    userToggled.value = true;
+    userToggledState.value = value;
+  },
+});
+
+const isHovered = ref(false);
+
+function toggleExpand() {
+  if (isInteractive.value) {
+    isExpanded.value = !isExpanded.value;
+  }
+}
+
+// Status dot on the Task header row.
+const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
+  if (hasError.value) return 'error';
+  if (isPermissionRequest.value) return 'pending';
+  if (props.toolResult) return 'success';
+  return null;
+});
+
+// Children consume the existing ToolGroup contract:
+//  - toolGroupExpanded=false → child ToolMessageWrapper collapses to its
+//    one-line header (and renders the +N badge if there are more hidden).
+//  - toolGroupExpanded=true  → every child force-expands.
+provide('toolGroupExpanded', isExpanded);
+provide(
+  'toolGroupCount',
+  computed(() => (children.value.length > 1 ? children.value.length - 1 : 0))
+);
 
 function handleRerun() {
   const promptText = prompt.value?.trim();
@@ -57,42 +193,57 @@ function handleRerun() {
     }
   }
 }
-
-// 子代理类型
-const subagentType = computed(() => {
-  return props.toolUse?.input?.subagent_type || props.toolUseResult?.subagent_type;
-});
-
-// 任务描述
-const description = computed(() => {
-  return props.toolUse?.input?.description || props.toolUseResult?.description;
-});
-
-// Prompt内容
-const prompt = computed(() => {
-  return props.toolUse?.input?.prompt || props.toolUseResult?.prompt;
-});
-
-// 判断是否为权限请求阶段
-const isPermissionRequest = computed(() => {
-  const hasToolUseResult = !!props.toolUseResult;
-  const hasToolResult = !!props.toolResult && !props.toolResult.is_error;
-  return !hasToolUseResult && !hasToolResult;
-});
-
-// 权限请求阶段默认展开,执行完成后不展开
-const shouldExpand = computed(() => {
-  // 权限请求阶段展开
-  if (isPermissionRequest.value) return true;
-
-  // 有错误时展开
-  if (props.toolResult?.is_error) return true;
-
-  return false;
-});
 </script>
 
 <style scoped>
+.task-wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: 0px 8px 0px 0px;
+}
+
+.main-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  min-height: 28px;
+  user-select: none;
+}
+
+.main-line.is-expandable {
+  cursor: pointer;
+}
+
+.main-line.is-expandable:hover {
+  background-color: color-mix(in srgb, var(--vscode-list-hoverBackground) 30%, transparent);
+}
+
+.tool-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  color: var(--vscode-foreground);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.tool-icon-btn .codicon {
+  font-size: 16px;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
@@ -116,6 +267,23 @@ const shouldExpand = computed(() => {
   font-size: 0.85em;
   color: color-mix(in srgb, var(--vscode-foreground) 85%, transparent);
   font-style: italic;
+}
+
+.status-indicator-trailing {
+  flex-shrink: 0;
+}
+
+/* Indent child tools under the header, visually grouping them. */
+.task-children {
+  margin-left: 10px;
+  padding-left: 16px;
+  border-left: 1px solid var(--vscode-panel-border);
+}
+
+.task-expandable {
+  padding: 4px 0 0px 16px;
+  margin-left: 10px;
+  border-left: 1px solid var(--vscode-panel-border);
 }
 
 .prompt-section {
