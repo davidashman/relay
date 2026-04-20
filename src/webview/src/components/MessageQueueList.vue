@@ -28,12 +28,6 @@
         :key="message.id"
         class="queue-item"
       >
-        <!-- 队列指示器 -->
-        <div
-          class="queue-item-indicator"
-          style="opacity: 0.4; border: 1px solid var(--vscode-foreground);"
-        ></div>
-
         <!-- 消息内容 -->
         <div style="display: flex; flex-direction: column;">
           <div style="max-height: 56px; mask-image: none;">
@@ -110,7 +104,7 @@ function toggleExpanded() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 8px 3px 6px;
+  padding: 3px 8px 3px 24px;
   border-radius: 4px;
   transition: background-color 0.1s ease;
   cursor: pointer;
@@ -120,23 +114,16 @@ function toggleExpanded() {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-.queue-item-indicator {
-  border-radius: 50%;
-  width: 10px;
-  height: 10px;
-  flex-shrink: 0;
-  transition: opacity 0.1s;
-  color: var(--vscode-foreground);
-}
-
 .aislash-editor-input-readonly {
   resize: none;
   grid-area: 1 / 1 / 1 / 1;
   overflow: hidden;
   line-height: 1.5;
   font-family: inherit;
-  font-size: 13px;
-  color: var(--vscode-input-foreground);
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+  color: var(--vscode-input-placeholderForeground);
   background-color: transparent;
   display: block;
   outline: none;
