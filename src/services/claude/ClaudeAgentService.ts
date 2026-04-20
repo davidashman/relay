@@ -69,6 +69,7 @@ import {
     handleListFiles,
     handleStatPath,
     handleOpenContent,
+    handleOpenAttachment,
     handleOpenURL,
     handleOpenConfigFile,
     // handleOpenClaudeInTerminal,
@@ -702,6 +703,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
             case "open_content":
                 return handleOpenContent(request, this.handlerContext, signal);
+
+            case "open_attachment":
+                return handleOpenAttachment(request, this.handlerContext);
 
             // UI 操作
             case "show_notification":

@@ -149,6 +149,9 @@
           editable
         );
       },
+      openAttachment: (fileName: string, mediaType: string, data: string) => {
+        void runtime.appContext.fileOpener.openAttachment(fileName, mediaType, data);
+      },
     },
   }));
 

@@ -419,6 +419,20 @@ export interface OpenContentResponse {
 }
 
 /**
+ * 打开附件（将 base64 / 文本附件写入临时文件并打开）
+ */
+export interface OpenAttachmentRequest {
+    type: "open_attachment";
+    fileName: string;
+    mediaType: string;
+    data: string; // base64 编码（不含 data: 前缀）
+}
+
+export interface OpenAttachmentResponse {
+    type: "open_attachment_response";
+}
+
+/**
  * 当前选区
  */
 export interface SelectionRange {
@@ -824,6 +838,7 @@ export type WebViewRequest =
     | OpenFileRequest
     | OpenDiffRequest
     | OpenContentRequest
+    | OpenAttachmentRequest
     | SetPermissionModeRequest
     | SetModelRequest
     | SetThinkingLevelRequest
@@ -865,6 +880,7 @@ export type WebViewRequestResponse =
     | OpenFileResponse
     | OpenDiffResponse
     | OpenContentResponse
+    | OpenAttachmentResponse
     | SetPermissionModeResponse
     | SetModelResponse
     | SetThinkingLevelResponse

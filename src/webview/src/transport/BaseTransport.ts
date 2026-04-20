@@ -174,6 +174,10 @@ export abstract class BaseTransport {
     return (response as any).updatedContent;
   }
 
+  openAttachment(fileName: string, mediaType: string, data: string): Promise<any> {
+    return this.sendRequest({ type: "open_attachment", fileName, mediaType, data });
+  }
+
   async openDiff(
     originalFilePath: string,
     newFilePath: string,

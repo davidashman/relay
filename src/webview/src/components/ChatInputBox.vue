@@ -1,7 +1,6 @@
 <template>
-  <!-- 输入框 - 三行布局结构 -->
-  <div class="full-input-box" style="position: relative;">
-    <!-- 附件列表（如果有附件） -->
+  <div class="chat-input-root">
+    <!-- 附件列表 - 位于输入框边框之上（外部） -->
     <div v-if="attachments && attachments.length > 0" class="attachments-list">
       <div
         v-for="attachment in attachments"
@@ -24,7 +23,12 @@
       </div>
     </div>
 
-    <!-- 第一行：输入框区域 -->
+    <!-- 输入框 - 三行布局结构 -->
+    <div
+      class="full-input-box"
+      style="position: relative;"
+    >
+      <!-- 第一行：输入框区域 -->
     <div
       ref="textareaRef"
       contenteditable="true"
@@ -135,6 +139,7 @@
         </div>
       </template>
     </Dropdown>
+    </div>
   </div>
 </template>
 
@@ -652,18 +657,10 @@ function handleDragOver(event: DragEvent) {
   if (!isFileDrop(event)) return
 
   event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
 }
 
-async function handleDrop(event: DragEvent) {
-  const dataTransfer = event.dataTransfer
-  if (!dataTransfer) return
-
-  // 按住 Shift 时，将资源管理器文件拖入视为“插入路径”
-  if (!event.shiftKey) return
-  if (!isFileDrop(event)) return
-
-  event.preventDefault()
-
+async function insertPathsFromDataTransfer(dataTransfer: DataTransfer) {
   const paths = extractFilePathsFromDataTransfer(dataTransfer)
   if (paths.length === 0) return
 
@@ -694,6 +691,28 @@ async function handleDrop(event: DragEvent) {
   nextTick(() => {
     textareaRef.value?.focus()
   })
+}
+
+async function handleDrop(event: DragEvent) {
+  const dataTransfer = event.dataTransfer
+  if (!dataTransfer) return
+
+  // 只处理 Shift+drop 的文件/URI 拖拽
+  if (!event.shiftKey) return
+  if (!isFileDrop(event)) return
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  // 有真实的 File 对象（来自 Finder/Explorer 原生拖拽）：作为附件上传
+  const files = dataTransfer.files
+  if (files && files.length > 0) {
+    handleAddFiles(files)
+    return
+  }
+
+  // 只有 URI（来自 VS Code 资源管理器内部拖拽）：作为 @提及 插入
+  await insertPathsFromDataTransfer(dataTransfer)
 }
 
 function setHistoryContent(text: string) {
@@ -816,13 +835,46 @@ function handleSelectionChange() {
   }
 }
 
+// 将 Shift+drop 处理器挂到 window 捕获阶段。
+// 否则 VS Code webview / 浏览器默认的 dragover 会阻止 drop 事件到达 textarea，
+// 造成“看似按住 Shift 拖拽但没有任何反应”的现象。
+function handleWindowDragOver(event: DragEvent) {
+  if (!event.shiftKey) return
+  if (!isFileDrop(event)) return
+  event.preventDefault()
+  event.stopPropagation()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+}
+
+async function handleWindowDrop(event: DragEvent) {
+  if (!event.shiftKey) return
+  if (!isFileDrop(event)) return
+  event.preventDefault()
+  event.stopPropagation()
+
+  const dt = event.dataTransfer
+  if (!dt) return
+
+  const files = dt.files
+  if (files && files.length > 0) {
+    handleAddFiles(files)
+    return
+  }
+
+  await insertPathsFromDataTransfer(dt)
+}
+
 // 添加/移除 selectionchange 监听
 onMounted(() => {
   document.addEventListener('selectionchange', handleSelectionChange)
+  window.addEventListener('dragover', handleWindowDragOver, { capture: true })
+  window.addEventListener('drop', handleWindowDrop, { capture: true })
 })
 
 onUnmounted(() => {
   document.removeEventListener('selectionchange', handleSelectionChange)
+  window.removeEventListener('dragover', handleWindowDragOver, { capture: true } as EventListenerOptions)
+  window.removeEventListener('drop', handleWindowDrop, { capture: true } as EventListenerOptions)
 })
 
 // 暴露方法：供父组件设置内容与聚焦
@@ -844,6 +896,14 @@ defineExpose({
 </script>
 
 <style scoped>
+/* 输入框外层容器：把附件列表放在边框之外（上方） */
+.chat-input-root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
 /* 输入框基础样式 - 固定行高以稳定 caret 定位 */
 .aislash-editor-input {
   line-height: 18px;

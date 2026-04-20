@@ -107,6 +107,10 @@ export class AppContext {
     openContent: async (content: string, fileName: string, editable: boolean) => {
       const connection = await this.connectionManager.get();
       return connection.openContent(content, fileName, editable);
+    },
+    openAttachment: async (fileName: string, mediaType: string, data: string) => {
+      const connection = await this.connectionManager.get();
+      await connection.openAttachment(fileName, mediaType, data);
     }
   };
 

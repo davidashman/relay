@@ -41,6 +41,8 @@ import type {
     StatPathResponse,
     OpenContentRequest,
     OpenContentResponse,
+    OpenAttachmentRequest,
+    OpenAttachmentResponse,
     OpenURLRequest,
     OpenURLResponse,
     // GetAuthStatusRequest,
@@ -761,6 +763,33 @@ export async function handleOpenContent(
     return {
         type: "open_content_response",
         updatedContent
+    };
+}
+
+/**
+ * 打开附件（将 base64 / 文本内容写入临时文件并用 VS Code 打开）
+ */
+export async function handleOpenAttachment(
+    request: OpenAttachmentRequest,
+    context: HandlerContext
+): Promise<OpenAttachmentResponse> {
+    const { logService, fileSystemService } = context;
+    const { fileName, mediaType, data } = request;
+
+    logService.info(`Opening attachment: ${fileName} (${mediaType})`);
+
+    const sanitized = fileSystemService.sanitizeFileName(fileName || 'attachment');
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'claude-attachment-'));
+    const filePath = path.join(tempDir, sanitized);
+
+    const buffer = Buffer.from(data, 'base64');
+    await fs.promises.writeFile(filePath, buffer);
+
+    const uri = vscode.Uri.file(filePath);
+    await vscode.commands.executeCommand('vscode.open', uri);
+
+    return {
+        type: "open_attachment_response"
     };
 }
 

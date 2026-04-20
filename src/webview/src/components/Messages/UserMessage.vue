@@ -16,6 +16,22 @@
           @keydown.enter.prevent="startEditing"
           @keydown.space.prevent="startEditing"
         >
+          <div
+            v-if="displayAttachments.length > 0"
+            class="attachment-tiles"
+          >
+            <button
+              v-for="attachment in displayAttachments"
+              :key="attachment.id"
+              type="button"
+              class="attachment-tile"
+              :title="attachment.fileName"
+              @click.stop="handleOpenAttachment(attachment)"
+            >
+              <FileIcon :file-name="attachment.fileName" :size="14" />
+              <span class="attachment-tile-name">{{ attachment.fileName }}</span>
+            </button>
+          </div>
           <div class="message-text">
             <div>{{ displayContent }}</div>
             <Tooltip content="Restore checkpoint">
@@ -97,6 +113,17 @@ const displayContent = computed(() => {
   }
   return '';
 });
+
+// 用于在普通显示模式下展示附件磁贴
+const displayAttachments = computed<AttachmentItem[]>(() => extractAttachments());
+
+function handleOpenAttachment(attachment: AttachmentItem) {
+  props.context.fileOpener.openAttachment(
+    attachment.fileName,
+    attachment.mediaType,
+    attachment.data
+  );
+}
 
 // 从消息内容中提取附件（image 和 document blocks）
 function extractAttachments(): AttachmentItem[] {
@@ -258,10 +285,59 @@ onUnmounted(() => {
 .message-view {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   width: 100%;
   cursor: pointer;
   transition: all 0.2s ease;
+  gap: 4px;
+}
+
+/* 附件磁贴行 */
+.attachment-tiles {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: thin;
+}
+
+.attachment-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-width: 180px;
+  padding: 3px 8px;
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-input-background) 60%,
+    transparent
+  );
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 10px;
+  color: var(--vscode-input-foreground);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.attachment-tile:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-input-background) 85%,
+    transparent
+  );
+}
+
+.attachment-tile-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .message-view .message-text {
