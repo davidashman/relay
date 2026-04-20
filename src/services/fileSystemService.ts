@@ -640,11 +640,11 @@ export class FileSystemService implements IFileSystemService {
 			return await this.getTopLevelContents(cwd);
 		}
 
-		// 以 "/" 结尾的查询：如果解析到一个真实目录,返回其直接子项（用于键盘下钻）
-		if (/[\/\\]$/.test(pattern)) {
-			const directContents = await this.tryListDirectoryContents(pattern, cwd);
-			if (directContents) return directContents;
-			// 否则落回到模糊搜索
+		// 含有 "/" 的查询：把最后一个 "/" 之前的部分视为显式目录,之后的部分视为
+		// 在该目录直接子项上的模糊匹配词。若目录不存在则回退到工作区模糊搜索。
+		if (/[\/\\]/.test(pattern)) {
+			const scoped = await this.tryDirectoryScopedSearch(pattern, cwd);
+			if (scoped) return scoped;
 		}
 
 		// 其他模式使用完整搜索流程（Ripgrep + 目录提取 + Fuse.js）
@@ -664,57 +664,78 @@ export class FileSystemService implements IFileSystemService {
 	}
 
 	/**
-	 * 列出指定目录的直接子项（供 findFiles 在 "path/" 查询时调用）。
-	 * 目录在前,文件在后,按名称升序。如果路径不存在或不是目录,返回 undefined
-	 * 以便调用方回退到其它搜索策略。
+	 * 在显式给定的子目录下搜索（供 findFiles 处理含 "/" 的查询时调用）。
+	 *
+	 * 以最后一个 "/" 为界切分：
+	 *   - 前缀视为显式目录（必须解析到工作区内的真实目录）。
+	 *   - 后缀视为对该目录「直接子项」名称的模糊匹配词,后缀为空时返回全部子项。
+	 *
+	 * 当目录不存在或路径越界时返回 undefined,调用方应回退到其它搜索策略。
 	 */
-	private async tryListDirectoryContents(
+	private async tryDirectoryScopedSearch(
 		pattern: string,
 		cwd: string
 	): Promise<FileSearchResult[] | undefined> {
-		// 规范化相对目录路径（去掉末尾分隔符,统一为 path.sep）
-		const relDir = pattern.replace(/[\/\\]+$/, '').replace(/[\/\\]/g, path.sep);
+		// 找到最后一个路径分隔符（兼容 / 与 \）
+		const lastSep = Math.max(pattern.lastIndexOf('/'), pattern.lastIndexOf('\\'));
+		if (lastSep < 0) return undefined;
 
-		// 仅处理相对路径且在 cwd 之内（避免意外跳出工作区）
-		if (!relDir || path.isAbsolute(relDir) || relDir.startsWith('..')) {
-			return undefined;
-		}
+		const rawDir = pattern.substring(0, lastSep);
+		const term = pattern.substring(lastSep + 1);
 
-		const absDir = path.join(cwd, relDir);
-		const normalizedAbs = path.normalize(absDir);
+		// 规范化相对目录路径（统一分隔符并折叠 . / ..）
+		const relDirNormalized = path.normalize(rawDir.replace(/[\\/]+/g, path.sep));
+
+		// 仅处理 cwd 之内的相对目录,防止越界
+		if (!relDirNormalized || path.isAbsolute(relDirNormalized)) return undefined;
+		if (relDirNormalized === '..' || relDirNormalized.startsWith('..' + path.sep)) return undefined;
+
+		const absDir = path.normalize(path.join(cwd, relDirNormalized));
 		const normalizedCwd = path.normalize(cwd);
-		if (!normalizedAbs.startsWith(normalizedCwd + path.sep) && normalizedAbs !== normalizedCwd) {
+		if (absDir !== normalizedCwd && !absDir.startsWith(normalizedCwd + path.sep)) {
 			return undefined;
 		}
 
+		let entries: [string, vscode.FileType][];
 		try {
-			const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(absDir));
-			const results: FileSearchResult[] = [];
+			entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(absDir));
+		} catch {
+			return undefined;
+		}
 
-			for (const [name, type] of entries) {
-				if (type === vscode.FileType.Directory) {
-					results.push({
-						path: path.join(relDir, name),
-						name,
-						type: 'directory'
-					});
-				} else if (type === vscode.FileType.File) {
-					results.push({
-						path: path.join(relDir, name),
-						name,
-						type: 'file'
-					});
-				}
+		const children: FileSearchResult[] = [];
+		for (const [name, type] of entries) {
+			if (type === vscode.FileType.Directory) {
+				children.push({
+					path: path.join(relDirNormalized, name),
+					name,
+					type: 'directory'
+				});
+			} else if (type === vscode.FileType.File) {
+				children.push({
+					path: path.join(relDirNormalized, name),
+					name,
+					type: 'file'
+				});
 			}
+		}
 
-			return results.sort((a, b) => {
+		// 无过滤词：目录在前,文件在后,按名称升序
+		if (!term) {
+			return children.sort((a, b) => {
 				if (a.type === 'directory' && b.type === 'file') return -1;
 				if (a.type === 'file' && b.type === 'directory') return 1;
 				return a.name.localeCompare(b.name);
 			});
-		} catch {
-			return undefined;
 		}
+
+		// 有过滤词：对直接子项的名称做模糊匹配,按分数排序
+		const fuse = new Fuse(children, {
+			includeScore: true,
+			threshold: 0.5,
+			keys: ['name']
+		});
+		return fuse.search(term).map(r => r.item);
 	}
 
 	/**
