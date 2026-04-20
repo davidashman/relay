@@ -421,6 +421,7 @@
     }
 
     window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('keydown', handleDoubleEscape);
   });
 
   onUnmounted(() => {
@@ -433,6 +434,7 @@
     }
 
     window.removeEventListener('focus', handleWindowFocus);
+    document.removeEventListener('keydown', handleDoubleEscape);
   });
 
   // ChatInput 事件处理
@@ -554,6 +556,30 @@
       // 方法已经在 useSession 中绑定，可以直接调用
       void s.interrupt();
     }
+  }
+
+  // Esc-Esc interrupts the current turn, matching the stop button. Any Esc
+  // already handled (history-nav exit, dropdown/modal close, etc.) is
+  // ignored via defaultPrevented so it doesn't count toward the pair.
+  const ESC_DOUBLE_PRESS_MS = 750;
+  let lastEscapeAt: number | null = null;
+
+  function handleDoubleEscape(event: KeyboardEvent) {
+    if (event.key !== 'Escape') {
+      lastEscapeAt = null;
+      return;
+    }
+    if (event.defaultPrevented) {
+      lastEscapeAt = null;
+      return;
+    }
+    const now = performance.now();
+    if (lastEscapeAt != null && now - lastEscapeAt < ESC_DOUBLE_PRESS_MS) {
+      lastEscapeAt = null;
+      handleStop();
+      return;
+    }
+    lastEscapeAt = now;
   }
 
   async function handleAddAttachment(files: FileList) {
