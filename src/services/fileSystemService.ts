@@ -640,6 +640,13 @@ export class FileSystemService implements IFileSystemService {
 			return await this.getTopLevelContents(cwd);
 		}
 
+		// 以 "/" 结尾的查询：如果解析到一个真实目录,返回其直接子项（用于键盘下钻）
+		if (/[\/\\]$/.test(pattern)) {
+			const directContents = await this.tryListDirectoryContents(pattern, cwd);
+			if (directContents) return directContents;
+			// 否则落回到模糊搜索
+		}
+
 		// 其他模式使用完整搜索流程（Ripgrep + 目录提取 + Fuse.js）
 		try {
 			return await this.searchFiles(pattern, cwd);
@@ -653,6 +660,60 @@ export class FileSystemService implements IFileSystemService {
 				console.error(`[FileSystemService] Fallback search also failed:`, fallbackError);
 				return [];
 			}
+		}
+	}
+
+	/**
+	 * 列出指定目录的直接子项（供 findFiles 在 "path/" 查询时调用）。
+	 * 目录在前,文件在后,按名称升序。如果路径不存在或不是目录,返回 undefined
+	 * 以便调用方回退到其它搜索策略。
+	 */
+	private async tryListDirectoryContents(
+		pattern: string,
+		cwd: string
+	): Promise<FileSearchResult[] | undefined> {
+		// 规范化相对目录路径（去掉末尾分隔符,统一为 path.sep）
+		const relDir = pattern.replace(/[\/\\]+$/, '').replace(/[\/\\]/g, path.sep);
+
+		// 仅处理相对路径且在 cwd 之内（避免意外跳出工作区）
+		if (!relDir || path.isAbsolute(relDir) || relDir.startsWith('..')) {
+			return undefined;
+		}
+
+		const absDir = path.join(cwd, relDir);
+		const normalizedAbs = path.normalize(absDir);
+		const normalizedCwd = path.normalize(cwd);
+		if (!normalizedAbs.startsWith(normalizedCwd + path.sep) && normalizedAbs !== normalizedCwd) {
+			return undefined;
+		}
+
+		try {
+			const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(absDir));
+			const results: FileSearchResult[] = [];
+
+			for (const [name, type] of entries) {
+				if (type === vscode.FileType.Directory) {
+					results.push({
+						path: path.join(relDir, name),
+						name,
+						type: 'directory'
+					});
+				} else if (type === vscode.FileType.File) {
+					results.push({
+						path: path.join(relDir, name),
+						name,
+						type: 'file'
+					});
+				}
+			}
+
+			return results.sort((a, b) => {
+				if (a.type === 'directory' && b.type === 'file') return -1;
+				if (a.type === 'file' && b.type === 'directory') return 1;
+				return a.name.localeCompare(b.name);
+			});
+		} catch {
+			return undefined;
 		}
 	}
 

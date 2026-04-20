@@ -1,6 +1,10 @@
 <template>
-  <div class="chat-input-root">
-    <!-- 附件列表 - 位于输入框边框之上（外部） -->
+  <!-- 输入框 - 三行布局结构 -->
+  <div
+    class="full-input-box"
+    style="position: relative;"
+  >
+    <!-- 附件列表（如果有附件） -->
     <div v-if="attachments && attachments.length > 0" class="attachments-list">
       <div
         v-for="attachment in attachments"
@@ -23,12 +27,7 @@
       </div>
     </div>
 
-    <!-- 输入框 - 三行布局结构 -->
-    <div
-      class="full-input-box"
-      style="position: relative;"
-    >
-      <!-- 第一行：输入框区域 -->
+    <!-- 第一行：输入框区域 -->
     <div
       ref="textareaRef"
       contenteditable="true"
@@ -139,7 +138,6 @@
         </div>
       </template>
     </Dropdown>
-    </div>
   </div>
 </template>
 
@@ -153,7 +151,7 @@ import { Dropdown, DropdownItem } from './Dropdown'
 import { RuntimeKey } from '../composables/runtimeContext'
 import { useCompletionDropdown } from '../composables/useCompletionDropdown'
 import { getSlashCommands, commandToDropdownItem } from '../providers/slashCommandProvider'
-import { getFileReferences, fileToDropdownItem } from '../providers/fileReferenceProvider'
+import { getFileReferences, fileToDropdownItem, type FileReference } from '../providers/fileReferenceProvider'
 
 interface Props {
   showProgress?: boolean
@@ -286,6 +284,29 @@ function placeCaretAtEnd(node: HTMLElement) {
   const selection = window.getSelection()
   selection?.removeAllRanges()
   selection?.addRange(range)
+}
+
+// 将光标放置到指定字符偏移。偏移越界时退化为移到末尾。
+function placeCaretAtOffset(node: HTMLElement, charOffset: number) {
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
+  let remaining = charOffset
+  let textNode: Text | null = null
+
+  while ((textNode = walker.nextNode() as Text | null)) {
+    const len = textNode.textContent?.length ?? 0
+    if (remaining <= len) {
+      const range = document.createRange()
+      range.setStart(textNode, Math.max(0, remaining))
+      range.collapse(true)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      return
+    }
+    remaining -= len
+  }
+
+  placeCaretAtEnd(node)
 }
 
 // 获取光标的客户端矩形
@@ -426,6 +447,70 @@ function autoResizeTextarea() {
   })
 }
 
+// 读取 contenteditable 中光标的字符偏移（相对于 textarea 根节点）
+function getCaretCharOffset(): number | undefined {
+  const el = textareaRef.value
+  if (!el) return undefined
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return undefined
+  const range = sel.getRangeAt(0)
+  if (!el.contains(range.startContainer)) return undefined
+  const pre = range.cloneRange()
+  pre.selectNodeContents(el)
+  pre.setEnd(range.endContainer, range.endOffset)
+  return pre.toString().length
+}
+
+// 返回 @ 文件选择器当前高亮项的 FileReference（若无则 undefined）
+function activeFileItem(): FileReference | undefined {
+  const idx = fileCompletion.activeIndex.value
+  if (idx < 0) return undefined
+  const item = fileCompletion.items.value[idx] as { data?: { file?: FileReference } } | undefined
+  return item?.data?.file
+}
+
+// 把任意目录路径规范化为 "foo/bar/" 形式（统一正斜杠 + 末尾带 /）
+function normalizeDirPath(p: string): string {
+  const trimmed = p.replace(/[\\/]+$/, '').replace(/\\/g, '/')
+  return trimmed ? `${trimmed}/` : ''
+}
+
+// 计算上级目录查询：
+//   "foo/bar"   -> "foo/"
+//   "foo/bar/"  -> "foo/"
+//   "foo/"      -> ""
+//   "foo"       -> ""
+function computeParentQuery(query: string): string {
+  if (!query) return ''
+  const stripped = query.endsWith('/') ? query.slice(0, -1) : query
+  const lastSep = stripped.lastIndexOf('/')
+  return lastSep >= 0 ? stripped.slice(0, lastSep + 1) : ''
+}
+
+// 重写当前 @ 触发区为 `@<newQuery>`（不追加空格,保持下拉打开,重新查询）
+function rewriteTriggerQuery(newQuery: string) {
+  const tq = fileCompletion.triggerQuery.value
+  const el = textareaRef.value
+  if (!tq || !el) return
+
+  const before = content.value.substring(0, tq.start)
+  const after = content.value.substring(tq.end)
+  const updated = `${before}@${newQuery}${after}`
+
+  content.value = updated
+  el.textContent = updated
+
+  // 光标定位在 @<newQuery> 末尾（而非整个输入末尾）
+  placeCaretAtOffset(el, before.length + 1 + newQuery.length)
+
+  emit('input', updated)
+  nextTick(() => {
+    fileCompletion.evaluateQuery(updated)
+    updateDropdownPosition(fileCompletion, 'queryStart')
+  })
+  autoResizeTextarea()
+}
+
 function handleKeydown(event: KeyboardEvent) {
   // 优先处理补全菜单的键盘事件
   if (slashCompletion.isOpen.value) {
@@ -435,6 +520,55 @@ function handleKeydown(event: KeyboardEvent) {
 
   // 处理文件引用补全的键盘事件
   if (fileCompletion.isOpen.value) {
+    const tq = fileCompletion.triggerQuery.value
+    const caret = getCaretCharOffset()
+    const atTriggerEnd = tq !== undefined && caret !== undefined && caret === tq.end
+    const active = activeFileItem()
+    const noModifiers = !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey
+
+    // Enter（无修饰、非 IME 组合）落在目录上 → 下钻
+    if (
+      event.key === 'Enter' &&
+      !event.isComposing &&
+      noModifiers &&
+      active?.type === 'directory'
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      rewriteTriggerQuery(normalizeDirPath(active.path))
+      return
+    }
+
+    // Right arrow 在触发区末尾：目录下钻 / 文件选择并关闭
+    if (event.key === 'ArrowRight' && noModifiers && atTriggerEnd) {
+      if (active?.type === 'directory') {
+        event.preventDefault()
+        event.stopPropagation()
+        rewriteTriggerQuery(normalizeDirPath(active.path))
+        return
+      }
+      if (active?.type === 'file') {
+        event.preventDefault()
+        event.stopPropagation()
+        fileCompletion.selectActive()
+        return
+      }
+    }
+
+    // Left arrow 在触发区末尾且 query 含 "/" → 回到上级目录
+    if (
+      event.key === 'ArrowLeft' &&
+      noModifiers &&
+      atTriggerEnd &&
+      tq &&
+      tq.query.includes('/')
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      rewriteTriggerQuery(computeParentQuery(tq.query))
+      return
+    }
+
     fileCompletion.handleKeydown(event)
     return
   }
@@ -896,14 +1030,6 @@ defineExpose({
 </script>
 
 <style scoped>
-/* 输入框外层容器：把附件列表放在边框之外（上方） */
-.chat-input-root {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-}
-
 /* 输入框基础样式 - 固定行高以稳定 caret 定位 */
 .aislash-editor-input {
   line-height: 18px;
