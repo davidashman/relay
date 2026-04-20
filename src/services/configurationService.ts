@@ -87,6 +87,9 @@ export interface IConfigurationService {
   // Get parsed environment variables
   getEnvironmentVariables(): Promise<Record<string, string>>;
 
+  // Get the resolved Claude configuration directory (undefined if not explicitly set)
+  getConfigurationDirectory(): Promise<string | undefined>;
+
   // Inspect all settings
   inspectAll(): Promise<Record<string, ConfigurationInspectResult<any>>>;
 
@@ -218,7 +221,7 @@ export class ConfigurationService implements IConfigurationService {
     }
 
     const filename = `settings.${name}.json`;
-    const filepath = path.join(os.homedir(), '.claude', filename);
+    const filepath = path.join(this.getConfigDir(), filename);
 
     if (await this.fileSystemService.pathExists(filepath)) {
       throw new Error(`Profile '${name}' already exists.`);
@@ -232,7 +235,7 @@ export class ConfigurationService implements IConfigurationService {
     if (!name) {return;}
 
     const filename = `settings.${name}.json`;
-    const filepath = path.join(os.homedir(), '.claude', filename);
+    const filepath = path.join(this.getConfigDir(), filename);
 
     if (await this.fileSystemService.pathExists(filepath)) {
       // Check if active, switch to default if so
@@ -254,21 +257,28 @@ export class ConfigurationService implements IConfigurationService {
   }
 
   /**
-   * CLI config path: ~/.claude/claudix.json
-   * Synced with active Profile
+   * Resolves the effective Claude configuration directory.
+   * Reads claudix.configurationDirectory from VSCode settings (synchronous); falls back to ~/.claude.
    */
-  private getClaudixConfigPath(): string {
-    return path.join(os.homedir(), '.claude', 'claudix.json');
+  private getConfigDir(): string {
+    const raw = vscode.workspace.getConfiguration('claudix').get<string>('configurationDirectory', '');
+    return raw?.trim()
+      ? raw.trim().replace(/^~(?=$|[/\\])/, os.homedir())
+      : path.join(os.homedir(), '.claude');
   }
 
-  // Mock implementation for Managed Settings path
+  /** CLI config path: <configDir>/claudix.json */
+  private getClaudixConfigPath(): string {
+    return path.join(this.getConfigDir(), 'claudix.json');
+  }
+
   private getManagedSettingsPath(): string {
-    return path.join(os.homedir(), '.claude', 'managed-settings.json');
+    return path.join(this.getConfigDir(), 'managed-settings.json');
   }
 
   private getGlobalSettingsPath(profile: string | null): string {
     const filename = profile ? `settings.${profile}.json` : 'settings.json';
-    return path.join(os.homedir(), '.claude', filename);
+    return path.join(this.getConfigDir(), filename);
   }
 
   get hasWorkspace(): boolean {
@@ -476,7 +486,7 @@ export class ConfigurationService implements IConfigurationService {
   }
 
   async getProfiles(): Promise<string[]> {
-    const claudeDir = path.join(os.homedir(), '.claude');
+    const claudeDir = this.getConfigDir();
     if (!(await this.fileSystemService.pathExists(claudeDir))) {return [];}
 
     try {
@@ -608,6 +618,20 @@ export class ConfigurationService implements IConfigurationService {
       }
     }
     return env;
+  }
+
+  async getConfigurationDirectory(): Promise<string | undefined> {
+    // claudix.configurationDirectory is a VSCode extension setting — read via
+    // vscode.workspace.getConfiguration, not getSetting() which reads Claude JSON files.
+    const raw = vscode.workspace.getConfiguration('claudix').get<string>('configurationDirectory', '');
+    console.log(`[ConfigurationService] getConfigurationDirectory: raw value = "${raw}"`);
+    if (!raw?.trim()) {
+      console.log('[ConfigurationService] getConfigurationDirectory: not set, returning undefined');
+      return undefined;
+    }
+    const resolved = this.getConfigDir();
+    console.log(`[ConfigurationService] getConfigurationDirectory: resolved = "${resolved}"`);
+    return resolved;
   }
 
   async inspectAll(): Promise<Record<string, ConfigurationInspectResult<any>>> {

@@ -16,6 +16,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { createDecorator } from '../../di/instantiation';
 import { ILogService } from '../logService';
+import { IConfigurationService } from '../configurationService';
 
 export const IClaudeSessionService = createDecorator<IClaudeSessionService>('claudeSessionService');
 
@@ -78,24 +79,10 @@ export interface IClaudeSessionService {
 // ============================================================================
 
 /**
- * 获取 Claude 配置目录
- */
-function getConfigDir(): string {
-    return process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude");
-}
-
-/**
- * 获取项目历史目录
- */
-function getProjectsDir(): string {
-    return path.join(getConfigDir(), "projects");
-}
-
-/**
  * 获取特定项目的历史目录
  */
-function getProjectHistoryDir(cwd: string): string {
-    return path.join(getProjectsDir(), cwd.replace(/[^a-zA-Z0-9]/g, "-"));
+function getProjectHistoryDir(cwd: string, configDir: string): string {
+    return path.join(configDir, "projects", cwd.replace(/[^a-zA-Z0-9]/g, "-"));
 }
 
 /**
@@ -269,8 +256,8 @@ interface SessionData {
 /**
  * 加载项目的会话历史
  */
-async function loadProjectData(cwd: string): Promise<SessionData> {
-    const projectDir = getProjectHistoryDir(cwd);
+async function loadProjectData(cwd: string, configDir: string): Promise<SessionData> {
+    const projectDir = getProjectHistoryDir(cwd, configDir);
 
     let files: string[];
     try {
@@ -399,9 +386,19 @@ export class ClaudeSessionService implements IClaudeSessionService {
     readonly _serviceBrand: undefined;
 
     constructor(
-        @ILogService private readonly logService: ILogService
+        @ILogService private readonly logService: ILogService,
+        @IConfigurationService private readonly configService: IConfigurationService
     ) {
         this.logService.info('[ClaudeSessionService] 已初始化');
+    }
+
+    private async resolveConfigDir(): Promise<string> {
+        const fromSetting = await this.configService.getConfigurationDirectory();
+        const resolved = fromSetting
+            ?? process.env.CLAUDE_CONFIG_DIR
+            ?? path.join(os.homedir(), '.claude');
+        this.logService.info(`[ClaudeSessionService] resolveConfigDir: setting=${fromSetting ?? '(not set)'}, resolved=${resolved}`);
+        return resolved;
     }
 
     /**
@@ -411,7 +408,8 @@ export class ClaudeSessionService implements IClaudeSessionService {
         try {
             this.logService.info(`[ClaudeSessionService] Loading session list: ${cwd}`);
 
-            const data = await loadProjectData(cwd);
+            const configDir = await this.resolveConfigDir();
+            const data = await loadProjectData(cwd, configDir);
 
             const transcripts = getTranscripts(data);
 
@@ -453,7 +451,8 @@ export class ClaudeSessionService implements IClaudeSessionService {
                 return messages;
             }
 
-            const data = await loadProjectData(cwd);
+            const configDir = await this.resolveConfigDir();
+            const data = await loadProjectData(cwd, configDir);
 
             const messageUuids = data.sessionMessages.get(sessionIdOrPath);
             if (!messageUuids) {

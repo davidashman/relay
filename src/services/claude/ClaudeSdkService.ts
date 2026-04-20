@@ -164,6 +164,10 @@ export class ClaudeSdkService implements IClaudeSdkService {
         // 获取环境变量
         const env = await this.getMergedEnvironmentVariables();
 
+        // Resolve Claude config dir (honours claudix.configurationDirectory > CLAUDE_CONFIG_DIR > default)
+        const claudixDir = env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
+        const claudixPath = path.join(claudixDir, 'claudix.json');
+
         // Inject effort level for Opus 4.6+ adaptive reasoning. CLI reads
         // CLAUDE_CODE_EFFORT_LEVEL at spawn time. If the user already set this
         // env var explicitly via settings/env config, respect that.
@@ -182,7 +186,6 @@ export class ClaudeSdkService implements IClaudeSdkService {
         }
 
         // 记录 CLI 路径
-        const claudixPath = path.join(os.homedir(), '.claude', 'claudix.json');
         this.logService.info(`📂 CLI 可执行文件与配置:`);
         this.logService.info(`  - CLI Path: ${cliPath}`);
         this.logService.info(`  - Settings Path: ${claudixPath}`);
@@ -310,7 +313,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
               'debug': null,
               'debug-to-stderr': null,
               // 'enable-auth-status': null,
-              'settings': path.join(os.homedir(), '.claude', 'claudix.json'),
+              'settings': claudixPath,
             } as Record<string, string | null>,
 
             // 设置源 (控制 CLAUDE.md 和 settings.json 的加载)
@@ -501,6 +504,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
      */
     private async getMergedEnvironmentVariables(): Promise<Record<string, string>> {
         const customVars = await this.configService.getEnvironmentVariables();
+        const configDir = await this.configService.getConfigurationDirectory();
 
         // 安全合并 process.env (过滤 undefined)
         const env: Record<string, string> = {
@@ -513,6 +517,17 @@ export class ClaudeSdkService implements IClaudeSdkService {
                 env[key] = value;
             }
         });
+
+        // If the user explicitly configured a custom configuration directory, inject
+        // it as CLAUDE_CONFIG_DIR so the CLI uses it. This wins over any shell-inherited
+        // value because the explicit setting should take precedence.
+        this.logService.info(`[ClaudeSdkService] configurationDirectory setting resolved to: ${configDir ?? '(not set)'}`);
+        if (configDir) {
+            env.CLAUDE_CONFIG_DIR = configDir;
+            this.logService.info(`[ClaudeSdkService] CLAUDE_CONFIG_DIR overridden to: ${configDir}`);
+        } else {
+            this.logService.info(`[ClaudeSdkService] CLAUDE_CONFIG_DIR not overridden (inheriting: ${env.CLAUDE_CONFIG_DIR ?? '(unset)'})`);
+        }
 
       return { ...env, ...customVars };
     }
