@@ -138,8 +138,11 @@ async function readJSONL(filePath: string): Promise<SessionMessage[]> {
 
 /**
  * 转换消息格式（用于返回给前端）
+ *
+ * 对于 sidechain 消息（Task 子 agent 产生的消息），传入 parentToolUseId
+ * 以便前端将其挂载到正确的 Task tool_use 的 childTools 上。
  */
-function convertMessage(msg: SessionMessage): any | undefined {
+function convertMessage(msg: SessionMessage, parentToolUseId: string | null = null): any | undefined {
     if (msg.isMeta) {
         return undefined;
     }
@@ -149,7 +152,7 @@ function convertMessage(msg: SessionMessage): any | undefined {
             type: "user",
             message: msg.message,
             session_id: msg.uuid,
-            parent_tool_use_id: null,
+            parent_tool_use_id: parentToolUseId,
             toolUseResult: msg.toolUseResult
         };
     }
@@ -159,7 +162,7 @@ function convertMessage(msg: SessionMessage): any | undefined {
             type: "assistant",
             message: msg.message,
             session_id: msg.uuid,
-            parent_tool_use_id: null,
+            parent_tool_use_id: parentToolUseId,
             uuid: msg.message?.id
         };
     }
@@ -169,6 +172,44 @@ function convertMessage(msg: SessionMessage): any | undefined {
     }
 
     return undefined;
+}
+
+/**
+ * 为 sidechain 消息解析其所属的 Task tool_use id。
+ *
+ * Claude Code 将 Task 子 agent 的消息以 sidechain 形式存储在同一个 JSONL 中：
+ * - sidechain 根消息的 parentUuid 指向主线上发起 Task 的 assistant 消息
+ * - 后续 sidechain 消息通过 parentUuid 相互串联
+ *
+ * 本函数沿 parentUuid 向上走，直到遇到非 sidechain 祖先，然后在该祖先的
+ * content 中查找 Task 类型的 tool_use block，用其 id 作为 parent_tool_use_id。
+ *
+ * 注：嵌套 Task 会解析到最外层的 Task id（嵌套场景较少见）。
+ */
+function resolveParentToolUseId(
+    msg: SessionMessage,
+    messages: Map<string, SessionMessage>,
+    cache: Map<string, string>
+): string | undefined {
+    if (!msg.isSidechain) return undefined;
+    const cached = cache.get(msg.uuid);
+    if (cached) return cached;
+
+    let cursor: SessionMessage | undefined = msg;
+    while (cursor?.isSidechain) {
+        cursor = cursor.parentUuid ? messages.get(cursor.parentUuid) : undefined;
+    }
+    if (!cursor) return undefined;
+
+    const content = cursor.message?.content;
+    if (!Array.isArray(content)) return undefined;
+
+    const taskUse = content.find(
+        (b: any) => b?.type === 'tool_use' && b?.name === 'Task'
+    );
+    const id: string | undefined = taskUse?.id;
+    if (id) cache.set(msg.uuid, id);
+    return id;
 }
 
 /**
@@ -420,21 +461,57 @@ export class ClaudeSessionService implements IClaudeSessionService {
             }
 
             const sessionMessageList = Array.from(data.messages.values())
-                .filter(msg => messageUuids.has(msg.uuid))
+                .filter(msg => messageUuids.has(msg.uuid));
+
+            // 挑选最近一次的主线（非 sidechain）leaf，按 parentUuid 反向重建主线。
+            const latestMain = sessionMessageList
+                .filter(msg => !msg.isSidechain)
                 .sort((a, b) =>
                     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                );
-
-            const latestMessage = sessionMessageList[0];
-            if (!latestMessage) {
+                )[0];
+            if (!latestMain) {
                 return [];
             }
 
-            const result = getTranscript(latestMessage, data)
-                .map(convertMessage)
+            const mainTranscript = getTranscript(latestMain, data);
+            const mainUuidSet = new Set(mainTranscript.map(m => m.uuid));
+
+            // 收集属于本次主线的 sidechain 消息（其 Task 祖先在 mainTranscript 中）。
+            const toolUseCache = new Map<string, string>();
+            const sidechainMessages: Array<{ msg: SessionMessage; parentToolUseId: string }> = [];
+            for (const msg of sessionMessageList) {
+                if (!msg.isSidechain) continue;
+                const parentToolUseId = resolveParentToolUseId(msg, data.messages, toolUseCache);
+                if (!parentToolUseId) continue;
+
+                // 确认该 Task tool_use 所在的 assistant 消息在当前主线里。
+                let cursor: SessionMessage | undefined = msg;
+                while (cursor?.isSidechain) {
+                    cursor = cursor.parentUuid ? data.messages.get(cursor.parentUuid) : undefined;
+                }
+                if (!cursor || !mainUuidSet.has(cursor.uuid)) continue;
+
+                sidechainMessages.push({ msg, parentToolUseId });
+            }
+
+            // 按时间顺序合并主线与 sidechain 消息。subagent 的消息夹在
+            // Task tool_use 和其 tool_result 之间，时间戳单调递增。
+            type Entry = { msg: SessionMessage; parentToolUseId: string | null };
+            const merged: Entry[] = [];
+            for (const m of mainTranscript) merged.push({ msg: m, parentToolUseId: null });
+            for (const s of sidechainMessages) merged.push({ msg: s.msg, parentToolUseId: s.parentToolUseId });
+            merged.sort((a, b) =>
+                new Date(a.msg.timestamp).getTime() - new Date(b.msg.timestamp).getTime()
+            );
+
+            const result = merged
+                .map(({ msg, parentToolUseId }) => convertMessage(msg, parentToolUseId))
                 .filter(msg => !!msg);
 
-            this.logService.info(`[ClaudeSessionService] Retrieved ${result.length} messages`);
+            this.logService.info(
+                `[ClaudeSessionService] Retrieved ${result.length} messages ` +
+                `(${mainTranscript.length} main + ${sidechainMessages.length} sidechain)`
+            );
             return result;
         } catch (error) {
             this.logService.error(`[ClaudeSessionService] Failed to retrieve session messages:`, error);

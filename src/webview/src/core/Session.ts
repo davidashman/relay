@@ -259,6 +259,17 @@ export class Session {
       const response = await connection.getSession(sessionId);
       const accumulator: Message[] = [];
       for (const raw of response?.messages ?? []) {
+        // Subagent (sidechain) messages: hoist their tool_use/tool_result
+        // blocks onto the parent Task wrapper's childTools instead of
+        // rendering as top-level messages. Mirrors the live-stream path.
+        if (
+          (raw?.type === 'user' || raw?.type === 'assistant') &&
+          raw.parent_tool_use_id != null
+        ) {
+          this.attachSubagentMessage(raw, accumulator);
+          continue;
+        }
+
         this.processMessage(raw);
         // 使用 processAndAttachMessage 来绑定 tool_result
         // 这样历史消息中的 tool_result 也会正确绑定到 tool_use
@@ -647,32 +658,7 @@ export class Session {
       (event?.type === 'user' || event?.type === 'assistant') &&
       event.parent_tool_use_id != null
     ) {
-      const parentId = event.parent_tool_use_id as string;
-      const currentMessages = this.messages() as Message[];
-
-      if (event.type === 'assistant' && Array.isArray(event.message?.content)) {
-        const parentWrapper = findToolUseBlock(currentMessages, parentId);
-        if (parentWrapper) {
-          const parsedBlocks = parseMessageContent(event.message.content);
-          for (const block of parsedBlocks) {
-            if (block.type === 'tool_use') {
-              parentWrapper.addChildTool(new ContentBlockWrapper(block));
-            }
-          }
-        }
-      } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
-        for (const block of event.message.content) {
-          if (block?.type === 'tool_result') {
-            const childWrapper = findToolUseBlock(currentMessages, block.tool_use_id);
-            if (childWrapper) {
-              childWrapper.setToolResult(block);
-              if ((event as any).toolUseResult) {
-                childWrapper.toolUseResult = (event as any).toolUseResult;
-              }
-            }
-          }
-        }
-      }
+      this.attachSubagentMessage(event, this.messages() as Message[]);
       return;
     }
 
@@ -747,6 +733,39 @@ export class Session {
     // method; only `system/init` still needs to update the session id here.
     if (event?.type === 'system') {
       this.sessionId(event.session_id);
+    }
+  }
+
+  /**
+   * Hoist a subagent (sidechain) message onto its parent Task wrapper's
+   * childTools. Shared by the live stream and session reload paths so the
+   * restored Task group renders identically to a live one.
+   */
+  private attachSubagentMessage(event: any, messages: Message[]): void {
+    const parentId = event.parent_tool_use_id as string;
+
+    if (event.type === 'assistant' && Array.isArray(event.message?.content)) {
+      const parentWrapper = findToolUseBlock(messages, parentId);
+      if (parentWrapper) {
+        const parsedBlocks = parseMessageContent(event.message.content);
+        for (const block of parsedBlocks) {
+          if (block.type === 'tool_use') {
+            parentWrapper.addChildTool(new ContentBlockWrapper(block));
+          }
+        }
+      }
+    } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
+      for (const block of event.message.content) {
+        if (block?.type === 'tool_result') {
+          const childWrapper = findToolUseBlock(messages, block.tool_use_id);
+          if (childWrapper) {
+            childWrapper.setToolResult(block);
+            if ((event as any).toolUseResult) {
+              childWrapper.toolUseResult = (event as any).toolUseResult;
+            }
+          }
+        }
+      }
     }
   }
 
