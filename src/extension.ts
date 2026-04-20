@@ -114,6 +114,23 @@ export function activate(context: vscode.ExtensionContext) {
 					return;
 				}
 
+				// Update the session ID associated with a chat panel (e.g. after /clear
+				// replaces the session inside an existing panel) so session restore picks
+				// up the latest active session in that tab.
+				if (req.type === 'update_panel_session') {
+					const webviewId: string | undefined = message.webviewId;
+					if (webviewId && webviewId.startsWith('panel:chat:')) {
+						webViewService.updateChatPanelSession(webviewId, req.sessionId ?? null);
+					}
+					webViewService.postMessage({
+						type: 'response',
+						requestId: message.requestId,
+						webviewId: message.webviewId,
+						response: { type: 'update_panel_session_response' }
+					});
+					return;
+				}
+
 				// Update the chat panel badge when permission requests change
 				if (req.type === 'set_panel_badge') {
 					const count: number = req.count ?? 0;

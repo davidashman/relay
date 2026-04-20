@@ -519,6 +519,18 @@ export interface RenameTabResponse {
 }
 
 /**
+ * 更新面板当前会话 ID（用于会话恢复时跟踪最后活跃的会话）
+ */
+export interface UpdatePanelSessionRequest {
+    type: "update_panel_session";
+    sessionId: string | null;
+}
+
+export interface UpdatePanelSessionResponse {
+    type: "update_panel_session_response";
+}
+
+/**
  * 获取认证状态
  */
 // export interface GetAuthStatusRequest {
@@ -847,6 +859,7 @@ export type WebViewRequest =
     | ShowNotificationRequest
     | NewConversationTabRequest
     | RenameTabRequest
+    | UpdatePanelSessionRequest
     | GetClaudeStateRequest
     | SdkProbeRequest
     | GetMcpServersRequest
@@ -889,6 +902,7 @@ export type WebViewRequestResponse =
     | ShowNotificationResponse
     | NewConversationTabResponse
     | RenameTabResponse
+    | UpdatePanelSessionResponse
     | GetClaudeStateResponse
     | SdkProbeResponse
     | GetMcpServersResponse

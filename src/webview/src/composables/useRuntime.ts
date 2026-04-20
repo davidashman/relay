@@ -67,6 +67,16 @@ export function useRuntime(): RuntimeInstance {
       }
     : appContext.startNewConversationTab?.bind(appContext);
 
+  // Only meaningful in panel mode: notify the extension when the panel's
+  // active session ID changes so the persisted open-panels list stays in sync
+  // (e.g. after /clear creates a new session inside the same panel).
+  const panelUpdatePanelSession = isPanelMode
+    ? (sessionId: string | null) => {
+        const connection = connectionManager.connection();
+        if (connection) void connection.updatePanelSession(sessionId);
+      }
+    : undefined;
+
   const sessionStore = new SessionStore(connectionManager, {
     commandRegistry: appContext.commandRegistry,
     currentSelection: currentSelectionSignal,
@@ -74,6 +84,7 @@ export function useRuntime(): RuntimeInstance {
     showNotification: appContext.showNotification?.bind(appContext),
     startNewConversationTab: panelStartNewConversationTab,
     renameTab: panelRenameTab,
+    updatePanelSession: panelUpdatePanelSession,
     openURL: appContext.openURL.bind(appContext)
   });
 

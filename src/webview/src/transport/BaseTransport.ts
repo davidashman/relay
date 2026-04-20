@@ -247,6 +247,9 @@ export abstract class BaseTransport {
   renameTab(title: string): Promise<any> {
     return this.sendRequest({ type: "rename_tab", title } as any);
   }
+  updatePanelSession(sessionId: string | null): Promise<any> {
+    return this.sendRequest({ type: "update_panel_session", sessionId } as any);
+  }
   setPanelBadge(count: number): Promise<any> {
     return this.sendRequest({ type: "set_panel_badge", count } as any);
   }

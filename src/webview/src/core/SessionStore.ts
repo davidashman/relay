@@ -73,6 +73,8 @@ export class SessionStore {
         }
         window.history.replaceState({}, '', url.toString());
 
+        this.context.updatePanelSession?.(session.sessionId() ?? null);
+
         const summary = session.summary();
         const title = summary && summary.length > 25 ? `${summary.slice(0, 24)}…` : summary;
         this.context.renameTab?.(title || defaultTitle);

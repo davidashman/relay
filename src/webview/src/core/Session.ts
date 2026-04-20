@@ -61,6 +61,7 @@ export interface SessionContext {
   ) => Promise<string | undefined>;
   startNewConversationTab?: (initialPrompt?: string) => boolean;
   renameTab?: (title: string) => boolean;
+  updatePanelSession?: (sessionId: string | null) => void;
   openURL?: (url: string) => void;
 }
 

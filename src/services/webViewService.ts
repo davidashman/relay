@@ -66,6 +66,12 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	updateChatPanelTitle(webviewId: string, title: string): void;
 
 	/**
+	 * 更新聊天面板当前关联的会话 ID，用于会话恢复跟踪最后活跃的会话
+	 * （例如 /clear 在同一面板内创建新会话后调用）
+	 */
+	updateChatPanelSession(webviewId: string, sessionId: string | null): void;
+
+	/**
 	 * 关闭聊天面板（通过 webviewId 定位面板）
 	 */
 	closeChatPanel(webviewId: string): void;
@@ -102,6 +108,8 @@ export class WebViewService implements IWebViewService {
 	private readonly chatPanelWebviewIds = new Map<string, string>();
 	/** Tracks session IDs of currently-open chat panels for persistence (sessionId → title) */
 	private readonly openSessionIds = new Map<string, string>();
+	/** Tracks the current real sessionId for each panelKey (absent entry means no real session yet) */
+	private readonly panelKeyToSessionId = new Map<string, string>();
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -317,17 +325,20 @@ export class WebViewService implements IWebViewService {
 				this.removeWebview(panelWebview);
 				this.chatPanels.delete(key);
 				this.chatPanelWebviewIds.delete(webviewId);
-				if (sessionId) {
-					this.openSessionIds.delete(sessionId);
+				const currentSessionId = this.panelKeyToSessionId.get(key);
+				this.panelKeyToSessionId.delete(key);
+				if (currentSessionId) {
+					this.openSessionIds.delete(currentSessionId);
 					this.persistOpenSessions();
 				}
-				this.logService.info(`[WebViewService] 聊天面板已销毁: sessionId=${sessionId}`);
+				this.logService.info(`[WebViewService] 聊天面板已销毁: sessionId=${currentSessionId}`);
 			},
 			undefined,
 			this.context.subscriptions
 		);
 
 		if (sessionId) {
+			this.panelKeyToSessionId.set(key, sessionId);
 			this.openSessionIds.set(sessionId, title);
 			this.persistOpenSessions();
 		}
@@ -345,12 +356,43 @@ export class WebViewService implements IWebViewService {
 		const panel = this.chatPanels.get(panelKey);
 		if (panel) {
 			panel.title = title;
-			if (this.openSessionIds.has(panelKey)) {
-				this.openSessionIds.set(panelKey, title);
+			const currentSessionId = this.panelKeyToSessionId.get(panelKey);
+			if (currentSessionId) {
+				this.openSessionIds.set(currentSessionId, title);
 				this.persistOpenSessions();
 			}
 			this.logService.info(`[WebViewService] 更新聊天面板标题: webviewId=${webviewId}, title=${title}`);
 		}
+	}
+
+	updateChatPanelSession(webviewId: string, sessionId: string | null): void {
+		const panelKey = this.chatPanelWebviewIds.get(webviewId);
+		if (!panelKey) return;
+		const panel = this.chatPanels.get(panelKey);
+		if (!panel) return;
+
+		const previousSessionId = this.panelKeyToSessionId.get(panelKey);
+		if (previousSessionId === sessionId) return;
+		if (!previousSessionId && !sessionId) return;
+
+		// Use the current persisted title if we had one, else fall back to the panel's title
+		const title = (previousSessionId && this.openSessionIds.get(previousSessionId)) || panel.title;
+
+		if (previousSessionId) {
+			this.openSessionIds.delete(previousSessionId);
+		}
+
+		if (sessionId) {
+			this.panelKeyToSessionId.set(panelKey, sessionId);
+			this.openSessionIds.set(sessionId, title);
+		} else {
+			this.panelKeyToSessionId.delete(panelKey);
+		}
+
+		this.persistOpenSessions();
+		this.logService.info(
+			`[WebViewService] 更新聊天面板会话: webviewId=${webviewId}, previousSessionId=${previousSessionId}, sessionId=${sessionId}`
+		);
 	}
 
 	closeChatPanel(webviewId: string): void {
