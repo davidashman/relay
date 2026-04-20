@@ -5,14 +5,7 @@
     tabIndex="0"
     data-permission-panel="1"
   >
-    <template v-if="isPlan">
-      <div class="plan-header">
-        <span class="codicon codicon-tasklist"></span>
-        <span class="plan-title">Plan</span>
-      </div>
-      <div class="plan-body" v-html="renderedPlan"></div>
-    </template>
-    <div v-else class="tool-title">
+    <div class="tool-title">
       <span class="codicon" :class="toolIcon"></span>
       <span class="tool-name">{{ toolLabel }}</span>
       <span v-if="toolDescription" class="tool-description">{{ toolDescription }}</span>
@@ -50,7 +43,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { marked } from 'marked';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { ToolContext } from '../types/tool';
 import { useKeybinding } from '../utils/useKeybinding';
@@ -98,15 +90,6 @@ const TOOL_ICONS: Record<string, string> = {
 };
 
 const toolIcon = computed(() => TOOL_ICONS[props.request.toolName] ?? 'codicon-tools');
-
-const isPlan = computed(() => props.request.toolName === 'ExitPlanMode');
-
-const renderedPlan = computed(() => {
-  if (!isPlan.value) return '';
-  const plan = (props.request.inputs as { plan?: unknown }).plan;
-  if (typeof plan !== 'string' || plan.length === 0) return '';
-  return marked(plan);
-});
 
 const toolLabel = computed(() => props.request.toolName);
 
@@ -194,101 +177,6 @@ useKeybinding([
   align-items: center;
   gap: 6px;
   padding: 3px 0;
-}
-
-.plan-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 0;
-}
-
-.plan-header .codicon {
-  font-size: 16px;
-  color: var(--vscode-foreground);
-}
-
-.plan-title {
-  font-size: 1em;
-  font-weight: 600;
-  color: var(--vscode-foreground);
-}
-
-.plan-body {
-  max-height: 260px;
-  overflow-y: auto;
-  padding: 10px 12px;
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
-  line-height: 1.6;
-  color: var(--vscode-editor-foreground);
-}
-
-.plan-body :deep(h1) {
-  font-size: 1.4em;
-  font-weight: 600;
-  margin-bottom: 12px;
-  margin-top: 16px;
-  color: var(--vscode-foreground);
-}
-
-.plan-body :deep(h1:first-child) {
-  margin-top: 0;
-}
-
-.plan-body :deep(h2) {
-  font-size: 1.2em;
-  font-weight: 600;
-  margin-bottom: 10px;
-  margin-top: 16px;
-  color: var(--vscode-foreground);
-}
-
-.plan-body :deep(h3) {
-  font-size: 1.1em;
-  font-weight: 600;
-  margin-bottom: 8px;
-  margin-top: 12px;
-  color: var(--vscode-foreground);
-}
-
-.plan-body :deep(p) {
-  margin-bottom: 8px;
-  line-height: 1.6;
-}
-
-.plan-body :deep(ul),
-.plan-body :deep(ol) {
-  margin-bottom: 8px;
-  padding-left: 24px;
-}
-
-.plan-body :deep(li) {
-  margin-bottom: 4px;
-}
-
-.plan-body :deep(code) {
-  background-color: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: var(--vscode-editor-font-family);
-}
-
-.plan-body :deep(pre) {
-  background-color: var(--vscode-textCodeBlock-background);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  padding: 8px;
-  overflow-x: auto;
-  margin-bottom: 8px;
-}
-
-.plan-body :deep(pre code) {
-  background: none;
-  padding: 0;
 }
 
 .tool-title .codicon {
