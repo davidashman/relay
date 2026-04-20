@@ -1,6 +1,26 @@
 <template>
   <div class="user-message">
     <div class="message-wrapper">
+      <!-- 附件磁贴：位于 message-content 边框外、上方 -->
+      <div
+        v-if="!isEditing && displayAttachments.length > 0"
+        class="attachment-tiles"
+      >
+        <button
+          v-for="attachment in displayAttachments"
+          :key="attachment.id"
+          type="button"
+          class="attachment-tile"
+          :title="attachment.fileName"
+          @click.stop="handleOpenAttachment(attachment)"
+        >
+          <div class="attachment-tile-icon">
+            <FileIcon :file-name="attachment.fileName" :size="16" />
+          </div>
+          <span class="attachment-tile-name">{{ attachment.fileName }}</span>
+        </button>
+      </div>
+
       <div
         ref="containerRef"
         class="message-content"
@@ -16,22 +36,6 @@
           @keydown.enter.prevent="startEditing"
           @keydown.space.prevent="startEditing"
         >
-          <div
-            v-if="displayAttachments.length > 0"
-            class="attachment-tiles"
-          >
-            <button
-              v-for="attachment in displayAttachments"
-              :key="attachment.id"
-              type="button"
-              class="attachment-tile"
-              :title="attachment.fileName"
-              @click.stop="handleOpenAttachment(attachment)"
-            >
-              <FileIcon :file-name="attachment.fileName" :size="14" />
-              <span class="attachment-tile-name">{{ attachment.fileName }}</span>
-            </button>
-          </div>
           <div class="message-text">
             <div>{{ displayContent }}</div>
             <Tooltip content="Restore checkpoint">
@@ -292,52 +296,70 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-/* 附件磁贴行 */
+/* 附件磁贴行 - 位于 message-content 边框之外上方，样式与输入框中的 pill 一致 */
 .attachment-tiles {
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 2px 2px 4px;
-  scrollbar-width: thin;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 20px;
+  margin-bottom: 4px;
 }
 
+/* 与 ChatInputBox 中的 .attachment-item 保持视觉一致 */
 .attachment-tile {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  max-width: 180px;
-  padding: 3px 8px;
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-input-background) 60%,
-    transparent
-  );
+  padding: 0 4px 0 0;
+  background: transparent;
   border: 1px solid var(--vscode-editorWidget-border);
-  border-radius: 10px;
-  color: var(--vscode-input-foreground);
+  border-radius: 4px;
   font-family: inherit;
   font-size: 12px;
-  line-height: 1.4;
+  flex-shrink: 0;
+  max-width: 200px;
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  transition: all 0.15s;
+  position: relative;
+  outline: none;
+  line-height: 16px;
+  height: 20px;
+  color: var(--vscode-foreground);
 }
 
 .attachment-tile:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-input-background) 85%,
-    transparent
-  );
+  background-color: var(--vscode-list-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.attachment-tile-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scale: 0.8;
+}
+
+.attachment-tile-icon :deep(.mdi),
+.attachment-tile-icon :deep(.codicon) {
+  color: var(--vscode-foreground);
+  opacity: 0.8;
 }
 
 .attachment-tile-name {
+  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 0;
+  color: var(--vscode-foreground);
+  opacity: 1;
+  max-width: 140px;
 }
 
 .message-view .message-text {
