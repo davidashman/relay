@@ -211,11 +211,6 @@ function handleModelSelect(item: DropdownItemData, close: () => void) {
   border: none;
   background: transparent;
   overflow: hidden;
-  transition: background-color 0.2s ease;
-}
-
-.model-dropdown:hover {
-  background-color: var(--vscode-inputOption-hoverBackground);
 }
 
 /* 共享的 Dropdown 样式 */
@@ -250,6 +245,7 @@ function handleModelSelect(item: DropdownItemData, close: () => void) {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  transition: opacity 0.15s ease;
 }
 
 .chevron-icon {
@@ -257,5 +253,11 @@ function handleModelSelect(item: DropdownItemData, close: () => void) {
   flex-shrink: 0;
   opacity: 0.5;
   color: var(--vscode-foreground);
+  transition: opacity 0.15s ease;
+}
+
+.model-dropdown:hover .dropdown-label,
+.model-dropdown:hover .chevron-icon {
+  opacity: 1;
 }
 </style>

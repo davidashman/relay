@@ -2,6 +2,7 @@
   <DropdownTrigger
     align="left"
     :close-on-click-outside="true"
+    :popover-style="{ marginLeft: '-10px' }"
   >
     <template #trigger>
       <div class="effort-dropdown">
@@ -90,11 +91,6 @@ function handleSelect(item: DropdownItemData, close: () => void) {
   cursor: pointer;
   border: none;
   background: transparent;
-  transition: background-color 0.2s ease;
-}
-
-.effort-dropdown:hover {
-  background-color: var(--vscode-inputOption-hoverBackground);
 }
 
 .dropdown-content {
@@ -125,6 +121,7 @@ function handleSelect(item: DropdownItemData, close: () => void) {
   height: 13px;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: opacity 0.15s ease;
 }
 
 .chevron-icon {
@@ -132,5 +129,11 @@ function handleSelect(item: DropdownItemData, close: () => void) {
   flex-shrink: 0;
   opacity: 0.5;
   color: var(--vscode-foreground);
+  transition: opacity 0.15s ease;
+}
+
+.effort-dropdown:hover .dropdown-label,
+.effort-dropdown:hover .chevron-icon {
+  opacity: 1;
 }
 </style>
