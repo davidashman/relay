@@ -4,6 +4,7 @@
     tool-name="Plan"
     :tool-result="toolResult"
     :default-expanded="true"
+    :always-expanded="true"
   >
     <template #main>
       <span class="tool-label">Plan</span>
