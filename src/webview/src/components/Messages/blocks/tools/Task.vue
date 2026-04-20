@@ -32,32 +32,11 @@
       />
     </div>
 
-    <!-- Subagent tool calls, indented under the header -->
-    <div v-if="children.length > 0" class="task-children">
-      <template v-if="!isExpanded">
-        <!-- Collapsed: show only the latest tool. It renders its own header
-             (child ToolMessageWrappers see toolGroupExpanded=false, so they
-             collapse to a one-liner and surface a +N badge inline). -->
-        <ContentBlock
-          :block="latestChild.content"
-          :wrapper="latestChild"
-          :context="context"
-        />
-      </template>
-      <template v-else>
-        <!-- Expanded: every child tool renders fully expanded -->
-        <ContentBlock
-          v-for="(child, idx) in children"
-          :key="`task-child-${idx}`"
-          :block="child.content"
-          :wrapper="child"
-          :context="context"
-        />
-      </template>
-    </div>
-
-    <!-- Expanded-only: prompt + errors, also indented -->
-    <div v-if="isExpanded && (prompt || hasError)" class="task-expandable">
+    <!-- Expanded: prompt at top, then every child tool, then error. -->
+    <div
+      v-if="isExpanded && (prompt || children.length > 0 || hasError)"
+      class="task-children"
+    >
       <div v-if="prompt" class="prompt-section">
         <div class="section-header">
           <span class="codicon codicon-comment-discussion"></span>
@@ -71,7 +50,31 @@
         <pre class="prompt-content">{{ prompt }}</pre>
       </div>
 
+      <ContentBlock
+        v-for="(child, idx) in children"
+        :key="`task-child-${idx}`"
+        :block="child.content"
+        :wrapper="child"
+        :context="context"
+      />
+
       <ToolError :tool-result="toolResult" />
+    </div>
+
+    <!-- Collapsed + still running: show only the active (latest) tool as a
+         one-liner. Child ToolMessageWrappers see toolGroupExpanded=false, so
+         they collapse to a single header row and surface a +N badge inline.
+         Once the task completes we drop this row and the group becomes a
+         single collapsed line (just the Task header). -->
+    <div
+      v-else-if="isActive && latestChild"
+      class="task-children"
+    >
+      <ContentBlock
+        :block="latestChild.content"
+        :wrapper="latestChild"
+        :context="context"
+      />
     </div>
   </div>
 </template>
@@ -128,13 +131,13 @@ const prompt = computed(
 
 const hasError = computed(() => !!props.toolResult?.is_error);
 
-// Treat "no result yet" as permission-pending — same proxy used by the
-// previous implementation.
-const isPermissionRequest = computed(() => {
-  const hasToolUseResult = !!props.toolUseResult;
-  const hasToolResult = !!props.toolResult && !props.toolResult.is_error;
-  return !hasToolUseResult && !hasToolResult;
-});
+// "Active" = the subagent is still running (no tool_result has come back yet).
+// While active and collapsed, we surface the latest child tool as a second
+// line under the header. Once the task completes, that row disappears and the
+// group collapses to just the Task header.
+const isActive = computed(
+  () => !props.toolResult && !props.toolUseResult
+);
 
 const isInteractive = computed(
   () => children.value.length > 0 || !!prompt.value || hasError.value
@@ -145,7 +148,8 @@ const userToggled = ref(false);
 const userToggledState = ref(false);
 
 const defaultExpanded = computed(() => {
-  if (isPermissionRequest.value) return true;
+  // Errors auto-expand so they don't hide behind a collapsed header.
+  // Everything else (including while streaming) starts collapsed.
   if (hasError.value) return true;
   return false;
 });
@@ -169,7 +173,7 @@ function toggleExpand() {
 // Status dot on the Task header row.
 const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
   if (hasError.value) return 'error';
-  if (isPermissionRequest.value) return 'pending';
+  if (isActive.value) return 'pending';
   if (props.toolResult) return 'success';
   return null;
 });
@@ -273,21 +277,17 @@ function handleRerun() {
   flex-shrink: 0;
 }
 
-/* Indent child tools under the header, visually grouping them. */
+/* Indent child tools (and the prompt/error when expanded) under the header,
+   visually grouping them. */
 .task-children {
   margin-left: 10px;
   padding-left: 16px;
   border-left: 1px solid var(--vscode-panel-border);
 }
 
-.task-expandable {
-  padding: 4px 0 0px 16px;
-  margin-left: 10px;
-  border-left: 1px solid var(--vscode-panel-border);
-}
-
 .prompt-section {
-  margin-bottom: 12px;
+  padding-top: 4px;
+  margin-bottom: 8px;
 }
 
 .section-header {
