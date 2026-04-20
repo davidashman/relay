@@ -29,7 +29,7 @@
         class="queue-item"
       >
         <!-- 消息内容 -->
-        <div style="display: flex; flex-direction: column;">
+        <div class="queue-item-content">
           <div style="max-height: 56px; mask-image: none;">
             <div
               class="aislash-editor-input-readonly"
@@ -103,15 +103,40 @@ function toggleExpanded() {
 .queue-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 8px 3px 24px;
-  border-radius: 4px;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-input-background) 30%,
+    transparent
+  );
+  border: 1px solid color-mix(
+    in srgb,
+    var(--vscode-editorWidget-border) 50%,
+    transparent
+  );
+  border-radius: 6px;
   transition: background-color 0.1s ease;
   cursor: pointer;
 }
 
+.queue-item + .queue-item {
+  margin-top: 4px;
+}
+
 .queue-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: color-mix(
+    in srgb,
+    var(--vscode-input-background) 45%,
+    transparent
+  );
+}
+
+.queue-item-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .aislash-editor-input-readonly {
