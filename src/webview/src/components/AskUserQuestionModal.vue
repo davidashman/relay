@@ -93,7 +93,12 @@ const props = defineProps<Props>();
 const containerRef = ref<HTMLDivElement | null>(null);
 
 onMounted(() => {
-  containerRef.value?.focus();
+  // Only grab focus if this webview's document is already focused. Otherwise,
+  // a question prompt arriving in one window would steal focus from an
+  // input box the user is actively typing in elsewhere.
+  if (document.hasFocus()) {
+    containerRef.value?.focus();
+  }
 });
 
 // Get questions from permission request inputs
