@@ -143,7 +143,12 @@
       {
         "command": "relay.newSession",
         "title": "Relay: New Chat",
-        "icon": "$(comment-discussion)"
+        "icon": "$(add)"
+      },
+      {
+        "command": "relay.toggleSearch",
+        "title": "Relay: Toggle Search",
+        "icon": "$(search)"
       },
       {
         "command": "relay.clearSession",
@@ -184,9 +189,14 @@
       ],
       "view/title": [
         {
-          "command": "relay.openSettings",
+          "command": "relay.toggleSearch",
           "when": "view == relay.sessionList",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "relay.newSession",
+          "when": "view == relay.sessionList",
+          "group": "navigation@2"
         }
       ]
     }

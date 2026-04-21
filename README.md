@@ -4,8 +4,8 @@
 ![Built with TypeScript](https://img.shields.io/badge/Built%20with-TypeScript-blue?logo=typescript)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 
-[![Mentioned in Awesome Claude Code](assets/mentioned-badge.png)](https://github.com/hesreallyhim/awesome-claude-code)
 ![Powered by Claude Agent SDK](https://img.shields.io/badge/Powered%20by-Claude%20Agent%20SDK-orange)
+![Originally Inspired and Forked from Claudix](https://github.com/Haleclipse/Claudix)
 
 A VSCode extension that brings Claude Code directly into your editor.
 

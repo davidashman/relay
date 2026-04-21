@@ -206,6 +206,15 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		context.subscriptions.push(
+			vscode.commands.registerCommand('relay.toggleSearch', () => {
+				webViewService.postMessage({
+					type: 'toggle_search',
+					webviewId: 'sidebar:sessions:'
+				});
+			})
+		);
+
+		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.clearSession', () => {
 				// Send new_session to the last focused panel/webview
 				const targetId = lastFocusedWebviewId;
