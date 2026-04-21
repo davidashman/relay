@@ -5,13 +5,14 @@
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 
 ![Powered by Claude Agent SDK](https://img.shields.io/badge/Powered%20by-Claude%20Agent%20SDK-orange)
-![Originally Inspired and Forked from Claudix](https://github.com/Haleclipse/Claudix)
 
 A VSCode extension that brings Claude Code directly into your editor.
 
 ## Overview
 
 Claude Code integrates Claude AI into VSCode, providing an interactive coding assistant with conversation history, tool integration, and intelligent code understanding.
+
+Originally inspired and forked from [Claudix](https://github.com/Haleclipse/Claudix).
 
 ## Features
 
