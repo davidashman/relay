@@ -1,42 +1,42 @@
-# Dropdown 组件系统
+# Dropdown Component System
 
-这是一个遵循**容器与内容分离**设计原则的通用Dropdown组件系统。
+A general-purpose Dropdown component system following the **container/content separation** design principle.
 
-## 🎯 设计理念
+## Design Philosophy
 
-### 核心原则
-- **Dropdown**: 纯粹的容器组件，负责定位、显示/隐藏逻辑
-- **DropdownItem**: 通用的数据驱动组件，通过接口适配不同业务需求
-- **业务逻辑**: 完全在使用方（如ChatInputBox）中实现
+### Core Principles
+- **Dropdown**: a pure container component, responsible for positioning and show/hide logic
+- **DropdownItem**: a general data-driven component, adapted to different business needs via an interface
+- **Business logic**: fully implemented in the consumer (e.g. ChatInputBox)
 
-### 通用性优势
-- ✓ 可复用于任何下拉场景（菜单、选择器、自动完成等）
-- ✓ 通过数据接口驱动，无硬编码业务逻辑
-- ✓ 支持自定义图标、样式、行为
-- ✓ 类型安全的TypeScript接口
+### Benefits of Generality
+- Reusable for any dropdown scenario (menus, selects, autocomplete, etc.)
+- Driven by a data interface with no hard-coded business logic
+- Supports custom icons, styles, and behaviors
+- Type-safe TypeScript interfaces
 
-## 📋 数据接口
+## Data Interface
 
 ### DropdownItemData
 ```typescript
 interface DropdownItemData {
-  id: string           // 唯一标识
-  label?: string       // 主要显示文本
-  name?: string        // 备用显示文本
-  detail?: string      // 辅助信息（如路径、描述）
-  icon?: string        // 左侧图标CSS类
-  rightIcon?: string   // 右侧图标CSS类
-  checked?: boolean    // 选中状态
-  disabled?: boolean   // 禁用状态
-  type?: string        // 业务类型标识
-  data?: any          // 附加业务数据
-  [key: string]: any  // 扩展字段
+  id: string           // unique identifier
+  label?: string       // primary display text
+  name?: string        // fallback display text
+  detail?: string      // supplementary info (e.g. path, description)
+  icon?: string        // left icon CSS class
+  rightIcon?: string   // right icon CSS class
+  checked?: boolean    // checked state
+  disabled?: boolean   // disabled state
+  type?: string        // business type identifier
+  data?: any          // additional business data
+  [key: string]: any  // extension fields
 }
 ```
 
-## 🔧 使用示例
+## Usage Examples
 
-### 基础使用
+### Basic Usage
 ```vue
 <template>
   <Dropdown
@@ -57,7 +57,7 @@ interface DropdownItemData {
 </template>
 ```
 
-### 自定义图标
+### Custom Icons
 ```vue
 <DropdownItem :item="item" :index="index">
   <template #icon="{ item }">
@@ -67,7 +67,7 @@ interface DropdownItemData {
 </DropdownItem>
 ```
 
-### 业务数据示例
+### Business Data Example
 ```typescript
 const contextItems: DropdownItemData[] = [
   {
@@ -88,39 +88,39 @@ const contextItems: DropdownItemData[] = [
 ]
 ```
 
-## 🏗️ 组件架构
+## Component Architecture
 
 ```
-Dropdown (容器)
-├── ScrollableElement (滚动)
-│   └── 业务内容 (slot)
-│       ├── DropdownItem (通用项)
-│       ├── DropdownSeparator (分隔符)
-│       └── 自定义内容
-└── Footer (底部信息)
+Dropdown (container)
+├── ScrollableElement (scrolling)
+│   └── business content (slot)
+│       ├── DropdownItem (generic item)
+│       ├── DropdownSeparator (separator)
+│       └── custom content
+└── Footer (bottom info)
 ```
 
-## 🎨 样式系统
+## Style System
 
-- 使用全局CSS变量确保一致性
-- 支持VSCode主题适配
-- Monaco编辑器风格的滚动条
-- 响应式设计
+- Uses global CSS variables for consistency
+- Supports VSCode theme adaptation
+- Monaco editor-style scrollbars
+- Responsive design
 
-## 📝 最佳实践
+## Best Practices
 
-1. **数据驱动**: 所有显示逻辑通过data接口控制
-2. **类型安全**: 使用TypeScript接口确保类型检查
-3. **业务分离**: 业务逻辑在使用方实现，组件保持通用
-4. **扩展性**: 通过slot和data字段支持自定义需求
+1. **Data-driven**: all display logic controlled through the data interface
+2. **Type-safe**: use TypeScript interfaces to ensure type checking
+3. **Business separation**: business logic implemented in the consumer; component stays generic
+4. **Extensible**: supports customization via slots and data fields
 
-## 🔄 迁移指南
+## Migration Guide
 
-从硬编码版本迁移到通用版本:
+Migrating from a hard-coded version to the generic version:
 
-1. 将业务数据移到使用方
-2. 使用`DropdownItemData`接口重新定义数据
-3. 在事件处理中使用`item.type`和`item.data`进行业务判断
-4. 通过slot自定义特殊显示需求
+1. Move business data to the consumer
+2. Redefine data using the `DropdownItemData` interface
+3. Use `item.type` and `item.data` for business logic in event handlers
+4. Customize special display needs via slots
 
-这种设计确保了Dropdown组件的高复用性和维护性，同时保持了强大的扩展能力。
+This design ensures high reusability and maintainability of the Dropdown component while retaining powerful extensibility.
