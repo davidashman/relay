@@ -152,6 +152,7 @@ import { RuntimeKey } from '../composables/runtimeContext'
 import { useCompletionDropdown } from '../composables/useCompletionDropdown'
 import { getSlashCommands, commandToDropdownItem } from '../providers/slashCommandProvider'
 import { getFileReferences, fileToDropdownItem, type FileReference } from '../providers/fileReferenceProvider'
+import { captureSourceSnapshot, type SendSnapshot } from '../composables/useSendAnimation'
 
 interface Props {
   showProgress?: boolean
@@ -169,8 +170,8 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'submit', content: string): void
-  (e: 'submitAndInterrupt', content: string): void
+  (e: 'submit', content: string, snapshot?: SendSnapshot | null): void
+  (e: 'submitAndInterrupt', content: string, snapshot?: SendSnapshot | null): void
   (e: 'stop'): void
   (e: 'input', content: string): void
   (e: 'attach'): void
@@ -897,12 +898,17 @@ function handleSubmit(interrupt: boolean = false) {
   historyIndex.value = -1
   draftContent.value = ''
 
+  // Capture the visual state of the input BEFORE we clear it, so the parent
+  // can animate the text/attachments gliding up into the thread.
+  const inputRoot = textareaRef.value?.closest('.full-input-box') as HTMLElement | null
+  const snapshot = captureSourceSnapshot(inputRoot)
+
   // Default: straight send (SDK interleaves mid-turn).
   // Modifier (Cmd/Ctrl+Enter): interrupt the current turn, then send.
   if (interrupt) {
-    emit('submitAndInterrupt', content.value)
+    emit('submitAndInterrupt', content.value, snapshot)
   } else {
-    emit('submit', content.value)
+    emit('submit', content.value, snapshot)
   }
 
   // 清空输入框

@@ -85,7 +85,7 @@ export class Session {
   readonly outstandingTurns = signal(0);
   // Derived boolean view of `outstandingTurns` — true whenever any turn is in flight.
   // Kept as a computed signal so existing call-sites that subscribe to `session.busy`
-  // (TabBar, useSession, useRuntime, etc.) keep working unchanged.
+  // (useSession, useRuntime, etc.) keep working unchanged.
   readonly busy = computed(() => this.outstandingTurns() > 0);
   readonly isLoading = signal(false);
   readonly error = signal<string | undefined>(undefined);
@@ -664,9 +664,15 @@ export class Session {
     }
 
     // Context-compaction interception.
-    // SDK emits: system/status(compacting) → assistant summary turns → system/compact_boundary
-    // We fold the summary turns into a single synthetic "compaction" Message so
-    // they render as a collapsible one-liner instead of a long assistant bubble.
+    //
+    // The CLI never emits system/status(compacting). Instead the SDK yields the
+    // model-generated summary as a user message with isReplay:true, followed by
+    // system/compact_boundary.  We intercept those replay messages to populate
+    // the compactionBuffer and suppress them from the regular message list,
+    // then fold everything into a single collapsible "compaction" Message.
+    //
+    // The legacy status(compacting) path is kept as a no-op safety net in case
+    // a future CLI version starts emitting it.
     if (event?.type === 'system' && event?.subtype === 'status') {
       if (event.status === 'compacting') {
         this.compactingMode = true;
@@ -678,6 +684,20 @@ export class Session {
       }
       return;
     }
+
+    // Compact summary messages arrive as user events with isReplay:true.
+    // Buffer their text content; do NOT render them as regular messages.
+    if (event?.type === 'user' && (event as any).isReplay === true) {
+      if (Array.isArray(event.message?.content)) {
+        for (const part of event.message.content) {
+          if (part?.type === 'text' && typeof part.text === 'string' && part.text.length > 0) {
+            this.compactionBuffer.push(part.text);
+          }
+        }
+      }
+      return;
+    }
+
     if (event?.type === 'system' && event?.subtype === 'compact_boundary') {
       const summary = this.compactionBuffer.join('\n\n').trim();
       this.compactingMode = false;
@@ -708,6 +728,29 @@ export class Session {
         }
       }
       return;
+    }
+
+    // A real (non-replay) user message means a new turn is starting — clear
+    // any stale compaction buffer so old content doesn't bleed into a future
+    // CompactionBlock.
+    if (event?.type === 'user' && !(event as any).isReplay) {
+      this.compactionBuffer = [];
+    }
+
+    // 当 Claude 调用 EnterPlanMode 时，同步 UI 的模式选择器。
+    // SDK 内部已处理模式切换，这里只更新本地信号。
+    // 必须只在 live 事件上执行，否则历史回放会把 UI 卡在 'plan'
+    // 模式（因为历史中的 ExitPlanMode 批准不会被回放）。
+    if (
+      event?.type === 'assistant' &&
+      Array.isArray(event.message?.content)
+    ) {
+      for (const block of event.message.content) {
+        if (block?.type === 'tool_use' && block.name === 'EnterPlanMode') {
+          void this.setPermissionMode('plan', false);
+          break;
+        }
+      }
     }
 
     // 🔥 使用完整的消息处理流程
@@ -789,12 +832,6 @@ export class Session {
           'todos' in block.input
         ) {
           this.todos(block.input.todos);
-        }
-
-        // 当 Claude 调用 EnterPlanMode 时，同步 UI 的模式选择器。
-        // SDK 内部已处理模式切换，这里只更新本地信号。
-        if (block.type === 'tool_use' && block.name === 'EnterPlanMode') {
-          void this.setPermissionMode('plan', false);
         }
       }
 

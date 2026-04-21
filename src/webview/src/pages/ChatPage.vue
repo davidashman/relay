@@ -46,7 +46,7 @@
                 />
               </template>
             <!-- </div> -->
-            <div v-if="isBusy" class="spinnerRow">
+            <div v-if="isBusy && !pendingPermission" class="spinnerRow">
               <Spinner :size="16" :permission-mode="permissionMode" />
             </div>
             <div ref="endEl" />
@@ -85,6 +85,7 @@
             @send-now="handleQueueSendNow"
           />
           <ChatInputBox
+            v-show="!(pendingPermission && toolContext)"
             ref="chatInputRef"
             :show-progress="true"
             :progress-percentage="progressPercentage"
@@ -133,6 +134,7 @@
   import { useKeybinding } from '../utils/useKeybinding';
   import { useSignal } from '@gn8/alien-signals-vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
+  import { prepareSendAnimation, type SendSnapshot } from '../composables/useSendAnimation';
 
   const runtime = inject(RuntimeKey);
   if (!runtime) throw new Error('[ChatPage] runtime not provided');
@@ -441,7 +443,7 @@
   });
 
   // ChatInput 事件处理
-  async function handleSubmit(content: string) {
+  async function handleSubmit(content: string, snapshot?: SendSnapshot | null) {
     const trimmed = (content || '').trim();
 
     // Handle built-in /clear command
@@ -453,6 +455,15 @@
     const s = session.value;
     if (!s || (!trimmed && attachments.value.length === 0)) return;
 
+    // Determine whether Session.send will queue or land in the thread. This
+    // dictates which animation variant we run and which DOM target to glide to.
+    const rawSession = activeSessionRaw.value;
+    const willLandInMessages =
+      !!rawSession &&
+      rawSession.outstandingTurns() === 0 &&
+      rawSession.outboundQueue().length === 0;
+    const willQueue = !!rawSession && !willLandInMessages;
+
     try {
       // 传递附件给 send 方法
       // Note: we no longer gate on isBusy — the SDK's long-lived query loop
@@ -462,16 +473,50 @@
       // 发送成功后清空附件
       attachments.value = [];
 
-      // Scroll to bottom when user submits a prompt
       await nextTick();
-      scrollToBottom(true);
+
+      // CRITICAL: find the just-rendered target and hide it synchronously,
+      // BEFORE the browser has a chance to paint it. `nextTick` flushes as a
+      // microtask, so no paint has occurred yet — this sync code runs first.
+      let animation: { play: () => Promise<void> } | null = null;
+      if (snapshot && willLandInMessages) {
+        const container = containerEl.value;
+        const userMessages = container?.querySelectorAll<HTMLElement>('.user-message');
+        const targetEl = userMessages?.[userMessages.length - 1];
+        if (targetEl) {
+          animation = prepareSendAnimation(snapshot, targetEl, 'thread');
+        }
+      } else if (snapshot && willQueue) {
+        // The queue list may be collapsed — if no queue-item is currently in
+        // the DOM, skip the animation.
+        const queueItems = document.querySelectorAll<HTMLElement>(
+          '.message-queue-section .queue-item'
+        );
+        const targetEl = queueItems[queueItems.length - 1];
+        if (targetEl) {
+          animation = prepareSendAnimation(snapshot, targetEl, 'queue');
+        }
+      }
+
+      // Thread-variant sends should scroll the new message into view; queue
+      // sends don't add anything to the thread so the scroll is unnecessary.
+      if (willLandInMessages) {
+        scrollToBottom(true);
+      }
+
+      if (animation) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        // Fire-and-forget: don't block the handler on the glide.
+        void animation.play();
+      }
     } catch (e) {
       console.error('[ChatPage] send failed', e);
     }
   }
 
   // "Interrupt then send" path — triggered by Cmd/Ctrl+Enter.
-  async function handleSubmitAndInterrupt(content: string) {
+  async function handleSubmitAndInterrupt(content: string, snapshot?: SendSnapshot | null) {
     const s = session.value;
     if (!s) return;
     try {
@@ -479,7 +524,7 @@
     } catch (e) {
       console.error('[ChatPage] interrupt before send failed', e);
     }
-    await handleSubmit(content);
+    await handleSubmit(content, snapshot);
   }
 
   function handleQueueRemove(id: string) {

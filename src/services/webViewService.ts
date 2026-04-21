@@ -110,6 +110,12 @@ export class WebViewService implements IWebViewService {
 	private readonly openSessionIds = new Map<string, string>();
 	/** Tracks the current real sessionId for each panelKey (absent entry means no real session yet) */
 	private readonly panelKeyToSessionId = new Map<string, string>();
+	/** Base (unprefixed) title for each chat panel, so we can re-derive the displayed title when the pending state toggles */
+	private readonly panelKeyToBaseTitle = new Map<string, string>();
+	/** Pending-permission state for each chat panel (drives title prefix + icon swap) */
+	private readonly panelKeyToPending = new Map<string, boolean>();
+
+	private static readonly PENDING_PREFIX = '● ';
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
@@ -303,11 +309,10 @@ export class WebViewService implements IWebViewService {
 			}
 		);
 
-		// Set Claude star icon
-		panel.iconPath = {
-			light: vscode.Uri.file(path.join(this.context.extensionPath, 'resources', 'claude-logo.svg')),
-			dark: vscode.Uri.file(path.join(this.context.extensionPath, 'resources', 'claude-logo.svg'))
-		};
+		// Track base title and initial pending state, then apply icon + (prefixed) title
+		this.panelKeyToBaseTitle.set(key, title);
+		this.panelKeyToPending.set(key, false);
+		this.applyPanelPresentation(key);
 
 		const panelWebview = panel.webview;
 
@@ -325,6 +330,8 @@ export class WebViewService implements IWebViewService {
 				this.removeWebview(panelWebview);
 				this.chatPanels.delete(key);
 				this.chatPanelWebviewIds.delete(webviewId);
+				this.panelKeyToBaseTitle.delete(key);
+				this.panelKeyToPending.delete(key);
 				const currentSessionId = this.panelKeyToSessionId.get(key);
 				this.panelKeyToSessionId.delete(key);
 				if (currentSessionId) {
@@ -355,7 +362,8 @@ export class WebViewService implements IWebViewService {
 		if (!panelKey) return;
 		const panel = this.chatPanels.get(panelKey);
 		if (panel) {
-			panel.title = title;
+			this.panelKeyToBaseTitle.set(panelKey, title);
+			this.applyPanelPresentation(panelKey);
 			const currentSessionId = this.panelKeyToSessionId.get(panelKey);
 			if (currentSessionId) {
 				this.openSessionIds.set(currentSessionId, title);
@@ -363,6 +371,22 @@ export class WebViewService implements IWebViewService {
 			}
 			this.logService.info(`[WebViewService] 更新聊天面板标题: webviewId=${webviewId}, title=${title}`);
 		}
+	}
+
+	/**
+	 * Apply the current base title + pending state to the panel's `title` and `iconPath`.
+	 * A pending panel gets a '● ' prefix and a blue-accent Claude logo; a clean panel
+	 * shows the base title and the default orange logo.
+	 */
+	private applyPanelPresentation(panelKey: string): void {
+		const panel = this.chatPanels.get(panelKey);
+		if (!panel) return;
+		const base = this.panelKeyToBaseTitle.get(panelKey) ?? panel.title;
+		const pending = this.panelKeyToPending.get(panelKey) ?? false;
+		panel.title = pending ? WebViewService.PENDING_PREFIX + base : base;
+		const iconFile = pending ? 'claude-logo-pending.svg' : 'claude-logo.svg';
+		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', iconFile));
+		panel.iconPath = { light: iconUri, dark: iconUri };
 	}
 
 	updateChatPanelSession(webviewId: string, sessionId: string | null): void {
@@ -375,8 +399,11 @@ export class WebViewService implements IWebViewService {
 		if (previousSessionId === sessionId) return;
 		if (!previousSessionId && !sessionId) return;
 
-		// Use the current persisted title if we had one, else fall back to the panel's title
-		const title = (previousSessionId && this.openSessionIds.get(previousSessionId)) || panel.title;
+		// Use the current persisted title if we had one, else fall back to the panel's base title
+		// (prefer the unprefixed base title over panel.title, which may include the '●' pending prefix)
+		const title = (previousSessionId && this.openSessionIds.get(previousSessionId))
+			|| this.panelKeyToBaseTitle.get(panelKey)
+			|| panel.title;
 
 		if (previousSessionId) {
 			this.openSessionIds.delete(previousSessionId);
@@ -408,9 +435,13 @@ export class WebViewService implements IWebViewService {
 	updateChatPanelBadge(webviewId: string, count: number): void {
 		const panelKey = this.chatPanelWebviewIds.get(webviewId);
 		if (!panelKey) return;
-		const panel = this.chatPanels.get(panelKey);
-		if (panel) {
-			panel.badge = count > 0 ? { value: count, tooltip: 'Awaiting approval' } : undefined;
+		if (!this.chatPanels.has(panelKey)) return;
+		// Note: vscode.WebviewPanel has no `badge` property (that exists only on WebviewView/TreeView),
+		// so we signal "pending" by toggling a '●' title prefix and swapping the tab icon to a blue accent.
+		const pending = count > 0;
+		if (this.panelKeyToPending.get(panelKey) !== pending) {
+			this.panelKeyToPending.set(panelKey, pending);
+			this.applyPanelPresentation(panelKey);
 		}
 	}
 
