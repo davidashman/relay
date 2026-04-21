@@ -402,8 +402,9 @@ onUnmounted(() => {
 
 .session-id {
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-  font-size: 10px;
-  opacity: 0.7;
+  font-size: 9px;
+  font-style: italic;
+  opacity: 0.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
