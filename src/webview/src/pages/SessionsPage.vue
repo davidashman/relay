@@ -62,10 +62,8 @@
               </div>
             </div>
 
-            <div class="session-meta">
-              <span class="session-messages">{{ session.messageCount.value }} messages</span>
-              <span v-if="session.sessionId.value" class="session-id">{{ session.sessionId.value }}</span>
-            </div>
+            <span v-if="session.sessionId.value" class="session-id">{{ session.sessionId.value }}</span>
+            <span class="session-messages">{{ session.messageCount.value }} messages</span>
 
         </div>
       </div>
@@ -347,9 +345,7 @@ onUnmounted(() => {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 80px;
-  gap: 8px;
+  gap: 3px;
 }
 
 .session-card:hover {
@@ -398,10 +394,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.session-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.session-messages {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
 }
