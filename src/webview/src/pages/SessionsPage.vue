@@ -219,6 +219,7 @@ onUnmounted(() => {
 .search-bar {
   border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-panel-background);
+  padding: 8px 12px;
 }
 
 .search-bar .search-input {

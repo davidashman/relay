@@ -146,6 +146,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "relay.newSessionPanel",
+        "title": "Relay: New Chat",
+        "icon": "resources/claude-logo.svg"
+      },
+      {
         "command": "relay.toggleSearch",
         "title": "Relay: Toggle Search",
         "icon": "$(search)"
@@ -182,7 +187,7 @@
     "menus": {
       "editor/title": [
         {
-          "command": "relay.newSession",
+          "command": "relay.newSessionPanel",
           "group": "navigation",
           "when": "true"
         }
