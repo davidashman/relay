@@ -6,7 +6,7 @@
   >
     <template #main>
       <span class="tool-label">Bash</span>
-      <code v-if="command" class="command-chip">{{ command }}</code>
+      <span v-if="description" class="tool-description">{{ description }}</span>
       <span v-if="runInBackground" class="bg-badge">background</span>
     </template>
 
@@ -43,6 +43,10 @@ const command = computed(() => {
   return props.toolUse?.input?.command || '';
 });
 
+const description = computed(() => {
+  return props.toolUse?.input?.description || '';
+});
+
 const runInBackground = computed(() => {
   return props.toolUse?.input?.run_in_background || false;
 });
@@ -75,21 +79,12 @@ const shouldExpand = computed(() => {
   line-height: 1.4;
 }
 
-.command-chip {
-  display: inline-flex;
-  align-items: center;
+.tool-description {
+  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
   font-family: var(--vscode-editor-font-family);
-  color: var(--vscode-charts-purple);
-  background-color: color-mix(in srgb, var(--vscode-charts-purple) 15%, transparent);
-  padding: 3px 6px 2px;
-  border-radius: 3px;
-  font-weight: 500;
   font-size: 0.9em;
-  line-height: 1;
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  font-style: italic;
 }
 
 .bg-badge {
