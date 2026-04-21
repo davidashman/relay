@@ -90,11 +90,13 @@ const shouldExpand = computed(() => {
 }
 
 .bg-badge {
+  display: inline-flex;
+  align-items: center;
   background-color: color-mix(in srgb, var(--vscode-charts-blue) 20%, transparent);
   color: var(--vscode-charts-blue);
-  padding: 2px 6px;
+  padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.75em;
+  font-size: 0.9em;
   font-weight: 500;
 }
 

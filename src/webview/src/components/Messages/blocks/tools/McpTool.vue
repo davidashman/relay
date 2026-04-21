@@ -189,12 +189,12 @@ const shouldExpand = computed(() => {
 .server-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
+  padding: 3px 6px 2px;
   background-color: color-mix(in srgb, var(--vscode-charts-purple) 20%, transparent);
   color: var(--vscode-charts-purple);
   border-radius: 3px;
-  font-size: 0.75em;
-  font-weight: 600;
+  font-size: 0.9em;
+  font-weight: 500;
   font-family: var(--vscode-editor-font-family);
 }
 

@@ -35,7 +35,7 @@
           ],
           "default": "default",
           "enumItemLabels": [
-            "Default",
+            "Ask",
             "Agent",
             "Plan"
           ],
@@ -47,31 +47,15 @@
           "description": "Default permission mode for new sessions",
           "order": 1
         },
-        "relay.defaultThinkingLevel": {
-          "type": "string",
-          "enum": [
-            "off",
-            "on",
-            "extended"
-          ],
-          "default": "on",
-          "enumItemLabels": [
-            "Off",
-            "On",
-            "Extended"
-          ],
-          "description": "Default extended thinking level for new sessions",
-          "order": 2
-        },
         "relay.showNotifications": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Show notifications and messages from Relay",
           "order": 5
         },
         "relay.expandToolOutput": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Expand tool output by default. When disabled, tool results start collapsed and must be clicked to expand.",
           "order": 7
         },

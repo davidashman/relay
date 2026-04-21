@@ -152,14 +152,15 @@ const fileCount = computed(() => resultFiles.value.length);
 }
 
 .pattern-text {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--vscode-editor-font-family);
   color: var(--vscode-charts-purple);
   background-color: color-mix(in srgb, var(--vscode-charts-purple) 15%, transparent);
-  padding: 4px 5px 2px;
+  padding: 3px 6px 2px;
   border-radius: 3px;
   font-weight: 500;
   font-size: 0.9em;
-  line-height: 13px;
 }
 
 .options-section,

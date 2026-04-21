@@ -89,9 +89,9 @@ const shouldExpand = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px;
+  padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.75em;
+  font-size: 0.9em;
   font-weight: 500;
 }
 

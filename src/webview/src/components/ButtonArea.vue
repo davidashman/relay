@@ -34,10 +34,10 @@
         />
 
         <!-- Thinking Toggle Button -->
-        <Tooltip :content="isThinkingOn ? 'Thinking on' : 'Thinking off'">
+        <Tooltip :content="thinkingEnabled ? 'Thinking on' : 'Thinking off'">
           <button
             class="action-button think-button"
-            :class="{ 'thinking-active': isThinkingOn }"
+            :class="{ 'thinking-active': thinkingEnabled }"
             @click="handleThinkingToggle"
           >
             <span class="codicon codicon-brain text-[16px]!" />
@@ -103,7 +103,7 @@ interface Props {
   showProgress?: boolean
   progressPercentage?: number
   contextTooltip?: string
-  thinkingLevel?: string
+  thinkingEnabled?: boolean
   effortLevel?: string
   permissionMode?: PermissionMode
 }
@@ -129,7 +129,7 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
-  thinkingLevel: 'default_on',
+  thinkingEnabled: true,
   effortLevel: 'high',
   permissionMode: 'default'
 })
@@ -138,8 +138,6 @@ const emit = defineEmits<Emits>()
 
 const fileInputRef = ref<HTMLInputElement>()
 
-
-const isThinkingOn = computed(() => props.thinkingLevel !== 'off')
 
 const submitVariant = computed(() => {
   // 对齐 React：busy 时始终显示停止按钮
@@ -229,7 +227,7 @@ function handleFileUpload(event: Event) {
 .actions-section {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -277,6 +275,7 @@ function handleFileUpload(event: Event) {
 
 .submit-button {
   scale: 1.1;
+  margin-left: 2px;
 }
 
 .submit-button[data-variant="enabled"] {

@@ -51,7 +51,7 @@
       :show-progress="showProgress"
       :progress-percentage="progressPercentage"
       :context-tooltip="contextTooltip"
-      :thinking-level="thinkingLevel"
+      :thinking-enabled="thinkingEnabled"
       :effort-level="effortLevel"
       :permission-mode="permissionMode"
       @submit="handleSubmit"
@@ -164,7 +164,7 @@ interface Props {
   selectedModel?: string
   conversationWorking?: boolean
   attachments?: AttachmentItem[]
-  thinkingLevel?: string
+  thinkingEnabled?: boolean
   effortLevel?: string
   permissionMode?: PermissionMode
 }
@@ -203,7 +203,7 @@ const props = withDefaults(defineProps<Props>(), {
   showSearch: false,
   conversationWorking: false,
   attachments: () => [],
-  thinkingLevel: 'default_on',
+  thinkingEnabled: true,
   effortLevel: 'high',
   permissionMode: 'default'
 })

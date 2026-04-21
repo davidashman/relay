@@ -92,7 +92,7 @@
             :context-tooltip="contextTooltip"
             :conversation-working="isBusy"
             :attachments="attachments"
-            :thinking-level="session?.thinkingLevel.value"
+            :thinking-enabled="session?.thinkingLevel.value !== 'off'"
             :effort-level="session?.effortLevel.value"
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
