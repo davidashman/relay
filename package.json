@@ -1,6 +1,6 @@
 {
-  "name": "claudix-vscode",
-  "displayName": "Claudix - Claude Code for VSCode",
+  "name": "relay-vscode",
+  "displayName": "Relay - Claude Code for VSCode",
   "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
   "version": "0.6.1",
   "publisher": "Haleclipse",
@@ -19,14 +19,14 @@
   "main": "./dist/extension.cjs",
   "contributes": {
     "configuration": {
-      "title": "Claudix",
+      "title": "Relay",
       "properties": {
-        "claudix.openClaudeCodeSettings": {
+        "relay.openClaudeCodeSettings": {
           "type": "null",
-          "markdownDescription": "**Configure Claude Code Settings**\n\nClick here to open: [**Open Claude Code Settings**](command:claudix.openSettings)\n\n---\n\nThe Claude Code Settings page allows you to configure:\n- Profiles & Model Selection\n- MCP Servers & Plugins\n- Permissions & Sandbox\n- Memory, Rules & Advanced Options\n\nNote: Claudix extension settings are managed here in VSCode settings.",
+          "markdownDescription": "**Configure Claude Code Settings**\n\nClick here to open: [**Open Claude Code Settings**](command:relay.openSettings)\n\n---\n\nThe Claude Code Settings page allows you to configure:\n- Profiles & Model Selection\n- MCP Servers & Plugins\n- Permissions & Sandbox\n- Memory, Rules & Advanced Options\n\nNote: Relay extension settings are managed here in VSCode settings.",
           "order": 0
         },
-        "claudix.defaultPermissionMode": {
+        "relay.defaultPermissionMode": {
           "type": "string",
           "enum": [
             "default",
@@ -47,7 +47,7 @@
           "description": "Default permission mode for new sessions",
           "order": 1
         },
-        "claudix.defaultThinkingLevel": {
+        "relay.defaultThinkingLevel": {
           "type": "string",
           "enum": [
             "off",
@@ -63,31 +63,31 @@
           "description": "Default extended thinking level for new sessions",
           "order": 2
         },
-        "claudix.showNotifications": {
+        "relay.showNotifications": {
           "type": "boolean",
           "default": true,
-          "description": "Show notifications and messages from Claudix",
+          "description": "Show notifications and messages from Relay",
           "order": 5
         },
-        "claudix.expandToolOutput": {
+        "relay.expandToolOutput": {
           "type": "boolean",
           "default": true,
           "description": "Expand tool output by default. When disabled, tool results start collapsed and must be clicked to expand.",
           "order": 7
         },
-        "claudix.showThinking": {
+        "relay.showThinking": {
           "type": "boolean",
           "default": false,
           "description": "Show Claude's internal thinking blocks in the chat. When disabled, thinking is hidden and only the final response is shown.",
           "order": 8
         },
-        "claudix.configurationDirectory": {
+        "relay.configurationDirectory": {
           "type": "string",
           "default": "",
           "description": "Path to the Claude configuration directory. Leave empty to use CLAUDE_CONFIG_DIR environment variable or default (~/.claude)",
           "order": 7
         },
-        "claudix.environmentVariables": {
+        "relay.environmentVariables": {
           "type": "array",
           "items": {
             "type": "object",
@@ -114,78 +114,78 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "claudix-chat-sidebar",
-          "title": "Claudix",
+          "id": "relay-chat-sidebar",
+          "title": "Relay",
           "icon": "resources/claude-logo.svg"
         }
       ]
     },
     "views": {
-      "claudix-chat-sidebar": [
+      "relay-chat-sidebar": [
         {
           "icon": "resources/claude-logo.svg",
           "type": "webview",
-          "id": "claudix.sessionList",
+          "id": "relay.sessionList",
           "name": "Sessions"
         }
       ]
     },
     "commands": [
       {
-        "command": "claudix.showChat",
-        "title": "Show Claudix"
+        "command": "relay.showChat",
+        "title": "Show Relay"
       },
       {
-        "command": "claudix.openSettings",
-        "title": "Claudix: Open Settings",
+        "command": "relay.openSettings",
+        "title": "Relay: Open Settings",
         "icon": "$(gear)"
       },
       {
-        "command": "claudix.newSession",
-        "title": "Claudix: New Chat",
+        "command": "relay.newSession",
+        "title": "Relay: New Chat",
         "icon": "$(comment-discussion)"
       },
       {
-        "command": "claudix.clearSession",
-        "title": "Claudix: Clear Session"
+        "command": "relay.clearSession",
+        "title": "Relay: Clear Session"
       },
       {
-        "command": "claudix.closeSession",
-        "title": "Claudix: Close Chat Panel"
+        "command": "relay.closeSession",
+        "title": "Relay: Close Chat Panel"
       }
     ],
     "keybindings": [
       {
         "key": "ctrl+n",
         "mac": "cmd+n",
-        "command": "claudix.newSession",
-        "when": "claudixFocused"
+        "command": "relay.newSession",
+        "when": "relayFocused"
       },
       {
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
-        "command": "claudix.clearSession",
-        "when": "claudixFocused"
+        "command": "relay.clearSession",
+        "when": "relayFocused"
       },
       {
         "key": "ctrl+w",
         "mac": "cmd+w",
-        "command": "claudix.closeSession",
-        "when": "claudixFocused"
+        "command": "relay.closeSession",
+        "when": "relayFocused"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "claudix.newSession",
+          "command": "relay.newSession",
           "group": "navigation",
           "when": "true"
         }
       ],
       "view/title": [
         {
-          "command": "claudix.openSettings",
-          "when": "view == claudix.sessionList",
+          "command": "relay.openSettings",
+          "when": "view == relay.sessionList",
           "group": "navigation"
         }
       ]
@@ -262,7 +262,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Haleclipse/Claudix"
+    "url": "https://github.com/Haleclipse/Relay"
   },
   "license": "AGPL-3.0"
 }

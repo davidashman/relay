@@ -1,6 +1,6 @@
 # Claude Code Settings System Reference
 
-> Claudix 扩展设置系统的完整参考文档。基于 [Claude Code 官方文档](https://code.claude.com/docs/en/settings) 整理。
+> Relay 扩展设置系统的完整参考文档。基于 [Claude Code 官方文档](https://code.claude.com/docs/en/settings) 整理。
 
 ---
 
@@ -24,7 +24,7 @@
 
 ### 1.2 三条数据管道
 
-Claudix 扩展需要维护三条独立的数据管道：
+Relay 扩展需要维护三条独立的数据管道：
 
 ```
 管道 A: CC Settings (settings.json 文件族)
@@ -33,7 +33,7 @@ Claudix 扩展需要维护三条独立的数据管道：
   └── 覆盖 Tab: General / Models / Agent / Permissions / Hooks
                  / Sandbox / Network / Environments
 
-管道 B: Extension Config (~/.claudix.json)
+管道 B: Extension Config (~/.relay.json)
   ├── 写入: updateExtensionConfig(key, value)
   ├── 读取: getExtensionConfig()
   └── 覆盖 Tab: Profiles (activeProfile), Models (customModels),
@@ -49,7 +49,7 @@ Claudix 扩展需要维护三条独立的数据管道：
 ### 1.3 影子配置 (Shadow Config)
 
 ```
-~/.claude/claudix.json = 当前活跃 Profile 的 settings.json 的副本
+~/.claude/relay.json = 当前活跃 Profile 的 settings.json 的副本
 通过 --settings 参数传给 SDK CLI
 纯实现细节，UI 层不直接感知
 ```
@@ -536,7 +536,7 @@ updateSetting('env', { ...currentEnv, [KEY]: newValue }, scope);
 
 ### 8.1 存储位置
 
-`~/.claudix.json` — 扩展独有配置，不跟随 CC Profile。
+`~/.relay.json` — 扩展独有配置，不跟随 CC Profile。
 
 ### 8.2 字段定义
 

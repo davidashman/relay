@@ -95,7 +95,7 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 export class WebViewService implements IWebViewService {
 	readonly _serviceBrand: undefined;
 
-	private static readonly OPEN_SESSIONS_KEY = 'claudix.openSessions';
+	private static readonly OPEN_SESSIONS_KEY = 'relay.openSessions';
 
 	private readonly webviews = new Set<vscode.Webview>();
 	private readonly webviewConfigs = new Map<vscode.Webview, WebviewBootstrapConfig>();
@@ -239,7 +239,7 @@ export class WebViewService implements IWebViewService {
 		this.logService.info(`[WebViewService] 创建主编辑器 WebView 面板: page=${page}, id=${key}`);
 
 		const panel = vscode.window.createWebviewPanel(
-			'claudix.pageView',
+			'relay.pageView',
 			title,
 			vscode.ViewColumn.Active,
 			{
@@ -296,7 +296,7 @@ export class WebViewService implements IWebViewService {
 		this.logService.info(`[WebViewService] 创建聊天面板: sessionId=${sessionId}, title=${title}`);
 
 		const panel = vscode.window.createWebviewPanel(
-			'claudix.chatPanel',
+			'relay.chatPanel',
 			title,
 			vscode.ViewColumn.Active,
 			{
@@ -528,7 +528,7 @@ export class WebViewService implements IWebViewService {
 
 		const bootstrapScript = `
     <script nonce="${nonce}">
-      window.CLAUDIX_BOOTSTRAP = ${JSON.stringify(bootstrap)};
+      window.RELAY_BOOTSTRAP = ${JSON.stringify(bootstrap)};
     </script>`;
 
 		return `<!DOCTYPE html>
@@ -582,7 +582,7 @@ export class WebViewService implements IWebViewService {
 
 		const bootstrapScript = `
     <script nonce="${nonce}">
-      window.CLAUDIX_BOOTSTRAP = ${JSON.stringify(bootstrap)};
+      window.RELAY_BOOTSTRAP = ${JSON.stringify(bootstrap)};
     </script>`;
 
 		return `<!DOCTYPE html>

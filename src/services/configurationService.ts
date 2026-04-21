@@ -37,7 +37,7 @@ export interface ConfigurationInspectResult<T> {
 }
 
 /**
- * Extension-specific configuration stored in ~/.claudix.json
+ * Extension-specific configuration stored in ~/.relay.json
  * Independent of CLI configuration, not affected by Profile switching
  */
 export interface ExtensionConfig {
@@ -75,7 +75,7 @@ export interface IConfigurationService {
   inspect<T>(key: string): Promise<ConfigurationInspectResult<T>>;
 
   // Update specific layer
-  // Triggers dual-write to claudix.json for critical keys
+  // Triggers dual-write to relay.json for critical keys
   updateSetting(key: string, value: any, target: 'local' | 'shared' | 'global'): Promise<void>;
 
   // Reset specific layer
@@ -106,7 +106,7 @@ export interface IConfigurationService {
   getManagedSettings(): Promise<any>;
   getCliArgs(): Promise<any>;
 
-  // Extension-specific configuration (~/.claudix.json)
+  // Extension-specific configuration (~/.relay.json)
   getExtensionConfig(): Promise<ExtensionConfig>;
   updateExtensionConfig<K extends keyof ExtensionConfig>(key: K, value: ExtensionConfig[K]): Promise<void>;
 }
@@ -147,7 +147,7 @@ export class ConfigurationService implements IConfigurationService {
     "skipWebFetchPreflight": true
   };
 
-  // Default template for extension config (~/.claudix.json)
+  // Default template for extension config (~/.relay.json)
   private readonly _extensionConfigDefaults: ExtensionConfig = {
     activeProfile: null,
     defaultModel: 'default',
@@ -169,13 +169,13 @@ export class ConfigurationService implements IConfigurationService {
     // Load CC schema defaults from bundled schema file
     this.loadSchemaDefaults();
 
-    // Ensure extension config (~/.claudix.json) exists
+    // Ensure extension config (~/.relay.json) exists
     await this.ensureExtensionConfigExists();
 
-    // Ensure CLI config (~/.claude/claudix.json) exists with default template
-    await this.ensureClaudixExists();
+    // Ensure CLI config (~/.claude/relay.json) exists with default template
+    await this.ensureRelayExists();
 
-    // Load active profile from extension config (~/.claudix.json)
+    // Load active profile from extension config (~/.relay.json)
     const extensionConfig = await this.readJsonFile(this.getExtensionConfigPath());
     this._activeProfile = extensionConfig.activeProfile ?? null;
 
@@ -249,27 +249,27 @@ export class ConfigurationService implements IConfigurationService {
   // --- Path Helpers ---
 
   /**
-   * Extension-specific config path: ~/.claudix.json
+   * Extension-specific config path: ~/.relay.json
    * Independent of CLI configuration
    */
   private getExtensionConfigPath(): string {
-    return path.join(os.homedir(), '.claudix.json');
+    return path.join(os.homedir(), '.relay.json');
   }
 
   /**
    * Resolves the effective Claude configuration directory.
-   * Reads claudix.configurationDirectory from VSCode settings (synchronous); falls back to ~/.claude.
+   * Reads relay.configurationDirectory from VSCode settings (synchronous); falls back to ~/.claude.
    */
   private getConfigDir(): string {
-    const raw = vscode.workspace.getConfiguration('claudix').get<string>('configurationDirectory', '');
+    const raw = vscode.workspace.getConfiguration('relay').get<string>('configurationDirectory', '');
     return raw?.trim()
       ? raw.trim().replace(/^~(?=$|[/\\])/, os.homedir())
       : path.join(os.homedir(), '.claude');
   }
 
-  /** CLI config path: <configDir>/claudix.json */
-  private getClaudixConfigPath(): string {
-    return path.join(this.getConfigDir(), 'claudix.json');
+  /** CLI config path: <configDir>/relay.json */
+  private getRelayConfigPath(): string {
+    return path.join(this.getConfigDir(), 'relay.json');
   }
 
   private getManagedSettingsPath(): string {
@@ -375,7 +375,7 @@ export class ConfigurationService implements IConfigurationService {
   }
 
   /**
-   * Ensure extension config (~/.claudix.json) exists with default values
+   * Ensure extension config (~/.relay.json) exists with default values
    */
   private async ensureExtensionConfigExists(): Promise<void> {
     const configPath = this.getExtensionConfigPath();
@@ -385,33 +385,33 @@ export class ConfigurationService implements IConfigurationService {
   }
 
   /**
-   * Ensure claudix.json exists with default template
+   * Ensure relay.json exists with default template
    */
-  private async ensureClaudixExists(): Promise<void> {
-    const claudixPath = this.getClaudixConfigPath();
-    if (!(await this.fileSystemService.pathExists(claudixPath))) {
+  private async ensureRelayExists(): Promise<void> {
+    const relayPath = this.getRelayConfigPath();
+    if (!(await this.fileSystemService.pathExists(relayPath))) {
       // Empty object — SDK reads ~/.claude/settings.json via userSettings layer,
-      // claudix.json only serves as flagSettings overlay for profile-specific overrides
-      await this.writeJsonFile(claudixPath, {});
+      // relay.json only serves as flagSettings overlay for profile-specific overrides
+      await this.writeJsonFile(relayPath, {});
     }
   }
 
   /**
-   * Sync current Profile content to claudix.json
+   * Sync current Profile content to relay.json
    *
-   * claudix.json is passed to SDK via --settings flag as the flagSettings layer.
+   * relay.json is passed to SDK via --settings flag as the flagSettings layer.
    * SDK already reads ~/.claude/settings.json as userSettings (lower priority).
-   * So claudix.json only needs profile-specific overrides, NOT a full copy.
+   * So relay.json only needs profile-specific overrides, NOT a full copy.
    *
    * - No profile (Default): write empty object — SDK uses settings.json directly
    * - With profile: write profile file content — SDK merges over settings.json
    */
-  async syncProfileToClaudix(): Promise<void> {
-    const claudixPath = this.getClaudixConfigPath();
+  async syncProfileToRelay(): Promise<void> {
+    const relayPath = this.getRelayConfigPath();
 
     if (!this._activeProfile) {
       // Default Profile: no overrides needed, SDK reads settings.json via userSettings
-      await this.writeJsonFile(claudixPath, {});
+      await this.writeJsonFile(relayPath, {});
       return;
     }
 
@@ -424,7 +424,7 @@ export class ConfigurationService implements IConfigurationService {
       profileContent = {};
     }
 
-    await this.writeJsonFile(claudixPath, profileContent);
+    await this.writeJsonFile(relayPath, profileContent);
   }
 
   // --- Loaders ---
@@ -435,7 +435,7 @@ export class ConfigurationService implements IConfigurationService {
 
   private async loadCliSettings() {
     // CLI settings layer is reserved for future use (e.g., extraArgs from SDK)
-    // Currently returns empty object as claudix.json follows standard settings.json schema
+    // Currently returns empty object as relay.json follows standard settings.json schema
     return {};
   }
 
@@ -529,14 +529,14 @@ export class ConfigurationService implements IConfigurationService {
   async switchProfile(profileName: string | null): Promise<void> {
     this._activeProfile = profileName;
 
-    // Save active profile to extension config (~/.claudix.json)
+    // Save active profile to extension config (~/.relay.json)
     await this.updateExtensionConfig('activeProfile', profileName);
 
     // Reload global settings from new profile
     this._globalSettings = await this.loadGlobalSettings();
 
-    // Sync profile content to claudix.json (triggers CLI hot-reload)
-    await this.syncProfileToClaudix();
+    // Sync profile content to relay.json (triggers CLI hot-reload)
+    await this.syncProfileToRelay();
   }
 
   async inspect<T>(key: string): Promise<ConfigurationInspectResult<T>> {
@@ -621,9 +621,9 @@ export class ConfigurationService implements IConfigurationService {
   }
 
   async getConfigurationDirectory(): Promise<string | undefined> {
-    // claudix.configurationDirectory is a VSCode extension setting — read via
+    // relay.configurationDirectory is a VSCode extension setting — read via
     // vscode.workspace.getConfiguration, not getSetting() which reads Claude JSON files.
-    const raw = vscode.workspace.getConfiguration('claudix').get<string>('configurationDirectory', '');
+    const raw = vscode.workspace.getConfiguration('relay').get<string>('configurationDirectory', '');
     console.log(`[ConfigurationService] getConfigurationDirectory: raw value = "${raw}"`);
     if (!raw?.trim()) {
       console.log('[ConfigurationService] getConfigurationDirectory: not set, returning undefined');
@@ -699,9 +699,9 @@ export class ConfigurationService implements IConfigurationService {
     // Reload in-memory caches to reflect the change
     await this.reloadAll();
 
-    // When updating global settings, sync to claudix.json for CLI hot-reload
+    // When updating global settings, sync to relay.json for CLI hot-reload
     if (target === 'global') {
-      await this.syncProfileToClaudix();
+      await this.syncProfileToRelay();
     }
   }
 
@@ -718,14 +718,14 @@ export class ConfigurationService implements IConfigurationService {
       // Reload in-memory caches
       await this.reloadAll();
 
-      // When resetting global settings, sync to claudix.json for CLI hot-reload
+      // When resetting global settings, sync to relay.json for CLI hot-reload
       if (target === 'global') {
-        await this.syncProfileToClaudix();
+        await this.syncProfileToRelay();
       }
     }
   }
 
-  // --- Extension Config API (~/.claudix.json) ---
+  // --- Extension Config API (~/.relay.json) ---
 
   /**
    * Get extension-specific configuration

@@ -20,7 +20,7 @@ export interface RuntimeInstance {
 
 export function useRuntime(): RuntimeInstance {
   // Detect host context from bootstrap config
-  const bootstrap = window.CLAUDIX_BOOTSTRAP;
+  const bootstrap = window.RELAY_BOOTSTRAP;
   const isPanelMode = bootstrap?.host === 'panel';
   // The sessionId to pre-select in panel mode (empty string = create new)
   const panelSessionId = isPanelMode ? (bootstrap?.id ?? '') : '';

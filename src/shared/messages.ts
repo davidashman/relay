@@ -705,7 +705,7 @@ export interface ResetSettingResponse {
 }
 
 /**
- * 获取扩展配置请求 (~/.claudix.json)
+ * 获取扩展配置请求 (~/.relay.json)
  */
 export interface GetExtensionConfigRequest {
     type: "get_extension_config";

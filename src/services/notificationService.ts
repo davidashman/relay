@@ -18,7 +18,7 @@ export class NotificationService implements INotificationService {
 	readonly _serviceBrand: undefined;
 
 	private isNotificationEnabled(): boolean {
-		const config = vscode.workspace.getConfiguration('claudix');
+		const config = vscode.workspace.getConfiguration('relay');
 		return config.get<boolean>('showNotifications', true);
 	}
 

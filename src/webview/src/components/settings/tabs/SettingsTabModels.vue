@@ -315,7 +315,7 @@ const MODEL_ALIASES = [
   { label: 'Haiku', value: 'haiku', description: 'Current Haiku model' },
 ]
 
-// ── Custom Models & Disabled Models (Pipeline B: ~/.claudix.json) ──
+// ── Custom Models & Disabled Models (Pipeline B: ~/.relay.json) ──
 // Stored in extension config, not Claude Code settings.json
 
 interface CustomModel {

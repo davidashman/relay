@@ -37,15 +37,15 @@ export function activate(context: vscode.ExtensionContext) {
 		const claudeAgentService = accessor.get(IClaudeAgentService);
 		const subscriptions = context.subscriptions;
 
-		// Initialize claudixFocused context (will be updated by webview focus events)
-		vscode.commands.executeCommand('setContext', 'claudixFocused', false);
+		// Initialize relayFocused context (will be updated by webview focus events)
+		vscode.commands.executeCommand('setContext', 'relayFocused', false);
 
 		// Track the last focused webviewId for targeted commands (e.g. clearSession)
 		let lastFocusedWebviewId: string | undefined;
 
 		// Register WebView View Provider (sidebar session list)
 		const webviewProvider = vscode.window.registerWebviewViewProvider(
-			'claudix.sessionList',
+			'relay.sessionList',
 			webViewService,
 			{
 				webviewOptions: {
@@ -59,11 +59,11 @@ export function activate(context: vscode.ExtensionContext) {
 			// Handle focus_changed messages directly (for keyboard shortcuts)
 			if (message.type === 'focus_changed') {
 				const focused = (message as any).focused;
-				vscode.commands.executeCommand('setContext', 'claudixFocused', focused);
+				vscode.commands.executeCommand('setContext', 'relayFocused', focused);
 				if (focused && message.webviewId) {
 					lastFocusedWebviewId = message.webviewId;
 				}
-				logService.info(`[Focus] Claudix focused: ${focused}`);
+				logService.info(`[Focus] Relay focused: ${focused}`);
 				return;
 			}
 
@@ -166,11 +166,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 		// Listen for VSCode configuration changes and notify webview
 		const configChangeListener = vscode.workspace.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('claudix.defaultPermissionMode') ||
-			    e.affectsConfiguration('claudix.defaultThinkingLevel') ||
-			    e.affectsConfiguration('claudix.expandToolOutput') ||
-			    e.affectsConfiguration('claudix.showThinking')) {
-				const config = vscode.workspace.getConfiguration('claudix');
+			if (e.affectsConfiguration('relay.defaultPermissionMode') ||
+			    e.affectsConfiguration('relay.defaultThinkingLevel') ||
+			    e.affectsConfiguration('relay.expandToolOutput') ||
+			    e.affectsConfiguration('relay.showThinking')) {
+				const config = vscode.workspace.getConfiguration('relay');
 				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
 				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
 				const expandToolOutput = config.get<boolean>('expandToolOutput') ?? true;
@@ -200,13 +200,13 @@ export function activate(context: vscode.ExtensionContext) {
 		// Register disposables
 		context.subscriptions.push(webviewProvider);
 		context.subscriptions.push(
-			vscode.commands.registerCommand('claudix.newSession', () => {
+			vscode.commands.registerCommand('relay.newSession', () => {
 				webViewService.openChatPanel(null, 'New Chat');
 			})
 		);
 
 		context.subscriptions.push(
-			vscode.commands.registerCommand('claudix.clearSession', () => {
+			vscode.commands.registerCommand('relay.clearSession', () => {
 				// Send new_session to the last focused panel/webview
 				const targetId = lastFocusedWebviewId;
 				if (targetId) {
@@ -221,7 +221,7 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		context.subscriptions.push(
-			vscode.commands.registerCommand('claudix.closeSession', () => {
+			vscode.commands.registerCommand('relay.closeSession', () => {
 				const targetId = lastFocusedWebviewId;
 				if (!targetId) return;
 				if (targetId.startsWith('panel:')) {
@@ -240,13 +240,13 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		context.subscriptions.push(
-			vscode.commands.registerCommand('claudix.openSettings', async () => {
+			vscode.commands.registerCommand('relay.openSettings', async () => {
 				await instantiationService.invokeFunction(accessorInner => {
 					const webViewServiceInner = accessorInner.get(IWebViewService);
 					const logServiceInner = accessorInner.get(ILogService);
 					try {
 						// Settings 页为单实例，不传 instanceId，使用 page 作为 key
-						webViewServiceInner.openEditorPage('settings', 'Claudix Settings');
+						webViewServiceInner.openEditorPage('settings', 'Relay Settings');
 					} catch (error) {
 						logServiceInner.error('[Command] 打开 Settings 页面失败', error);
 					}
@@ -260,8 +260,8 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	// 6. Register commands
-	const showChatCommand = vscode.commands.registerCommand('claudix.showChat', () => {
-		vscode.commands.executeCommand('claudix.sessionList.focus');
+	const showChatCommand = vscode.commands.registerCommand('relay.showChat', () => {
+		vscode.commands.executeCommand('relay.sessionList.focus');
 	});
 
 	context.subscriptions.push(showChatCommand);

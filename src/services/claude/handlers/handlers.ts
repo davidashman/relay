@@ -104,7 +104,7 @@ export async function handleInit(
     const openNewInTab = false;
 
     // Read VSCode extension settings
-    const vscodeConfig = vscode.workspace.getConfiguration('claudix');
+    const vscodeConfig = vscode.workspace.getConfiguration('relay');
     const defaultThinkingLevel = vscodeConfig.get<string>('defaultThinkingLevel') ?? 'on';
     const defaultPermissionMode = vscodeConfig.get<string>('defaultPermissionMode') ?? 'default';
     const expandToolOutput = vscodeConfig.get<boolean>('expandToolOutput') ?? true;
@@ -453,7 +453,7 @@ export async function handleShowNotification(
     const { message, severity, buttons = [] } = request;
 
     // Check if notifications are enabled
-    const config = vscode.workspace.getConfiguration('claudix');
+    const config = vscode.workspace.getConfiguration('relay');
     const showNotifications = config.get<boolean>('showNotifications', true);
 
     if (!showNotifications) {
@@ -494,7 +494,7 @@ export async function handleNewConversationTab(
     const { logService } = context;
 
     try {
-        await vscode.commands.executeCommand("claudix.sessionList.focus");
+        await vscode.commands.executeCommand("relay.sessionList.focus");
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         logService.warn(`Failed to focus chat view: ${message}`);
@@ -881,7 +881,7 @@ export async function handleOpenConfigFile(
     try {
         // VS Code 设置
         if (configType === "vscode") {
-            await vscode.commands.executeCommand('workbench.action.openSettings', 'claudix');
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'relay');
         }
         // 用户配置文件
         else {

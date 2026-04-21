@@ -34,7 +34,7 @@ export class LogService implements ILogService {
 	private outputChannel: vscode.LogOutputChannel;
 
 	constructor() {
-		this.outputChannel = vscode.window.createOutputChannel('Claudix', { log: true });
+		this.outputChannel = vscode.window.createOutputChannel('Relay', { log: true });
 	}
 
 	setLevel(level: LogLevel): void {

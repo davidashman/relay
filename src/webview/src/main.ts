@@ -12,7 +12,7 @@ declare global {
       getState(): any;
       setState(data: any): void;
     };
-    CLAUDIX_BOOTSTRAP?: {
+    RELAY_BOOTSTRAP?: {
       host?: 'sidebar' | 'editor' | 'panel';
       page?: string;
       id?: string;

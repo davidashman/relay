@@ -164,9 +164,9 @@ export class ClaudeSdkService implements IClaudeSdkService {
         // 获取环境变量
         const env = await this.getMergedEnvironmentVariables();
 
-        // Resolve Claude config dir (honours claudix.configurationDirectory > CLAUDE_CONFIG_DIR > default)
-        const claudixDir = env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
-        const claudixPath = path.join(claudixDir, 'claudix.json');
+        // Resolve Claude config dir (honours relay.configurationDirectory > CLAUDE_CONFIG_DIR > default)
+        const relayDir = env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
+        const relayPath = path.join(relayDir, 'relay.json');
 
         // Inject effort level for Opus 4.6+ adaptive reasoning. CLI reads
         // CLAUDE_CODE_EFFORT_LEVEL at spawn time. If the user already set this
@@ -188,7 +188,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
         // 记录 CLI 路径
         this.logService.info(`📂 CLI 可执行文件与配置:`);
         this.logService.info(`  - CLI Path: ${cliPath}`);
-        this.logService.info(`  - Settings Path: ${claudixPath}`);
+        this.logService.info(`  - Settings Path: ${relayPath}`);
 
         // 检查 CLI 是否存在
         if (!(await this.fileSystemService.pathExists(cliPath))) {
@@ -307,20 +307,20 @@ export class ClaudeSdkService implements IClaudeSdkService {
             pathToClaudeCodeExecutable: cliPath,
 
             // 额外参数
-            // --settings 指向 claudix.json，Profile 切换通过 ConfigurationService 同步内容到此文件
+            // --settings 指向 relay.json，Profile 切换通过 ConfigurationService 同步内容到此文件
             // CLI 会监听此文件变化，实现热更新
             extraArgs: {
               'debug': null,
               'debug-to-stderr': null,
               // 'enable-auth-status': null,
-              'settings': claudixPath,
+              'settings': relayPath,
             } as Record<string, string | null>,
 
             // 设置源 (控制 CLAUDE.md 和 settings.json 的加载)
             // 'user': ~/.claude/settings.json, ~/.claude/CLAUDE.md
             // 'project': .claude/settings.json, .claude/CLAUDE.md
             // 'local': .claude/settings.local.json, CLAUDE.local.md
-            // 注意: claudix.json 通过 extraArgs.settings 传入，作为 flagSettings 优先级最高
+            // 注意: relay.json 通过 extraArgs.settings 传入，作为 flagSettings 优先级最高
             settingSources: ['user', 'project', 'local'],
 
             includePartialMessages: true
