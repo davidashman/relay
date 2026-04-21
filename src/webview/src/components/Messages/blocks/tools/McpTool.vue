@@ -11,7 +11,6 @@
     </template>
 
     <template #expandable>
-      <!-- 输入参数 -->
       <div v-if="hasInput" class="mcp-section">
         <div class="section-header">
           <span class="codicon codicon-symbol-parameter"></span>
@@ -20,7 +19,6 @@
         <pre class="json-content">{{ formattedInput }}</pre>
       </div>
 
-      <!-- 输出结果 -->
       <div v-if="hasOutput" class="mcp-section">
         <div class="section-header">
           <span class="codicon codicon-output"></span>
@@ -29,7 +27,6 @@
         <pre class="json-content">{{ formattedOutput }}</pre>
       </div>
 
-      <!-- 错误信息 -->
       <div v-if="toolResult?.is_error" class="error-section">
         <div class="section-header">
           <span class="codicon codicon-error"></span>
@@ -53,7 +50,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 解析MCP工具名称: mcp__<server>__<tool>
+// MCP: mcp__<server>__<tool>
 const mcpParts = computed(() => {
   const name = props.toolUse?.name || '';
   const parts = name.split('__');
@@ -74,7 +71,6 @@ const mcpParts = computed(() => {
 const serverName = computed(() => mcpParts.value.server);
 const toolName = computed(() => mcpParts.value.tool);
 
-// 输入参数
 const hasInput = computed(() => {
   const input = props.toolUse?.input || props.toolUseResult?.input;
   return input && Object.keys(input).length > 0;
@@ -85,16 +81,13 @@ const formattedInput = computed(() => {
   return JSON.stringify(input, null, 2);
 });
 
-// 输出结果
 const hasOutput = computed(() => {
   if (props.toolResult?.is_error) return false;
 
-  // 会话加载
   if (props.toolUseResult?.output) {
     return true;
   }
 
-  // 实时对话
   if (props.toolResult?.content) {
     return true;
   }
@@ -103,25 +96,24 @@ const hasOutput = computed(() => {
 });
 
 const formattedOutput = computed(() => {
-  // 会话加载
   if (props.toolUseResult?.output) {
     return typeof props.toolUseResult.output === 'string'
       ? props.toolUseResult.output
       : JSON.stringify(props.toolUseResult.output, null, 2);
   }
 
-  // 实时对话 - 解析content
+  // - content
   if (props.toolResult?.content) {
     const content = props.toolResult.content;
 
     if (Array.isArray(content)) {
-      // content是数组格式，提取text内容
+      // contenttext
       const textContent = content
         .filter((item: any) => item.type === 'text')
         .map((item: any) => item.text)
         .join('\n');
 
-      // 尝试格式化JSON
+      // JSON
       try {
         const parsed = JSON.parse(textContent);
         return JSON.stringify(parsed, null, 2);
@@ -130,7 +122,6 @@ const formattedOutput = computed(() => {
       }
     }
 
-    // 如果是字符串，尝试格式化
     if (typeof content === 'string') {
       try {
         const parsed = JSON.parse(content);
@@ -140,14 +131,13 @@ const formattedOutput = computed(() => {
       }
     }
 
-    // 其他情况直接JSON化
+    // JSON
     return JSON.stringify(content, null, 2);
   }
 
   return '';
 });
 
-// 错误信息
 const errorMessage = computed(() => {
   if (!props.toolResult?.is_error) return '';
 
@@ -167,12 +157,9 @@ const errorMessage = computed(() => {
   return JSON.stringify(content, null, 2);
 });
 
-// 是否自动展开
 const shouldExpand = computed(() => {
-  // 有错误时展开
   if (props.toolResult?.is_error) return true;
 
-  // 有输出时展开
   if (hasOutput.value) return true;
 
   return false;
@@ -196,6 +183,7 @@ const shouldExpand = computed(() => {
   font-size: 0.9em;
   font-weight: 500;
   font-family: var(--vscode-editor-font-family);
+  line-height: 1;
 }
 
 .tool-name {

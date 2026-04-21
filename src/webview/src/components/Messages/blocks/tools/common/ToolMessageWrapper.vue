@@ -1,13 +1,10 @@
 <template>
   <div :class="['tool-message-wrapper', { 'in-collapsed-group': inCollapsedGroup }]">
-    <!-- 自定义布局模式 -->
     <template v-if="isCustomLayout">
       <slot name="custom"></slot>
     </template>
 
-    <!-- 标准布局模式 -->
     <template v-else>
-      <!-- 主信息行 -->
       <div
         class="main-line"
         :class="{ 'is-expandable': hasExpandableContent }"
@@ -15,7 +12,6 @@
         @mouseenter="isHovered = true"
         @mouseleave="isHovered = false"
       >
-        <!-- 工具图标 -->
         <Tooltip :content="toolName">
           <button class="tool-icon-btn">
             <span
@@ -34,7 +30,6 @@
           </button>
         </Tooltip>
 
-        <!-- 主内容 -->
         <div class="main-content">
           <slot name="main"></slot>
         </div>
@@ -42,7 +37,6 @@
         <!-- Group count badge (shown left of status dot when collapsed) -->
         <span v-if="inCollapsedGroup && toolGroupCount > 0" class="tool-count-badge">+{{ toolGroupCount }}</span>
 
-        <!-- 状态指示器 -->
         <ToolStatusIndicator
           v-if="indicatorState"
           :state="indicatorState"
@@ -50,13 +44,11 @@
         />
       </div>
 
-      <!-- 展开内容 -->
       <div v-if="hasExpandableContent && isExpanded" class="expandable-content">
         <slot name="expandable"></slot>
       </div>
     </template>
 
-    <!-- 权限审批按钮 -->
     <div v-if="permissionState === 'pending'" class="permission-actions">
       <button @click.stop="$emit('deny')" class="btn-reject">
         <span>Reject</span>
@@ -102,7 +94,6 @@ const slots = useSlots();
 const toolGroupExpanded = inject<Ref<boolean> | null>('toolGroupExpanded', null);
 const toolGroupCount = inject<Ref<number>>('toolGroupCount', ref(0));
 
-// 检测是否有展开内容
 const hasExpandableContent = computed(() => {
   // In a collapsed group: disable per-tool expand so clicks bubble up to ToolGroup.
   // Exception: keep expandable when permission is pending so user can see what to approve.
@@ -110,7 +101,6 @@ const hasExpandableContent = computed(() => {
   return !!slots.expandable || !!props.toolResult?.is_error;
 });
 
-// 展开状态
 const userToggled = ref(false);
 const userToggledState = ref(false);
 
@@ -123,7 +113,6 @@ watch(() => props.permissionState, (newState, oldState) => {
 
 const isExpanded = computed({
   get: () => {
-    // 优先使用用户手动切换的状态
     if (userToggled.value) {
       return userToggledState.value;
     }
@@ -151,7 +140,6 @@ const isHovered = ref(false);
 // In that case the group provides the outer horizontal margin so we skip our own padding.
 const inCollapsedGroup = computed(() => toolGroupExpanded !== null && !toolGroupExpanded.value);
 
-// 状态计算
 const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
   if (props.toolResult?.is_error) return 'error';
   if (props.permissionState === 'pending') return 'pending';
@@ -159,7 +147,6 @@ const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
   return null;
 });
 
-// 切换展开
 function toggleExpand() {
   if (hasExpandableContent.value) {
     isExpanded.value = !isExpanded.value;
@@ -238,7 +225,7 @@ function toggleExpand() {
   border-left: 1px solid var(--vscode-panel-border);
 }
 
-/* 权限审批按钮 */
+/* */
 .permission-actions {
   display: flex;
   justify-content: flex-end;

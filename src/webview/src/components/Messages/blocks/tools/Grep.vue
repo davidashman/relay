@@ -9,9 +9,7 @@
       <code v-if="pattern" class="pattern-text">{{ pattern }}</code>
     </template>
 
-    <!-- 展开内容：显示搜索选项和结果 -->
     <template #expandable>
-      <!-- 搜索选项 -->
       <div v-if="hasSearchOptions" class="options-section">
         <div class="options-grid">
           <div v-if="searchPath" class="option-item">
@@ -33,7 +31,6 @@
         </div>
       </div>
 
-      <!-- 搜索标志 -->
       <div v-if="hasFlags" class="flags-section">
         <div class="detail-label">Flags:</div>
         <div class="flags-list">
@@ -60,7 +57,6 @@
         </div>
       </div>
 
-      <!-- 搜索结果 -->
       <div v-if="resultFiles.length > 0" class="results-section">
         <div class="detail-label">
           <span>Found {{ fileCount }} files:</span>
@@ -76,7 +72,6 @@
         </div>
       </div>
 
-      <!-- 错误内容 -->
       <ToolError :tool-result="toolResult" />
     </template>
   </ToolMessageWrapper>
@@ -98,16 +93,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 搜索模式
 const pattern = computed(() => props.toolUse?.input?.pattern);
 
-// 搜索选项
 const searchPath = computed(() => props.toolUse?.input?.path);
 const glob = computed(() => props.toolUse?.input?.glob);
 const fileType = computed(() => props.toolUse?.input?.type);
 const outputMode = computed(() => props.toolUse?.input?.output_mode);
 
-// 搜索标志
 const caseInsensitive = computed(() => props.toolUse?.input?.['-i']);
 const multiline = computed(() => props.toolUse?.input?.multiline);
 const showLineNumbers = computed(() => props.toolUse?.input?.['-n']);
@@ -116,7 +108,6 @@ const contextLines = computed(() => {
 });
 const headLimit = computed(() => props.toolUse?.input?.head_limit);
 
-// 判断是否有选项或标志
 const hasSearchOptions = computed(() => {
   return searchPath.value || glob.value || fileType.value || outputMode.value;
 });
@@ -125,16 +116,14 @@ const hasFlags = computed(() => {
   return caseInsensitive.value || multiline.value || showLineNumbers.value || contextLines.value || headLimit.value;
 });
 
-// 解析搜索结果
 const resultFiles = computed(() => {
   if (!props.toolResult?.content) return [];
 
   const content = props.toolResult.content;
 
-  // 如果是字符串，解析文件列表
   if (typeof content === 'string') {
     const lines = content.split('\n').filter(line => line.trim());
-    // 过滤掉 "Found X files" 这样的统计行
+    // "Found X files"
     return lines.filter(line => !line.match(/^Found \d+ files?$/i));
   }
 
@@ -161,6 +150,7 @@ const fileCount = computed(() => resultFiles.value.length);
   border-radius: 3px;
   font-weight: 500;
   font-size: 0.9em;
+  line-height: 1;
 }
 
 .options-section,
@@ -222,6 +212,7 @@ const fileCount = computed(() => resultFiles.value.length);
   padding: 3px 8px;
   border-radius: 3px;
   font-weight: 500;
+  line-height: 1;
 }
 
 .flag-tag .codicon {

@@ -113,8 +113,8 @@ const handleProfileSwitch = (val: string) => {
 };
 
 /**
- * 根据图标名称返回对应的 class
- * 支持 codicon (codicon-xxx) 和 mdi (mdi-xxx) 两种图标
+ * class
+ * codicon (codicon-xxx) mdi (mdi-xxx)
  */
 const getIconClass = (icon: string): string[] => {
   if (icon.startsWith('codicon-')) {
@@ -122,7 +122,7 @@ const getIconClass = (icon: string): string[] => {
   } else if (icon.startsWith('mdi-')) {
     return ['mdi', icon];
   }
-  // 默认当作 mdi 图标
+  // mdi
   return ['mdi', icon];
 };
 </script>

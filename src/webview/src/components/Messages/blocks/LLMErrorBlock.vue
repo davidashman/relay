@@ -16,7 +16,7 @@ defineProps<Props>();
 </script>
 
 <style scoped>
-/* 对齐 InterruptBlock 居中提示条风格，使用错误色调 */
+/* InterruptBlock */
 .llm-error-block {
   display: flex;
   align-items: center;

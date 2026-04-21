@@ -14,13 +14,11 @@
     </template>
 
     <template #expandable>
-      <!-- 成功消息 -->
       <div v-if="message && !toolResult?.is_error" class="success-message">
         <span class="codicon codicon-info"></span>
         <span class="message-text">{{ message }}</span>
       </div>
 
-      <!-- 错误内容 -->
       <ToolError :tool-result="toolResult" />
     </template>
   </ToolMessageWrapper>
@@ -44,12 +42,12 @@ const shellId = computed(() => {
 });
 
 const message = computed(() => {
-  // 优先使用 toolUseResult (会话加载时)
+  // toolUseResult ()
   if (props.toolUseResult?.message) {
     return props.toolUseResult.message;
   }
 
-  // 实时对话: 从 toolResult.content 解析
+  // : toolResult.content
   if (typeof props.toolResult?.content === 'string') {
     try {
       const data = JSON.parse(props.toolResult.content);
@@ -66,7 +64,7 @@ const isSuccess = computed(() => {
   return !!message.value && !props.toolResult?.is_error;
 });
 
-// 默认展开条件: 有错误时展开
+// :
 const shouldExpand = computed(() => {
   return !!props.toolResult?.is_error;
 });
@@ -93,6 +91,7 @@ const shouldExpand = computed(() => {
   border-radius: 3px;
   font-size: 0.9em;
   font-weight: 500;
+  line-height: 1;
 }
 
 .status-badge.success {

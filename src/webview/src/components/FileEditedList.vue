@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible && filesEdited.length > 0" class="file-edited-section">
-    <!-- Files Edited 头部 -->
+    <!-- Files Edited  -->
     <div
       style="display: flex; justify-content: space-between; align-items: center; height: 24px; cursor: pointer;"
       @click="toggleExpanded"
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <!-- Files列表 (当展开时) -->
+    <!-- Files () -->
     <div
       v-if="expanded"
       style="padding: 4px 0;"

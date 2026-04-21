@@ -47,11 +47,11 @@ const hasVisibleContent = computed(() => {
   return content.some(wrapper => wrapper.content.type !== 'thinking' || showThinking);
 });
 
-// 计算动态 class
+// class
 const messageClasses = computed(() => {
   const content = props.message.message.content;
 
-  // content 总是数组，检查是否包含 tool_use
+  // content tool_use
   if (Array.isArray(content)) {
     const showThinking = runtime?.appContext.showThinking ?? false;
     // Show dot only for pure-text messages; suppress for tool_use and visible thinking blocks

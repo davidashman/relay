@@ -26,29 +26,29 @@ const props = withDefaults(defineProps<Props>(), {
   size: 16
 });
 
-// 由 vite-plugin-svg-icons 注入的本地图标名（含 symbolId 前缀）
+// vite-plugin-svg-icons symbolId
 const svgNames = new Set(ids);
 const svgPrefix = 'icon-';
 
 function resolveLocalId(name: string): string | '' {
   const candidates: string[] = [];
   const base = name.trim();
-  // 1) 原名
+  // 1)
   candidates.push(`${svgPrefix}${base}`);
-  // 2) language- 前缀 -> 直接名
+  // 2) language- ->
   if (base.startsWith('language-')) {
     candidates.push(`${svgPrefix}${base.replace(/^language-/, '')}`);
   }
-  // 3) file- 前缀 -> 去掉前缀；去掉 -box 后缀
+  // 3) file- -> -box
   if (base.startsWith('file-')) {
     const stripped = base.replace(/^file-/, '').replace(/-box$/, '');
     candidates.push(`${svgPrefix}${stripped}`);
   }
-  // 4) folder- 前缀 -> 去掉前缀
+  // 4) folder- ->
   if (base.startsWith('folder-')) {
     candidates.push(`${svgPrefix}${base.replace(/^folder-/, '')}`);
   }
-  // 5) 常见别名
+  // 5)
   const aliasMap: Record<string, string> = {
     'microsoft-visual-studio-code': 'vscode',
   };
@@ -74,7 +74,7 @@ const iconClasses = computed(() => {
   return baseClasses.filter(Boolean);
 });
 
-// 本地 SVG 是否可用及其 symbolId
+// SVG symbolId
 const localSymbolId = computed(() => {
   if (props.type !== 'mdi') return '';
   const name = String(props.icon || '').trim();
@@ -97,7 +97,7 @@ const iconStyle = computed(() => {
     verticalAlign: 'middle'
   };
 
-  // 只有当明确传入颜色时才添加 color 属性
+  // color
   if (props.color) {
     style.color = props.color;
   }

@@ -1,11 +1,11 @@
 <template>
   <ToolMessageWrapper
-    tool-icon="codicon-eye-two"
+    tool-icon="codicon-eye"
     tool-name="Read"
     :tool-result="toolResult"
   >
     <template #main>
-      <span class="tool-label">{{ lineRangeLabel }}</span>
+      <span class="tool-label">Read</span>
       <ToolFilePath
         v-if="filePath"
         :file-path="filePath"
@@ -13,9 +13,9 @@
         :start-line="startLine"
         :end-line="endLine"
       />
+      <span class="tool-label">{{ lineRangeLabel }}</span>
     </template>
 
-    <!-- 动态展开内容：仅在有错误时显示 -->
     <template v-if="toolResult?.is_error" #expandable>
       <ToolError :tool-result="toolResult" />
     </template>
@@ -50,7 +50,6 @@ const limit = computed(() => {
   return props.toolUse?.input?.limit;
 });
 
-// 计算起始行号和结束行号（用于文件跳转和框选）
 const startLine = computed(() => {
   return offset.value !== undefined ? offset.value + 1 : 1;
 });
@@ -68,13 +67,13 @@ const lineRangeLabel = computed(() => {
   if (offset.value !== undefined && limit.value !== undefined) {
     const start = offset.value + 1;
     const end = offset.value + limit.value;
-    return `Read lines ${start}-${end}`;
+    return `lines ${start}-${end}`;
   } else if (offset.value !== undefined) {
-    return `Read from line ${offset.value + 1}`;
+    return `from line ${offset.value + 1}`;
   } else if (limit.value !== undefined) {
-    return `Read lines 1-${limit.value}`;
+    return `lines 1-${limit.value}`;
   } else {
-    return 'Read';
+    return '';
   }
 });
 </script>

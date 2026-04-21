@@ -140,17 +140,17 @@ const fileInputRef = ref<HTMLInputElement>()
 
 
 const submitVariant = computed(() => {
-  // 对齐 React：busy 时始终显示停止按钮
+  // Reactbusy
   if (props.conversationWorking) {
     return 'stop'
   }
 
-  // 未 busy 且无输入 -> 禁用
+  // busy ->
   if (!props.hasInputContent) {
     return 'disabled'
   }
 
-  // 其余 -> 可发送
+  // ->
   return 'enabled'
 })
 
@@ -174,7 +174,7 @@ function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     emit('addAttachment', target.files)
-    // 清空 input，允许重复选择同一文件
+    // input
     target.value = ''
   }
 }
@@ -263,12 +263,12 @@ function handleFileUpload(event: Event) {
   opacity: 1;
 }
 
-/* Think 按钮专用：取消 hover opacity 效果，避免 off 状态下的误解 */
+/* Think hover opacity off */
 .action-button.think-button:hover:not(.thinking-active) {
-  opacity: 0.5; /* 保持默认 opacity，不增加到 1 */
+  opacity: 0.5; /*  opacity 1 */
 }
 
-/* 激活状态下的 hover 可以保持 */
+/* hover */
 .action-button.think-button.thinking-active:hover {
   opacity: 1;
 }

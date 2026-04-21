@@ -1,17 +1,15 @@
 /**
- * ContentBlockWrapper - Content Block 包装器
+ * ContentBlockWrapper - Content Block
  *
- * 使用 alien-signals 管理 tool_result 的响应式关联
+ * alien-signals tool_result
  *
- * 核心功能：
- * 1. 包装每个 content block
- * 2. 使用 Signal 管理 toolResult（响应式）
- * 3. 提供 setToolResult 方法用于异步关联
+ * 1. content block
+ * 2. Signal toolResult
+ * 3. setToolResult
  *
- * 为什么需要这个包装器？
- * - tool_use 和 tool_result 不在同一条消息中
- * - 需要异步关联（收到 tool_result 时，反向查找 tool_use）
- * - 使用 signal 可以响应式更新 UI
+ * - tool_use tool_result
+ * - tool_result tool_use
+ * - signal UI
  */
 
 import { signal } from 'alien-signals';
@@ -19,18 +17,18 @@ import type { ContentBlockType, ToolResultBlock } from './ContentBlock';
 
 export class ContentBlockWrapper {
   /**
-   * 原始 content block
+   * content block
    */
   public readonly content: ContentBlockType;
 
   /**
-   * Tool Result 的 Signal（响应式）
-   * 用于实时对话中的 tool_result
+   * Tool Result Signal
+   * tool_result
    */
   private readonly toolResultSignal = signal<ToolResultBlock | undefined>(undefined);
 
   /**
-   * Child tool wrappers (响应式).
+   * Child tool wrappers ().
    * Populated for Task tool_use blocks: holds the tool_use blocks emitted by
    * the Task's subagent (tagged with parent_tool_use_id). The Task UI
    * renders these as an indented group under the Task header.
@@ -38,8 +36,8 @@ export class ContentBlockWrapper {
   private readonly childToolsSignal = signal<ContentBlockWrapper[]>([]);
 
   /**
-   * Tool Use Result（普通属性）
-   * 用于会话加载时的 toolUseResult（不需要响应式）
+   * Tool Use Result
+   * toolUseResult
    */
   public toolUseResult?: any;
 
@@ -48,41 +46,41 @@ export class ContentBlockWrapper {
   }
 
   /**
-   * 获取 toolResult signal
+   * toolResult signal
    *
-   * @returns Alien signal 函数
+   * @returns Alien signal
    */
   get toolResult() {
     return this.toolResultSignal;
   }
 
   /**
-   * 设置 tool result
+   * tool result
    *
-   * 🔥 使用 alien-signals 函数调用 API
+   * 🔥 alien-signals API
    *
-   * @param result Tool 执行结果
+   * @param result Tool
    */
   setToolResult(result: ToolResultBlock): void {
     this.toolResultSignal(result);
   }
 
   /**
-   * 检查是否有 tool_result
+   * tool_result
    */
   hasToolResult(): boolean {
     return this.toolResultSignal() !== undefined;
   }
 
   /**
-   * 获取 tool_result 的值（非响应式）
+   * tool_result
    */
   getToolResultValue(): ToolResultBlock | undefined {
     return this.toolResultSignal();
   }
 
   /**
-   * Child tools signal (响应式).
+   * Child tools signal ().
    */
   get childTools() {
     return this.childToolsSignal;

@@ -1,10 +1,9 @@
 /**
- * Transport 模块统一导出
+ * Transport
  *
- * 包含：
- * - AsyncStream: 异步流抽象
- * - BaseTransport/ITransport: 传输层接口
- * - VSCodeTransport: VSCode WebView 传输实现
+ * - AsyncStream:
+ * - BaseTransport/ITransport:
+ * - VSCodeTransport: VSCode WebView
  */
 
 export { AsyncStream } from './AsyncStream';

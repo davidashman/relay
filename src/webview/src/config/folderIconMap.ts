@@ -4,7 +4,7 @@ export interface FolderIconConfig {
   color?: string
 }
 
-// 常见文件夹名称到图标的映射（参考 icons/folderIcons.ts）
+// icons/folderIcons.ts
 export const folderNameMap: Record<string, FolderIconConfig> = {
   src: { type: 'mdi', icon: 'folder-src' },
   source: { type: 'mdi', icon: 'folder-src' },
@@ -75,7 +75,7 @@ export const folderNameMap: Record<string, FolderIconConfig> = {
   aws: { type: 'mdi', icon: 'folder-aws' },
   azure: { type: 'mdi', icon: 'folder-aws' },
   gcp: { type: 'mdi', icon: 'folder-aws' },
-  // === 追加覆盖（批量从 icons/folderIcons.ts 迁移） ===
+  // === icons/folderIcons.ts ===
   rust: { type: 'mdi', icon: 'folder-rust' },
   bot: { type: 'mdi', icon: 'folder-robot' },
   bots: { type: 'mdi', icon: 'folder-robot' },

@@ -1,7 +1,6 @@
 /**
- * ContentBlock 类型定义
+ * ContentBlock
  *
- * 定义了消息中所有可能的内容块类型
  */
 
 export interface TextBlock {
@@ -17,6 +16,7 @@ export interface ThinkingBlock {
 
 export interface ImageBlock {
   type: 'image';
+  title?: string;
   source?: {
     type: 'base64';
     media_type: string;

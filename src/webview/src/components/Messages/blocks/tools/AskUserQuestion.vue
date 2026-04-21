@@ -148,6 +148,7 @@ function getAnswers(header: string): string[] {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .question-text {
@@ -225,5 +226,6 @@ function getAnswers(header: string): string[] {
   border-radius: 12px;
   font-size: 0.85em;
   font-weight: 500;
+  line-height: 1;
 }
 </style>

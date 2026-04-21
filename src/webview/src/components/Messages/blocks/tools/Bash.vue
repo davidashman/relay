@@ -6,23 +6,21 @@
   >
     <template #main>
       <span class="tool-label">Bash</span>
-      <span v-if="description" class="tool-description">{{ description }}</span>
+      <code v-if="command" class="command-chip">{{ command }}</code>
       <span v-if="runInBackground" class="bg-badge">background</span>
     </template>
 
     <template #expandable>
-      <!-- 命令内容 -->
       <div class="bash-command">
         <pre class="command-content">{{ command }}</pre>
       </div>
 
-      <!-- 输出内容 (如果有) -->
+      <!--  () -->
       <div v-if="hasOutput" class="bash-output">
         <div class="output-header">Output</div>
         <pre class="output-content">{{ outputContent }}</pre>
       </div>
 
-      <!-- 错误内容 -->
       <ToolError :tool-result="toolResult" />
     </template>
   </ToolMessageWrapper>
@@ -45,16 +43,12 @@ const command = computed(() => {
   return props.toolUse?.input?.command || '';
 });
 
-const description = computed(() => {
-  return props.toolUse?.input?.description || '';
-});
-
 const runInBackground = computed(() => {
   return props.toolUse?.input?.run_in_background || false;
 });
 
 const outputContent = computed(() => {
-  // 从 toolResult.content 获取输出
+  // toolResult.content
   if (typeof props.toolResult?.content === 'string') {
     return props.toolResult.content;
   }
@@ -65,7 +59,7 @@ const hasOutput = computed(() => {
   return outputContent.value && !props.toolResult?.is_error;
 });
 
-// 默认展开条件: 权限请求阶段（无 result）、有输出或有错误
+// : result
 const shouldExpand = computed(() => {
   if (!props.toolResult && !props.toolUseResult) return true;
   return hasOutput.value || !!props.toolResult?.is_error;
@@ -81,12 +75,21 @@ const shouldExpand = computed(() => {
   line-height: 1.4;
 }
 
-.tool-description {
-  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+.command-chip {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-charts-purple);
+  background-color: color-mix(in srgb, var(--vscode-charts-purple) 15%, transparent);
+  padding: 3px 6px 2px;
+  border-radius: 3px;
+  font-weight: 500;
   font-size: 0.9em;
-  line-height: 1.4;
-  font-style: italic;
+  line-height: 1;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bg-badge {
@@ -98,6 +101,7 @@ const shouldExpand = computed(() => {
   border-radius: 3px;
   font-size: 0.9em;
   font-weight: 500;
+  line-height: 1;
 }
 
 .bash-command {

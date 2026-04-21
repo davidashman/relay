@@ -1,10 +1,9 @@
 /**
- * 共享消息类型定义
  *
- * 双端通信协议：Extension ↔ WebView
+ * Extension ↔ WebView
  */
 
-// 导入 SDK 类型
+//  SDK
 import type {
     SDKMessage,
     SDKUserMessage,
@@ -14,48 +13,45 @@ import type {
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
-// 基础消息类型
 // ============================================================================
 
 /**
- * 消息基类
  */
 export interface BaseMessage {
     type: string;
-    // 可选 WebView 实例标识，用于定向路由响应
+    //  WebView
     webviewId?: string;
 }
 
 // ============================================================================
-// WebView → Extension 消息
+// WebView → Extension
 // ============================================================================
 
 /**
- * 启动 Claude 会话
+ *  Claude
  */
 export interface LaunchClaudeMessage extends BaseMessage {
     type: "launch_claude";
     channelId: string;
-    resume?: string | null;        // 恢复会话 ID
-    cwd?: string;                  // 工作目录
-    model?: string | null;         // 模型名称
-    permissionMode?: PermissionMode; // 权限模式
-    thinkingLevel?: string | null; // Thinking 等级（off | default_on）
-    effortLevel?: string | null;   // Effort 等级（low | medium | high），仅 Opus 4.6+ 生效
+    resume?: string | null;        //  ID
+    cwd?: string;                  //
+    model?: string | null;         //
+    permissionMode?: PermissionMode; //
+    thinkingLevel?: string | null; // Thinking off | default_on
+    effortLevel?: string | null;   // Effort low | medium | high Opus 4.6+
 }
 
 /**
- * 输入输出消息（双向）
  */
 export interface IOMessage extends BaseMessage {
     type: "io_message";
     channelId: string;
-    message: SDKMessage | SDKUserMessage;  // SDK 消息类型
-    done: boolean;                         // 是否为流的最后一条
+    message: SDKMessage | SDKUserMessage;  // SDK
+    done: boolean;                         //
 }
 
 /**
- * 中断 Claude
+ *  Claude
  */
 export interface InterruptClaudeMessage extends BaseMessage {
     type: "interrupt_claude";
@@ -63,7 +59,6 @@ export interface InterruptClaudeMessage extends BaseMessage {
 }
 
 /**
- * 关闭会话（双向）
  */
 export interface CloseChannelMessage extends BaseMessage {
     type: "close_channel";
@@ -72,28 +67,26 @@ export interface CloseChannelMessage extends BaseMessage {
 }
 
 /**
- * SDK 错误通知（Extension → WebView）
+ * SDK Extension → WebView
  *
- * 当 SDK stderr 检测到致命错误（如流式请求回退失败）时，
- * 实时推送到前端以便立即展示，不等迭代器超时。
+ *  SDK stderr
  */
 export interface LLMRequestErrorMessage extends BaseMessage {
     type: "sdk_error";
     channelId: string;
-    /** 人类可读的错误描述（来自上游） */
+    /**  */
     error: string;
-    /** HTTP 状态码 (e.g. "401", "503") */
+    /** HTTP  (e.g. 401, 503) */
     statusCode: string;
-    /** 上游错误类型 (e.g. "authentication_error", "new_api_error") */
+    /**  (e.g. authentication_error, new_api_error) */
     errorType: string;
 }
 
 // ============================================================================
-// 请求-响应消息（双向）
+// -
 // ============================================================================
 
 /**
- * 请求消息
  */
 export interface RequestMessage<T = any> extends BaseMessage {
     type: "request";
@@ -103,7 +96,6 @@ export interface RequestMessage<T = any> extends BaseMessage {
 }
 
 /**
- * 响应消息
  */
 export interface ResponseMessage<T = any> extends BaseMessage {
     type: "response";
@@ -112,7 +104,6 @@ export interface ResponseMessage<T = any> extends BaseMessage {
 }
 
 /**
- * 错误响应
  */
 export interface ErrorResponse {
     type: "error";
@@ -120,7 +111,6 @@ export interface ErrorResponse {
 }
 
 /**
- * 取消请求
  */
 export interface CancelRequestMessage extends BaseMessage {
     type: "cancel_request";
@@ -128,11 +118,10 @@ export interface CancelRequestMessage extends BaseMessage {
 }
 
 // ============================================================================
-// WebView → Extension 请求类型
+// WebView → Extension
 // ============================================================================
 
 /**
- * 初始化请求
  */
 export interface InitRequest {
     type: "init";
@@ -146,8 +135,8 @@ export interface InitResponse {
         // authStatus: null | { authenticated: boolean };
         modelSetting: string;
         platform: string;
-        thinkingLevel?: string;        // Thinking 等级（off | on | extended）
-        effortLevel?: string;          // Effort 等级（low | medium | high），仅 Opus 4.6+ 生效
+        thinkingLevel?: string;        // Thinking off | on | extended
+        effortLevel?: string;          // Effort low | medium | high Opus 4.6+
         permissionMode?: string;       // Permission mode (default | acceptEdits | plan)
         expandToolOutput?: boolean;    // Expand tool output by default
         showThinking?: boolean;        // Show thinking blocks in chat
@@ -155,7 +144,6 @@ export interface InitResponse {
 }
 
 /**
- * 打开文件请求
  */
 export interface OpenFileRequest {
     type: "open_file";
@@ -173,7 +161,7 @@ export interface OpenFileResponse {
 }
 
 /**
- * 打开 Diff 请求
+ *  Diff
  */
 export interface OpenDiffRequest {
     type: "open_diff";
@@ -197,7 +185,6 @@ export interface OpenDiffResponse {
 }
 
 /**
- * 设置权限模式
  */
 export interface SetPermissionModeRequest {
     type: "set_permission_mode";
@@ -210,7 +197,6 @@ export interface SetPermissionModeResponse {
 }
 
 /**
- * 模型选项
  */
 export interface ModelOption {
     value: string;
@@ -220,7 +206,6 @@ export interface ModelOption {
 }
 
 /**
- * 设置模型
  */
 export interface SetModelRequest {
     type: "set_model";
@@ -233,7 +218,7 @@ export interface SetModelResponse {
 }
 
 /**
- * 设置 Thinking Level
+ *  Thinking Level
  */
 export interface SetThinkingLevelRequest {
     type: "set_thinking_level";
@@ -246,7 +231,7 @@ export interface SetThinkingLevelResponse {
 }
 
 /**
- * 设置 Effort Level（Opus 4.6+ adaptive reasoning）
+ *  Effort LevelOpus 4.6+ adaptive reasoning
  */
 export interface SetEffortLevelRequest {
     type: "set_effort_level";
@@ -259,7 +244,7 @@ export interface SetEffortLevelResponse {
 }
 
 /**
- * 获取 Claude 状态
+ *  Claude
  */
 export interface GetClaudeStateRequest {
     type: "get_claude_state";
@@ -271,7 +256,7 @@ export interface GetClaudeStateResponse {
 }
 
 /**
- * 一次性 SDK 探测
+ *  SDK
  */
 export type SdkProbeCapability =
     | "supportedCommands"
@@ -293,7 +278,7 @@ export interface SdkProbeResponse {
 }
 
 /**
- * 获取 MCP 服务器
+ *  MCP
  */
 export interface GetMcpServersRequest {
     type: "get_mcp_servers";
@@ -305,7 +290,7 @@ export interface GetMcpServersResponse {
 }
 
 /**
- * 获取资源 URI
+ *  URI
  */
 export interface GetAssetUrisRequest {
     type: "get_asset_uris";
@@ -317,7 +302,6 @@ export interface GetAssetUrisResponse {
 }
 
 /**
- * 列出会话
  */
 export interface ListSessionsRequest {
     type: "list_sessions_request";
@@ -336,7 +320,6 @@ export interface ListSessionsResponse {
 }
 
 /**
- * 获取会话详情
  */
 export interface GetSessionRequest {
     type: "get_session_request";
@@ -349,7 +332,6 @@ export interface GetSessionResponse {
 }
 
 /**
- * 执行命令
  */
 export interface ExecRequest {
     type: "exec";
@@ -365,7 +347,6 @@ export interface ExecResponse {
 }
 
 /**
- * 列出文件
  */
 export interface ListFilesRequest {
     type: "list_files_request";
@@ -382,12 +363,11 @@ export interface ListFilesResponse {
 }
 
 /**
- * 统计路径类型（文件 / 目录）
+ *  /
  */
 export interface StatPathRequest {
     type: "stat_path_request";
     /**
-     * 路径数组，可以是工作区相对路径或绝对路径
      */
     paths: string[];
 }
@@ -397,14 +377,13 @@ export interface StatPathResponse {
     entries: Array<{
         path: string;
         /**
-         * 文件类型：file / directory / other / not_found
+         * file / directory / other / not_found
          */
         type: "file" | "directory" | "other" | "not_found";
     }>;
 }
 
 /**
- * 打开内容（临时文件）
  */
 export interface OpenContentRequest {
     type: "open_content";
@@ -419,13 +398,13 @@ export interface OpenContentResponse {
 }
 
 /**
- * 打开附件（将 base64 / 文本附件写入临时文件并打开）
+ *  base64 /
  */
 export interface OpenAttachmentRequest {
     type: "open_attachment";
     fileName: string;
     mediaType: string;
-    data: string; // base64 编码（不含 data: 前缀）
+    data: string; // base64  data:
 }
 
 export interface OpenAttachmentResponse {
@@ -433,7 +412,6 @@ export interface OpenAttachmentResponse {
 }
 
 /**
- * 当前选区
  */
 export interface SelectionRange {
     filePath: string;
@@ -454,7 +432,7 @@ export interface GetCurrentSelectionResponse {
 }
 
 /**
- * 打开 URL
+ *  URL
  */
 export interface OpenURLRequest {
     type: "open_url";
@@ -466,7 +444,6 @@ export interface OpenURLResponse {
 }
 
 /**
- * 显示通知
  */
 export interface ShowNotificationRequest {
     type: "show_notification";
@@ -482,7 +459,7 @@ export interface ShowNotificationResponse {
 }
 
 /**
- * 在编辑器面板中打开会话（侧边栏 → 扩展）
+ *  →
  */
 export interface OpenSessionPanelRequest {
     type: "open_session_panel";
@@ -495,7 +472,6 @@ export interface OpenSessionPanelResponse {
 }
 
 /**
- * 新建会话标签
  */
 export interface NewConversationTabRequest {
     type: "new_conversation_tab";
@@ -507,7 +483,6 @@ export interface NewConversationTabResponse {
 }
 
 /**
- * 重命名标签
  */
 export interface RenameTabRequest {
     type: "rename_tab";
@@ -519,7 +494,7 @@ export interface RenameTabResponse {
 }
 
 /**
- * 更新面板当前会话 ID（用于会话恢复时跟踪最后活跃的会话）
+ *  ID
  */
 export interface UpdatePanelSessionRequest {
     type: "update_panel_session";
@@ -531,7 +506,6 @@ export interface UpdatePanelSessionResponse {
 }
 
 /**
- * 获取认证状态
  */
 // export interface GetAuthStatusRequest {
 //     type: "get_auth_status";
@@ -543,7 +517,6 @@ export interface UpdatePanelSessionResponse {
 // }
 
 /**
- * 登录请求
  */
 // export interface LoginRequest {
 //     type: "login";
@@ -559,7 +532,7 @@ export interface UpdatePanelSessionResponse {
 // }
 
 /**
- * 提交 OAuth 代码
+ *  OAuth
  */
 // export interface SubmitOAuthCodeRequest {
 //     type: "submit_oauth_code";
@@ -571,7 +544,6 @@ export interface UpdatePanelSessionResponse {
 // }
 
 /**
- * 打开配置文件
  */
 export interface OpenConfigFileRequest {
     type: "open_config_file";
@@ -583,7 +555,7 @@ export interface OpenConfigFileResponse {
 }
 
 /**
- * 在终端打开 Claude
+ *  Claude
  */
 export interface OpenClaudeInTerminalRequest {
     type: "open_claude_in_terminal";
@@ -594,7 +566,7 @@ export interface OpenClaudeInTerminalResponse {
 }
 
 /**
- * 认证 URL 通知（Extension → WebView）
+ *  URL Extension → WebView
  */
 // export interface AuthURLRequest {
 //     type: "auth_url";
@@ -604,7 +576,6 @@ export interface OpenClaudeInTerminalResponse {
 
 
 /**
- * 获取设置请求
  */
 export interface GetSettingsRequest {
     type: "get_settings";
@@ -635,7 +606,7 @@ export interface GetSettingsResponse {
 }
 
 /**
- * 切换 Profile 请求
+ *  Profile
  */
 export interface SwitchProfileRequest {
   type: 'switch_profile';
@@ -648,7 +619,7 @@ export interface SwitchProfileResponse {
 }
 
 /**
- * 创建 Profile 请求
+ *  Profile
  */
 export interface CreateProfileRequest {
   type: 'create_profile';
@@ -662,7 +633,7 @@ export interface CreateProfileResponse {
 }
 
 /**
- * 删除 Profile 请求
+ *  Profile
  */
 export interface DeleteProfileRequest {
   type: 'delete_profile';
@@ -676,7 +647,6 @@ export interface DeleteProfileResponse {
 }
 
 /**
- * 更新设置请求
  */
 export interface UpdateSettingRequest {
     type: "update_setting";
@@ -691,7 +661,6 @@ export interface UpdateSettingResponse {
 }
 
 /**
- * 重置设置请求（删除某层的值，回落到继承）
  */
 export interface ResetSettingRequest {
     type: "reset_setting";
@@ -705,7 +674,7 @@ export interface ResetSettingResponse {
 }
 
 /**
- * 获取扩展配置请求 (~/.relay.json)
+ *  (~/.relay.json)
  */
 export interface GetExtensionConfigRequest {
     type: "get_extension_config";
@@ -724,7 +693,6 @@ export interface GetExtensionConfigResponse {
 }
 
 /**
- * 更新扩展配置请求
  */
 export interface UpdateExtensionConfigRequest {
     type: "update_extension_config";
@@ -738,11 +706,10 @@ export interface UpdateExtensionConfigResponse {
 }
 
 // ============================================================================
-// Extension → WebView 请求类型
+// Extension → WebView
 // ============================================================================
 
 /**
- * 工具权限请求
  */
 export interface ToolPermissionRequest {
     type: "tool_permission_request";
@@ -757,7 +724,7 @@ export interface ToolPermissionResponse {
 }
 
 /**
- * @ 提及插入
+ * @
  */
 export interface InsertAtMentionRequest {
     type: "insert_at_mention";
@@ -765,7 +732,6 @@ export interface InsertAtMentionRequest {
 }
 
 /**
- * 选区变化通知
  */
 export interface SelectionChangedRequest {
     type: "selection_changed";
@@ -776,7 +742,7 @@ export interface SelectionChangedRequest {
 }
 
 /**
- * 扩展配置变更通知 (Extension → WebView broadcast)
+ *  (Extension → WebView broadcast)
  */
 export interface ExtensionConfigChangedRequest {
     type: "extension_config_changed";
@@ -785,18 +751,17 @@ export interface ExtensionConfigChangedRequest {
 }
 
 /**
- * 状态更新
  */
 export interface UpdateStateRequest {
     type: "update_state";
-    // 与 init_response.state 对齐，保证双方一致；支持局部更新
+    //  init_response.state
     state: Partial<InitResponse['state']>;
-    // 后端下发的 Claude 配置对象（可选，不传则不更新）
+    //  Claude
     config?: GetClaudeStateResponse['config'];
 }
 
 /**
- * 焦点状态变化（WebView → Extension）
+ * WebView → Extension
  */
 export interface FocusChangedMessage extends BaseMessage {
     type: "focus_changed";
@@ -804,11 +769,10 @@ export interface FocusChangedMessage extends BaseMessage {
 }
 
 // ============================================================================
-// 联合类型
 // ============================================================================
 
 /**
- * 所有 WebView → Extension 的消息
+ *  WebView → Extension
  */
 export type WebViewToExtensionMessage =
     | LaunchClaudeMessage
@@ -821,7 +785,7 @@ export type WebViewToExtensionMessage =
     | FocusChangedMessage;
 
 /**
- * 所有 Extension → WebView 的消息
+ *  Extension → WebView
  */
 export type ExtensionToWebViewMessage =
     | IOMessage
@@ -831,7 +795,7 @@ export type ExtensionToWebViewMessage =
     | ResponseMessage;
 
 /**
- * Extension 发送时的封装格式
+ * Extension
  */
 export interface FromExtensionWrapper {
     type: "from-extension";
@@ -839,11 +803,10 @@ export interface FromExtensionWrapper {
 }
 
 // ============================================================================
-// 请求和响应的联合类型
 // ============================================================================
 
 /**
- * WebView → Extension 的所有请求类型
+ * WebView → Extension
  */
 export type WebViewRequest =
     | InitRequest
@@ -886,7 +849,7 @@ export type WebViewRequest =
     | OpenSessionPanelRequest;
 
 /**
- * Extension → WebView 的所有响应类型
+ * Extension → WebView
  */
 export type WebViewRequestResponse =
     | InitResponse
@@ -930,21 +893,21 @@ export type WebViewRequestResponse =
     | OpenSessionPanelResponse;
 
 /**
- * 新建会话标签页（Extension → WebView）
+ * Extension → WebView
  */
 export interface NewTabRequest {
     type: "new_tab";
 }
 
 /**
- * 关闭当前会话标签页（Extension → WebView）
+ * Extension → WebView
  */
 export interface CloseTabRequest {
     type: "close_tab";
 }
 
 /**
- * Extension → WebView 的所有请求类型
+ * Extension → WebView
  */
 export type ExtensionRequest =
     | ToolPermissionRequest
@@ -957,9 +920,9 @@ export type ExtensionRequest =
     // | AuthURLRequest;
 
 /**
- * 可见性变化（Extension → WebView）
+ * Extension → WebView
  *
- * 原始代码：Analyze/extension.unpack.js:2648-2656
+ * Analyze/extension.unpack.js:2648-2656
  */
 export interface VisibilityChangedRequest {
     type: "visibility_changed";
@@ -967,7 +930,7 @@ export interface VisibilityChangedRequest {
 }
 
 /**
- * WebView → Extension 的所有响应类型
+ * WebView → Extension
  */
 export type ExtensionRequestResponse =
     | ToolPermissionResponse;

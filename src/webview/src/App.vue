@@ -50,7 +50,6 @@ const initialPage = (bootstrap?.page as PageName | undefined) ?? 'chat';
 const currentPage = ref<PageName>(initialPage);
 const pageAnimation = ref({ opacity: 1, x: 0 });
 
-// 仅在需要的页面上初始化运行时（聊天 / 会话列表）
 const needsRuntime = initialPage === 'chat' || initialPage === 'sessions';
 const runtime = needsRuntime ? useRuntime() : null;
 

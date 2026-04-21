@@ -9,7 +9,7 @@ import { computed } from 'vue';
 import type { TextBlock as TextBlockType } from '../../../models/ContentBlock';
 import type { ToolContext } from '../../../types/tool';
 import { marked } from 'marked';
-// import DOMPurify from 'dompurify'; // TODO: 安装后启用
+// import DOMPurify from 'dompurify'; // TODO:
 
 interface Props {
   block: TextBlockType;
@@ -18,7 +18,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Markdown 类名
+// Markdown
 const markdownClasses = computed(() => {
   const classes = ['markdown-content'];
   if (props.block.isSlashCommand) {
@@ -27,16 +27,16 @@ const markdownClasses = computed(() => {
   return classes;
 });
 
-// 配置 marked
+// marked
 marked.setOptions({
   gfm: true,
   breaks: true,
 });
 
-// 渲染 Markdown
+// Markdown
 const renderedMarkdown = computed(() => {
   const rawHtml = marked.parse(props.block.text) as string;
-  // TODO: 使用 DOMPurify.sanitize(rawHtml) 进行安全清理
+  // TODO: DOMPurify.sanitize(rawHtml)
   return rawHtml;
 });
 </script>
@@ -60,7 +60,7 @@ const renderedMarkdown = computed(() => {
   font-weight: 600;
 }
 
-/* Markdown 基础样式 - Claudex 风格 */
+/* Markdown - Claudex */
 .markdown-content :deep(p) {
   margin: 8px 0;
   line-height: 1.6;

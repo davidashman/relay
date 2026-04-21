@@ -1,4 +1,3 @@
-// 消息队列类型定义
 
 import type { AttachmentPayload } from '../core/Session';
 

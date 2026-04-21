@@ -15,9 +15,9 @@ export default [
       '@typescript-eslint': typescriptEslint
     },
     rules: {
-      // 强制所有控制语句使用大括号
+      // Require braces for all control statements
       'curly': ['error', 'all'],
-      // TypeScript 相关规则
+      // TypeScript rules
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }]
     }

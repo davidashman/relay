@@ -1,11 +1,10 @@
 /**
- * WebView 服务 / WebView Service
+ * WebView  / WebView Service
  *
- * 职责：
- * 1. 实现 vscode.WebviewViewProvider 接口
- * 2. 管理 WebView 实例和生命周期
- * 3. 生成 WebView HTML 内容
- * 4. 提供消息收发接口
+ * 1.  vscode.WebviewViewProvider
+ * 2.  WebView
+ * 3.  WebView HTML
+ * 4.
  */
 
 import * as vscode from 'vscode';
@@ -29,55 +28,53 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	readonly _serviceBrand: undefined;
 
 	/**
-	 * 获取当前的 WebView 实例（用于部分需要 webviewUri 的场景）
+	 *  WebView  webviewUri
 	 */
 	getWebView(): vscode.Webview | undefined;
 
 	/**
-	 * 向所有已注册 WebView 实例广播消息
+	 *  WebView
 	 */
 	postMessage(message: any): void;
 
 	/**
-	 * 设置消息接收处理器，所有 WebView 的消息都会通过该处理器转发
+	 *  WebView
 	 */
 	setMessageHandler(handler: (message: any) => void): void;
 
 	/**
-	 * 打开（或聚焦）主编辑器中的某个页面
 	 *
-	 * @param page 页面类型标识，例如 'settings'、'diff'
-	 * @param title VSCode 标签标题
-	 * @param instanceId 页面实例 ID，用于区分多标签（不传则默认为 page，实现单例）
+	 * @param page  'settings''diff'
+	 * @param title VSCode
+	 * @param instanceId  ID page
 	 */
 	openEditorPage(page: string, title: string, instanceId?: string): void;
 
 	/**
-	 * 打开（或聚焦）一个聊天面板
 	 *
-	 * @param sessionId 要加载的会话 ID；null 表示新会话
-	 * @param title 面板标题
+	 * @param sessionId  IDnull
+	 * @param title
 	 */
 	openChatPanel(sessionId: string | null, title: string): void;
 
 	/**
-	 * 更新聊天面板标题（通过 webviewId 定位面板）
+	 *  webviewId
 	 */
 	updateChatPanelTitle(webviewId: string, title: string): void;
 
 	/**
-	 * 更新聊天面板当前关联的会话 ID，用于会话恢复跟踪最后活跃的会话
-	 * （例如 /clear 在同一面板内创建新会话后调用）
+	 *  ID
+	 *  /clear
 	 */
 	updateChatPanelSession(webviewId: string, sessionId: string | null): void;
 
 	/**
-	 * 关闭聊天面板（通过 webviewId 定位面板）
+	 *  webviewId
 	 */
 	closeChatPanel(webviewId: string): void;
 
 	/**
-	 * 更新聊天面板 badge 数字（通过 webviewId 定位面板）
+	 *  badge  webviewId
 	 * count > 0 shows the badge; count === 0 clears it
 	 */
 	updateChatPanelBadge(webviewId: string, count: number): void;
@@ -90,7 +87,7 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 }
 
 /**
- * WebView 服务实现
+ * WebView
  */
 export class WebViewService implements IWebViewService {
 	readonly _serviceBrand: undefined;
@@ -123,36 +120,36 @@ export class WebViewService implements IWebViewService {
 	) {}
 
 	/**
-	 * 实现 WebviewViewProvider.resolveWebviewView（侧边栏宿主）
+	 *  WebviewViewProvider.resolveWebviewView
 	 */
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
 		_context: vscode.WebviewViewResolveContext,
 		_token: vscode.CancellationToken
 	): void | Thenable<void> {
-		this.logService.info('开始解析侧边栏 WebView 视图');
+		this.logService.info(' WebView ');
 
 		this.registerWebview(webviewView.webview, {
 			host: 'sidebar',
 			page: 'sessions'
 		});
 
-		// WebviewView 的销毁由 VSCode 管理，这里仅作日志记录
+		// WebviewView  VSCode
 		webviewView.onDidDispose(
 			() => {
 				this.removeWebview(webviewView.webview);
-				this.logService.info('侧边栏 WebView 视图已销毁');
+				this.logService.info(' WebView ');
 			},
 			undefined,
 			this.context.subscriptions
 		);
 
-		this.logService.info('侧边栏 WebView 视图解析完成');
+		this.logService.info(' WebView ');
 	}
 
 	/**
-	 * 获取当前的 WebView 实例
-	 * 对于多 WebView 场景，这里返回任意一个可用实例（当前仅用于获取资源 URI）
+	 *  WebView
+	 *  WebView  URI
 	 */
 	getWebView(): vscode.Webview | undefined {
 		for (const webview of this.webviews) {
@@ -162,11 +159,11 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * 广播消息到所有已注册的 WebView
+	 *  WebView
 	 */
 	postMessage(message: any): void {
 		if (this.webviews.size === 0) {
-			this.logService.warn('[WebViewService] 当前没有可用的 WebView 实例，消息将被丢弃');
+			this.logService.warn('[WebViewService]  WebView ');
 			return;
 		}
 
@@ -179,26 +176,26 @@ export class WebViewService implements IWebViewService {
 		if (targetId) {
 			const targetWebview = this.webviewIdMap.get(targetId);
 			if (!targetWebview) {
-				this.logService.warn(`[WebViewService] 找不到目标 WebView: ${targetId}`);
+				this.logService.warn(`[WebViewService]  WebView: ${targetId}`);
 				return;
 			}
 			try {
 				targetWebview.postMessage(payload);
 			} catch (error) {
-				this.logService.warn('[WebViewService] 向目标 WebView 发送消息失败，将移除该实例', error as Error);
+				this.logService.warn('[WebViewService]  WebView ', error as Error);
 				this.removeWebview(targetWebview);
 			}
 			return;
 		}
 
-		// 广播到所有已注册的 WebView（侧边栏 + 所有聊天面板）
+		//  WebView +
 		const toRemove: vscode.Webview[] = [];
 
 		for (const webview of this.webviews) {
 			try {
 				webview.postMessage(payload);
 			} catch (error) {
-				this.logService.warn('[WebViewService] 向 WebView 发送消息失败，将移除该实例', error as Error);
+				this.logService.warn('[WebViewService]  WebView ', error as Error);
 				toRemove.push(webview);
 			}
 		}
@@ -209,14 +206,12 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * 设置消息接收处理器
 	 */
 	setMessageHandler(handler: (message: any) => void): void {
 		this.messageHandler = handler;
 	}
 
 	/**
-	 * 打开（或聚焦）主编辑器中的某个页面
 	 */
 	openEditorPage(page: string, title: string, instanceId?: string): void {
 		const key = instanceId || page;
@@ -224,19 +219,18 @@ export class WebViewService implements IWebViewService {
 		if (existing) {
 			try {
 				existing.reveal(vscode.ViewColumn.Active);
-				this.logService.info(`[WebViewService] 复用已存在的编辑器面板: page=${page}, id=${key}`);
+				this.logService.info(`[WebViewService] : page=${page}, id=${key}`);
 				return;
 			} catch (error) {
-				// 可能遇到已被释放但还没从映射中移除的面板
 				this.logService.warn(
-					`[WebViewService] 现有编辑器面板已失效，将重新创建: page=${page}, id=${key}`,
+					`[WebViewService] : page=${page}, id=${key}`,
 					error as Error
 				);
 				this.editorPanels.delete(key);
 			}
 		}
 
-		this.logService.info(`[WebViewService] 创建主编辑器 WebView 面板: page=${page}, id=${key}`);
+		this.logService.info(`[WebViewService]  WebView : page=${page}, id=${key}`);
 
 		const panel = vscode.window.createWebviewPanel(
 			'relay.pageView',
@@ -264,7 +258,7 @@ export class WebViewService implements IWebViewService {
 			() => {
 				this.removeWebview(panelWebview);
 				this.editorPanels.delete(key);
-				this.logService.info(`[WebViewService] 主编辑器 WebView 面板已销毁: page=${page}, id=${key}`);
+				this.logService.info(`[WebViewService]  WebView : page=${page}, id=${key}`);
 			},
 			undefined,
 			this.context.subscriptions
@@ -274,7 +268,6 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * 打开（或聚焦）一个聊天面板
 	 */
 	openChatPanel(sessionId: string | null, title: string): void {
 		const key = sessionId || `new-chat-${Date.now()}`;
@@ -282,18 +275,18 @@ export class WebViewService implements IWebViewService {
 		if (existing) {
 			try {
 				existing.reveal(vscode.ViewColumn.Active);
-				this.logService.info(`[WebViewService] 复用已存在的聊天面板: sessionId=${sessionId}`);
+				this.logService.info(`[WebViewService] : sessionId=${sessionId}`);
 				return;
 			} catch (error) {
 				this.logService.warn(
-					`[WebViewService] 现有聊天面板已失效，将重新创建: sessionId=${sessionId}`,
+					`[WebViewService] : sessionId=${sessionId}`,
 					error as Error
 				);
 				this.chatPanels.delete(key);
 			}
 		}
 
-		this.logService.info(`[WebViewService] 创建聊天面板: sessionId=${sessionId}, title=${title}`);
+		this.logService.info(`[WebViewService] : sessionId=${sessionId}, title=${title}`);
 
 		const panel = vscode.window.createWebviewPanel(
 			'relay.chatPanel',
@@ -338,7 +331,7 @@ export class WebViewService implements IWebViewService {
 					this.openSessionIds.delete(currentSessionId);
 					this.persistOpenSessions();
 				}
-				this.logService.info(`[WebViewService] 聊天面板已销毁: sessionId=${currentSessionId}`);
+				this.logService.info(`[WebViewService] : sessionId=${currentSessionId}`);
 			},
 			undefined,
 			this.context.subscriptions
@@ -354,8 +347,7 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * 更新聊天面板标题
-	 * @param webviewId  webviewId 格式 'panel:chat:<key>'，由 extension.ts 从消息中提取
+	 * @param webviewId  webviewId  'panel:chat:<key>' extension.ts
 	 */
 	updateChatPanelTitle(webviewId: string, title: string): void {
 		const panelKey = this.chatPanelWebviewIds.get(webviewId);
@@ -369,7 +361,7 @@ export class WebViewService implements IWebViewService {
 				this.openSessionIds.set(currentSessionId, title);
 				this.persistOpenSessions();
 			}
-			this.logService.info(`[WebViewService] 更新聊天面板标题: webviewId=${webviewId}, title=${title}`);
+			this.logService.info(`[WebViewService] : webviewId=${webviewId}, title=${title}`);
 		}
 	}
 
@@ -418,7 +410,7 @@ export class WebViewService implements IWebViewService {
 
 		this.persistOpenSessions();
 		this.logService.info(
-			`[WebViewService] 更新聊天面板会话: webviewId=${webviewId}, previousSessionId=${previousSessionId}, sessionId=${sessionId}`
+			`[WebViewService] : webviewId=${webviewId}, previousSessionId=${previousSessionId}, sessionId=${sessionId}`
 		);
 	}
 
@@ -428,7 +420,7 @@ export class WebViewService implements IWebViewService {
 		const panel = this.chatPanels.get(panelKey);
 		if (panel) {
 			panel.dispose();
-			this.logService.info(`[WebViewService] 关闭聊天面板: webviewId=${webviewId}`);
+			this.logService.info(`[WebViewService] : webviewId=${webviewId}`);
 		}
 	}
 
@@ -461,10 +453,10 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * 为给定 WebView 配置选项、消息通道和 HTML
+	 *  WebView  HTML
 	 */
 	private registerWebview(webview: vscode.Webview, bootstrap: WebviewBootstrapConfig): void {
-		// 配置 WebView 选项
+		//  WebView
 		webview.options = {
 			enableScripts: true,
 			localResourceRoots: [
@@ -473,16 +465,14 @@ export class WebViewService implements IWebViewService {
 			]
 		};
 
-		// 保存实例及其配置
 		this.webviews.add(webview);
 		this.webviewConfigs.set(webview, bootstrap);
 		const webviewId = this.getWebviewId(bootstrap);
 		this.webviewIdMap.set(webviewId, webview);
 
-		// 连接消息处理器
 		webview.onDidReceiveMessage(
 			message => {
-				this.logService.info(`[WebView → Extension] 收到消息: ${message.type}`);
+				this.logService.info(`[WebView → Extension] : ${message.type}`);
 				if (this.messageHandler) {
 					const taggedMessage =
 						message && typeof message === 'object' ? { ...message, webviewId } : message;
@@ -493,12 +483,12 @@ export class WebViewService implements IWebViewService {
 			this.context.subscriptions
 		);
 
-		// 设置 WebView HTML（根据开发/生产模式切换）
+		//  WebView HTML/
 		webview.html = this.getHtmlForWebview(webview, bootstrap);
 	}
 
 	/**
-	 * 生成 WebView HTML
+	 *  WebView HTML
 	 */
 	private getHtmlForWebview(webview: vscode.Webview, bootstrap: WebviewBootstrapConfig): string {
 		const isDev = this.context.extensionMode === vscode.ExtensionMode.Development;
@@ -549,7 +539,7 @@ export class WebViewService implements IWebViewService {
 	}
 
 	private getDevHtml(webview: vscode.Webview, nonce: string, bootstrap: WebviewBootstrapConfig): string {
-		// 读取 dev server 地址（可通过环境变量覆盖）
+		//  dev server
 		const devServer = process.env.VITE_DEV_SERVER_URL
 			|| process.env.WEBVIEW_DEV_SERVER_URL
 			|| `http://localhost:${process.env.VITE_DEV_PORT || 5173}`;
@@ -562,11 +552,11 @@ export class WebViewService implements IWebViewService {
 			const wsProtocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
 			wsUrl = `${wsProtocol}//${u.hostname}${u.port ? `:${u.port}` : ''}`;
 		} catch {
-			origin = devServer; // 回退（尽量允许）
+			origin = devServer; //
 			wsUrl = 'ws://localhost:5173';
 		}
 
-		// Vite 开发场景的 CSP：允许连接 devServer 与 HMR 的 ws
+		// Vite  CSP devServer  HMR  ws
 		const csp = [
 			`default-src 'none';`,
 			`img-src ${webview.cspSource} 'self' https: data: blob: http: ${origin};`,
@@ -618,7 +608,7 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * 生成随机 nonce
+	 *  nonce
 	 */
 	private getNonce(): string {
 		let text = '';

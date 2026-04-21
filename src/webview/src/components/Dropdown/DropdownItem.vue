@@ -12,22 +12,18 @@
     >
       <div class="menu-item-main-content">
         <div class="menu-item-left-section">
-          <!-- 图标区域 - 只在有图标时显示 -->
+          <!--  -  -->
           <span v-if="hasIcon" class="menu-item-icon-span">
-            <!-- 自定义图标内容（通过slot） -->
+            <!-- slot -->
             <slot name="icon" :item="item">
-              <!-- 默认图标渲染 -->
               <i v-if="item.icon" :class="`codicon ${item.icon}`"></i>
             </slot>
           </span>
 
-          <!-- 文本区域 -->
           <div class="menu-item-text-section">
-            <!-- 主要内容显示 -->
             <div class="file-info-container">
               <span class="monaco-highlighted-label">{{ item.label || item.name }}</span>
             </div>
-            <!-- 辅助信息显示（如文件路径、描述等） -->
             <span
               v-if="item.detail"
               :class="item.type === 'command' ? 'description-container' : 'file-path-container'"
@@ -37,7 +33,6 @@
           </div>
         </div>
 
-        <!-- 右侧状态区域 -->
         <div v-if="item.rightIcon || item.checked" class="menu-item-right-section">
           <span v-if="item.checked" class="check-icon codicon codicon-check"></span>
           <span v-else-if="item.rightIcon" class="submenu-arrow-icon codicon" :class="item.rightIcon"></span>
@@ -71,14 +66,13 @@ const slots = useSlots()
 
 const itemRef = ref<HTMLElement>()
 
-// 检查是否有图标
 const hasIcon = computed(() => {
   return !!props.item.icon || !!slots.icon
 })
 
-// 注意：不在这里使用 scrollIntoView，因为 Dropdown 使用自定义 ScrollableElement
-// Dropdown.vue 中的 ensureSelectedVisible() 会处理滚动逻辑
-// 使用原生 scrollIntoView 会与 transform-based 滚动冲突，导致空白填充
+// scrollIntoView Dropdown ScrollableElement
+// Dropdown.vue ensureSelectedVisible()
+// scrollIntoView transform-based
 
 function handleClick() {
   if (!props.item.disabled) {
@@ -104,19 +98,19 @@ function handleMouseEnter() {
   color: var(--vscode-foreground);
 }
 
-/* Hover 样式：较浅的高亮 */
+/* Hover */
 .dropdown-menu-item:hover {
   background-color: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
   color: var(--vscode-list-hoverForeground);
 }
 
-/* Keyboard 模式下禁用 hover 样式，避免覆盖 selected */
+/* Keyboard hover selected */
 [data-nav="keyboard"] .dropdown-menu-item:hover {
   background-color: transparent;
   color: inherit;
 }
 
-/* Selected 样式：更明显的高亮 + 边框 */
+/* Selected + */
 .dropdown-menu-item.selected {
   background-color: color-mix(in srgb, var(--vscode-foreground) 20%, transparent);
   color: var(--vscode-list-hoverForeground);
@@ -124,13 +118,13 @@ function handleMouseEnter() {
   outline-offset: -1px;
 }
 
-/* Hover + Selected 同时存在：selected 样式优先，背景稍深 */
+/* Hover + Selected selected */
 .dropdown-menu-item.selected:hover {
   background-color: color-mix(in srgb, var(--vscode-foreground) 25%, transparent);
   outline: 1px solid var(--vscode-contrastActiveBorder);
 }
 
-/* Keyboard 模式下 selected + hover 保持 selected 样式不变 */
+/* Keyboard selected + hover selected */
 [data-nav="keyboard"] .dropdown-menu-item.selected:hover {
   background-color: color-mix(in srgb, var(--vscode-foreground) 20%, transparent);
   outline: 1px dotted var(--vscode-contrastActiveBorder);
@@ -147,7 +141,7 @@ function handleMouseEnter() {
   color: var(--vscode-panelTitle-activeForeground);
 }
 
-/* Keyboard 模式下 hover 不改变文本颜色 */
+/* Keyboard hover */
 [data-nav="keyboard"] .dropdown-menu-item:hover .file-info-container,
 [data-nav="keyboard"] .dropdown-menu-item:hover .option-info-container,
 [data-nav="keyboard"] .dropdown-menu-item:hover .file-path-container,
@@ -188,7 +182,7 @@ function handleMouseEnter() {
   color: var(--vscode-list-activeSelectionForeground);
 }
 
-/* Keyboard 模式下 hover 不改变图标颜色 */
+/* Keyboard hover */
 [data-nav="keyboard"] .dropdown-menu-item:hover .menu-item-icon-span {
   color: var(--vscode-foreground);
 }
@@ -231,7 +225,7 @@ function handleMouseEnter() {
   opacity: 0.6;
 }
 
-/* 命令描述容器：不使用 rtl，省略后面的文本 */
+/* rtl */
 .description-container {
   text-overflow: ellipsis;
   overflow: hidden;
@@ -269,7 +263,7 @@ function handleMouseEnter() {
   opacity: 1;
 }
 
-/* Keyboard 模式下 hover 不改变箭头图标 */
+/* Keyboard hover */
 [data-nav="keyboard"] .dropdown-menu-item:hover .submenu-arrow-icon {
   color: var(--vscode-foreground);
   opacity: 0.6;
@@ -287,7 +281,7 @@ function handleMouseEnter() {
   color: var(--vscode-list-activeSelectionForeground);
 }
 
-/* Keyboard 模式下 hover 不改变勾选图标 */
+/* Keyboard hover */
 [data-nav="keyboard"] .dropdown-menu-item:hover .check-icon {
   color: var(--vscode-foreground);
 }

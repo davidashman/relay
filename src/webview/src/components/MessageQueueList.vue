@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible && queuedMessages.length > 0" class="message-queue-section">
-    <!-- Message Queue 头部 -->
+    <!-- Message Queue  -->
     <div
       style="display: flex; justify-content: space-between; align-items: center; height: 24px; cursor: pointer;"
       @click="toggleExpanded"
@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <!-- Queue列表 (当展开时) -->
+    <!-- Queue () -->
     <div
       v-if="expanded"
       class="queue-item-list"
@@ -28,7 +28,6 @@
         :key="message.id"
         class="queue-item"
       >
-        <!-- 消息内容 -->
         <div class="queue-item-content">
           <div style="max-height: 56px; mask-image: none;">
             <div
@@ -41,9 +40,7 @@
           </div>
         </div>
 
-        <!-- 操作按钮 -->
         <div class="queue-item-actions">
-          <!-- 删除按钮 -->
           <Tooltip content="Remove from queue">
             <div
               class="anysphere-icon-button"
@@ -52,7 +49,6 @@
               <span class="codicon codicon-trashcan text-[12px]!"></span>
             </div>
           </Tooltip>
-          <!-- 立即发送按钮 -->
           <Tooltip content="Send immediately">
             <div
               class="anysphere-icon-button"

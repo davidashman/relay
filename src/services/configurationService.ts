@@ -1,6 +1,6 @@
 /**
- * 配置服务 / Configuration Service
- * 负责管理多层级配置：Local Project > Shared Project > Global Profile > Defaults
+ * Configuration Service
+ * Manages multi-level configuration: Local Project > Shared Project > Global Profile > Defaults
  */
 
 import * as vscode from 'vscode';

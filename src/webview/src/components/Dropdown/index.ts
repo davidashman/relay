@@ -4,5 +4,4 @@ export { default as DropdownSeparator } from './DropdownSeparator.vue'
 export { default as DropdownSectionHeader } from './DropdownSectionHeader.vue'
 export { default as DropdownTrigger } from './DropdownTrigger.vue'
 
-// 导出类型
 export type { DropdownItem as DropdownItemType, DropdownItemData } from '../../types/dropdown'

@@ -75,7 +75,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
-// 计算显示的模式名称
 const selectedModeLabel = computed(() => {
   switch (props.permissionMode) {
     case 'acceptEdits':
@@ -89,7 +88,6 @@ const selectedModeLabel = computed(() => {
   }
 })
 
-// 计算显示的图标
 const selectedModeIcon = computed(() => {
   switch (props.permissionMode) {
     case 'acceptEdits':
@@ -107,13 +105,12 @@ function handleModeSelect(item: DropdownItemData, close: () => void) {
   console.log('Selected mode:', item)
   close()
 
-  // 发送模式切换事件
   emit('modeSelect', item.id as PermissionMode)
 }
 </script>
 
 <style scoped>
-/* Mode 下拉样式 - 匹配 Agent 按钮样式 */
+/* Mode - Agent */
 .mode-dropdown {
   display: flex;
   gap: 4px;

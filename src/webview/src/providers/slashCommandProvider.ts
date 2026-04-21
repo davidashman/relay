@@ -3,23 +3,23 @@ import type { RuntimeInstance } from '../composables/useRuntime'
 import type { DropdownItemType } from '../types/dropdown'
 
 /**
- * Slash Command 数据提供者
+ * Slash Command
  *
- * 从 CommandRegistry 获取并过滤 slash commands
+ * CommandRegistry slash commands
  */
 
-// 带 section 信息的命令
+// section
 export interface CommandWithSection extends CommandAction {
   section: string
 }
 
 /**
- * 获取 slash commands
+ * slash commands
  *
- * @param query 搜索查询（可选）
- * @param runtime Runtime 实例
- * @param _signal 未使用,仅为保持接口一致性
- * @returns 命令列表
+ * @param query
+ * @param runtime Runtime
+ * @param _signal ,
+ * @returns
  */
 export function getSlashCommands(
   query: string,
@@ -31,10 +31,9 @@ export function getSlashCommands(
   const commandsBySection = runtime.appContext.commandRegistry.getCommandsBySection()
   const allCommands = commandsBySection['Slash Commands'] || []
 
-  // 如果没有查询，返回所有命令
   if (!query || !query.trim()) return allCommands
 
-  // 过滤命令：匹配 label 或 description
+  // label description
   const lowerQuery = query.toLowerCase()
   return allCommands.filter(cmd =>
     cmd.label.toLowerCase().includes(lowerQuery) ||
@@ -43,11 +42,11 @@ export function getSlashCommands(
 }
 
 /**
- * 获取带分组信息的 slash commands（用于 ButtonArea）
+ * slash commands ButtonArea
  *
- * @param query 搜索查询（可选）
- * @param runtime Runtime 实例
- * @returns 带分组信息的命令列表
+ * @param query
+ * @param runtime Runtime
+ * @returns
  */
 export function getSlashCommandsWithSection(
   query: string,
@@ -60,12 +59,10 @@ export function getSlashCommandsWithSection(
 
   const SECTION_ORDER = ['Slash Commands'] as const
 
-  // 遍历分组
   for (const section of SECTION_ORDER) {
     const commands = commandsBySection[section]
     if (!commands || commands.length === 0) continue
 
-    // 过滤命令
     const lowerQuery = query.toLowerCase()
     const filteredCommands = query
       ? commands.filter(cmd =>
@@ -74,7 +71,6 @@ export function getSlashCommandsWithSection(
         )
       : commands
 
-    // 添加分组信息
     for (const cmd of filteredCommands) {
       results.push({
         ...cmd,
@@ -87,10 +83,10 @@ export function getSlashCommandsWithSection(
 }
 
 /**
- * 将 CommandAction 转换为 DropdownItemType
+ * CommandAction DropdownItemType
  *
- * @param command 命令对象
- * @returns Dropdown 项
+ * @param command
+ * @returns Dropdown
  */
 export function commandToDropdownItem(command: CommandAction): DropdownItemType {
   return {
@@ -104,15 +100,14 @@ export function commandToDropdownItem(command: CommandAction): DropdownItemType 
 }
 
 /**
- * 获取命令的图标
  *
- * @param command 命令对象
- * @returns 图标类名
+ * @param command
+ * @returns
  */
 export function getCommandIcon(command: CommandAction): string | undefined {
   const label = command.label.toLowerCase()
 
-  // Slash commands 使用默认图标
+  // Slash commands
   if (label.startsWith('/')) {
     return 'codicon-symbol-method'
   }

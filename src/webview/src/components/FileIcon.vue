@@ -19,33 +19,31 @@ interface Props {
   size?: number | string;
   className?: string;
   isDirectory?: boolean;
-  folderPath?: string; // 目录完整相对路径（可选），用于特殊匹配
+  folderPath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 16
 });
 
-// 获取图标配置（按优先级匹配）
 const iconConfig = computed((): IconConfig => {
   const fileName = (props.fileName || '').toLowerCase();
   const baseName = fileName.split('/').pop() || '';
 
-  // 目录图标优先
   if (props.isDirectory) {
     const cfg = resolveFolderIcon(baseName, (props.folderPath || '').toLowerCase())
     return { type: cfg.type, icon: cfg.icon, color: cfg.color }
   }
 
-  // 1) 完整文件名（specialFileNameMap）
+  // 1) specialFileNameMap
   const special = specialFileNameMap[baseName];
   if (special) return special;
 
-  // 2) 完整文件名（fileExtensionMap 内含有些“文件名+扩展名”的条目）
+  // 2) fileExtensionMap “+”
   const fullInExtMap = (fileExtensionMap as Record<string, IconConfig | undefined>)[baseName];
   if (fullInExtMap) return fullInExtMap;
 
-  // 3) 复合后缀匹配（如 spec.ts / d.ts / e2e-spec.ts 等）从长到短
+  // 3) e2e-spec.ts
   const parts = baseName.split('.');
   if (parts.length > 1) {
     for (let start = 1; start < parts.length; start++) {
@@ -55,7 +53,7 @@ const iconConfig = computed((): IconConfig => {
     }
   }
 
-  // 4) 默认图标
+  // 4)
   return { type: 'mdi', icon: 'file' };
 });
 
@@ -64,7 +62,7 @@ const iconName = computed(() => iconConfig.value.icon);
 const iconColor = computed(() => iconConfig.value.color);
 
 function resolveFolderIcon(name: string, fullPath: string): FolderIconConfig {
-  // 特例：.github/workflows 或 github/workflows
+  // .github/workflows github/workflows
   if (fullPath.includes('github/workflows') || fullPath.includes('.github/workflows')) {
     return { type: 'mdi', icon: 'folder-gh-workflows' }
   }

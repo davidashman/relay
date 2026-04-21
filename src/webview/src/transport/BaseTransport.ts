@@ -24,8 +24,8 @@ interface RequestHandler {
 }
 
 /**
- * WebView ↔ Extension 传输抽象基类
- * - 使用 alien-signals 管理状态（统一架构）
+ * WebView ↔ Extension
+ * - alien-signals
  */
 export abstract class BaseTransport {
   readonly state = signal<ConnectionState>("connecting");
@@ -106,7 +106,7 @@ export abstract class BaseTransport {
       expandToolOutput: initResponse.state.expandToolOutput ?? true,
       showThinking: initResponse.state.showThinking ?? false,
     } as InitResponse["state"]);
-    console.log('[BaseTransport.init] Set config with modelSetting:', this.config().modelSetting);
+    console.log('[BaseTransport.init] Set config with modelSetting:', this.config()?.modelSetting);
 
     const claudeState = await this.sendRequest<GetClaudeStateResponse>({
       type: "get_claude_state",
@@ -366,7 +366,7 @@ export abstract class BaseTransport {
             if (stream) {
               if (message.error) stream.error(new Error(message.error));
               stream.done();
-              // 延迟删除，给尾部 io_message/result 留出时间片
+              // io_message/result
               setTimeout(() => {
                 this.streams.delete(message.channelId);
               }, 50);
@@ -376,7 +376,7 @@ export abstract class BaseTransport {
             break;
           }
           case "sdk_error": {
-            // 将 LLM 请求错误作为特殊事件注入到消息流中
+            // LLM
             const errorStream = this.streams.get(message.channelId);
             if (errorStream) {
               errorStream.enqueue({
@@ -394,8 +394,7 @@ export abstract class BaseTransport {
           case "response": {
             const handler = this.outstandingRequests.get(message.requestId);
             if (!handler) {
-              // 多 WebView 宿主场景下，其他实例也会收到响应但没有对应的 pending request
-              // 这是预期行为，这里静默忽略
+              // WebView pending request
               // console.warn(
               //   `[BaseTransport] No handler for response ${message.requestId}`
               // );

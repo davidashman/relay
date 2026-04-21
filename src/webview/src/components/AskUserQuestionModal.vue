@@ -239,6 +239,7 @@ function handleKeyDown(e: KeyboardEvent) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 .question-text {

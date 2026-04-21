@@ -36,7 +36,6 @@ const tips = computed(() => {
 const currentTip = ref(tips.value[0]);
 
 onMounted(() => {
-  // 随机选择一条提示
   const index = Math.floor(Math.random() * tips.value.length);
   currentTip.value = tips.value[index];
 });

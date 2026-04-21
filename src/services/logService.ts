@@ -1,6 +1,5 @@
 /**
- * 日志服务 / Log Service
- * 提供多级别日志记录功能
+ * Log Service
  */
 
 import * as vscode from 'vscode';

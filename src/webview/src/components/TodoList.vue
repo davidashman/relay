@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible" class="todo-list-section">
-    <!-- Todo 头部 -->
+    <!-- Todo  -->
     <div
       style="display: flex; align-items: center; height: 24px; cursor: pointer;"
       @click="toggleExpanded"
@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <!-- Todo列表 -->
+    <!-- Todo -->
     <div
       v-if="expanded && todos.length > 0"
       style="height: 190px; overflow: hidden; padding-bottom: 3px;"
@@ -99,7 +99,7 @@ function toggleTodo(index: number) {
 </script>
 
 <style scoped>
-/* 自定义滚动条样式 - 默认隐藏，hover时显示 */
+/* - hover */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
@@ -131,7 +131,7 @@ function toggleTodo(index: number) {
   display: none;
 }
 
-/* Firefox 滚动条样式 */
+/* Firefox */
 .custom-scrollbar {
   scrollbar-width: none;
 }

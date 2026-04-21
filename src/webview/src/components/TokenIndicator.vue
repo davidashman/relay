@@ -64,7 +64,6 @@ const strokeOffset = computed(() => {
 
 const formattedPercentage = computed(() => {
   const value = props.percentage
-  // 如果是整数，不显示小数点；否则显示一位小数
   return `${value % 1 === 0 ? Math.round(value) : value.toFixed(1)}%`
 })
 

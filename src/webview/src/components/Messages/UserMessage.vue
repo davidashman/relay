@@ -1,7 +1,7 @@
 <template>
   <div class="user-message">
     <div class="message-wrapper">
-      <!-- 附件磁贴：位于 message-content 边框外、上方 -->
+      <!--  message-content  -->
       <div
         v-if="!isEditing && displayAttachments.length > 0"
         class="attachment-tiles"
@@ -26,7 +26,6 @@
         class="message-content"
         :class="{ editing: isEditing }"
       >
-        <!-- 普通显示模式 -->
         <div
           v-if="!isEditing"
           class="message-view"
@@ -49,7 +48,6 @@
           </div>
         </div>
 
-        <!-- 编辑模式 -->
         <div v-else class="edit-mode">
           <ChatInputBox
             :show-progress="false"
@@ -89,21 +87,20 @@ const props = defineProps<Props>();
 const runtime = inject(RuntimeKey);
 
 const activeSession = computed(() => runtime?.sessionStore?.activeSession?.() ?? null);
-const sessionModel = computed(() => activeSession.value?.modelSelection?.value);
-const sessionThinkingLevel = computed(() => activeSession.value?.thinkingLevel?.value);
-const sessionPermissionMode = computed(() => activeSession.value?.permissionMode?.value);
+const sessionModel = computed(() => activeSession.value?.modelSelection?.());
+const sessionThinkingLevel = computed(() => activeSession.value?.thinkingLevel?.());
+const sessionPermissionMode = computed(() => activeSession.value?.permissionMode?.());
 
 const isEditing = ref(false);
 const chatInputRef = ref<InstanceType<typeof ChatInputBox>>();
 const containerRef = ref<HTMLElement>();
 const attachments = ref<AttachmentItem[]>([]);
 
-// 显示内容（纯文本）
 const displayContent = computed(() => {
   if (typeof props.message.message.content === 'string') {
     return props.message.message.content;
   }
-  // 如果是 content blocks，提取文本
+  // content blocks
   if (Array.isArray(props.message.message.content)) {
     return props.message.message.content
       .map(wrapper => {
@@ -118,7 +115,6 @@ const displayContent = computed(() => {
   return '';
 });
 
-// 用于在普通显示模式下展示附件磁贴
 const displayAttachments = computed<AttachmentItem[]>(() => extractAttachments());
 
 function handleOpenAttachment(attachment: AttachmentItem) {
@@ -129,7 +125,7 @@ function handleOpenAttachment(attachment: AttachmentItem) {
   );
 }
 
-// 从消息内容中提取附件（image 和 document blocks）
+// image document blocks
 function extractAttachments(): AttachmentItem[] {
   if (typeof props.message.message.content === 'string') {
     return [];
@@ -149,10 +145,10 @@ function extractAttachments(): AttachmentItem[] {
       const ext = block.source.media_type?.split('/')[1] || 'png';
       extracted.push({
         id: `image-${index++}`,
-        fileName: `image.${ext}`,
+        fileName: block.title || `image.${ext}`,
         mediaType: block.source.media_type || 'image/png',
         data: block.source.data,
-        fileSize: 0, // 历史消息无法获取原始大小
+        fileSize: 0,
       });
     } else if (block.type === 'document' && block.source) {
       const title = block.title || 'document';
@@ -172,10 +168,9 @@ function extractAttachments(): AttachmentItem[] {
 async function startEditing() {
   isEditing.value = true;
 
-  // 提取附件
   attachments.value = extractAttachments();
 
-  // 等待 DOM 更新后设置输入框内容和焦点
+  // DOM
   await nextTick();
   if (chatInputRef.value) {
     chatInputRef.value.setContent?.(displayContent.value || '');
@@ -189,7 +184,7 @@ function handleRemoveAttachment(id: string) {
 
 function cancelEdit() {
   isEditing.value = false;
-  attachments.value = []; // 清空附件列表
+  attachments.value = [];
 }
 
 function handleSaveEdit(content?: string) {
@@ -215,7 +210,6 @@ function handleRestore() {
   }
 }
 
-// 监听键盘事件
 function handleKeydown(event: KeyboardEvent) {
   if (isEditing.value && event.key === 'Escape') {
     event.preventDefault();
@@ -223,20 +217,16 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-// 监听点击外部取消编辑
 function handleClickOutside(event: MouseEvent) {
   if (!isEditing.value) return;
 
   const target = event.target as HTMLElement;
 
-  // 检查是否点击了组件内部
   if (containerRef.value?.contains(target)) return;
 
-  // 点击外部，取消编辑
   cancelEdit();
 }
 
-// 生命周期管理
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown);
   document.addEventListener('click', handleClickOutside);
@@ -261,7 +251,7 @@ onUnmounted(() => {
   background-color: transparent;
 }
 
-/* 消息内容容器 - 负责背景色和圆角 */
+/* - */
 .message-content {
   display: flex;
   align-items: flex-start;
@@ -285,7 +275,7 @@ onUnmounted(() => {
   background-color: transparent;
 }
 
-/* 普通显示模式 */
+/* */
 .message-view {
   display: flex;
   flex-direction: column;
@@ -296,7 +286,7 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-/* 附件磁贴行 - 位于 message-content 边框之外上方，样式与输入框中的 pill 一致 */
+/* - message-content pill */
 .attachment-tiles {
   display: flex;
   flex-direction: row;
@@ -309,11 +299,12 @@ onUnmounted(() => {
   margin-bottom: 4px;
 }
 
-/* 与 ChatInputBox 中的 .attachment-item 保持视觉一致 */
+/* ChatInputBox .attachment-item */
 .attachment-tile {
   display: inline-flex;
   align-items: center;
-  padding: 0 4px 0 0;
+  gap: 2px;
+  padding: 0 8px 0 2px;
   background: transparent;
   border: 1px solid var(--vscode-editorWidget-border);
   border-radius: 4px;
@@ -326,7 +317,7 @@ onUnmounted(() => {
   position: relative;
   outline: none;
   line-height: 16px;
-  height: 20px;
+  height: 24px;
   color: var(--vscode-foreground);
 }
 
@@ -408,7 +399,7 @@ onUnmounted(() => {
   flex: 1;
 }
 
-/* restore checkpoint 按钮 */
+/* restore checkpoint */
 .restore-button {
   background: transparent;
   border: none;
@@ -436,7 +427,7 @@ onUnmounted(() => {
   color: var(--vscode-foreground);
 }
 
-/* 编辑模式 */
+/* */
 .edit-mode {
   display: flex;
   flex-direction: column;
@@ -447,7 +438,7 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-/* 编辑模式下的特定样式覆盖 */
+/* */
 .edit-mode :deep(.full-input-box) {
   background: var(--vscode-input-background);
 }

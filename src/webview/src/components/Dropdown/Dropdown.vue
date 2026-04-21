@@ -12,7 +12,6 @@
       :style="containerStyle"
       @keydown.escape="close"
     >
-      <!-- 内置搜索框（可选） -->
       <div v-if="showSearch" class="search-input-section">
         <input
           ref="searchInput"
@@ -23,10 +22,10 @@
         />
       </div>
 
-      <!-- 顶部区域 slot（完全可选） -->
+      <!--  slot -->
       <slot name="header" />
 
-      <!-- 中部可滚动区域 - 使用 ScrollableElement -->
+      <!--  -  ScrollableElement -->
       <ScrollableElement ref="scrollableRef">
         <div class="menu-content">
           <slot
@@ -37,7 +36,7 @@
         </div>
       </ScrollableElement>
 
-      <!-- 底部区域 slot -->
+      <!--  slot -->
       <slot name="footer" />
     </div>
   </div>
@@ -67,12 +66,12 @@ interface Props {
   closeOnClickOutside?: boolean
   closeSelectors?: string[]
   align?: 'left' | 'right' | 'center'
-  dataNav?: 'keyboard' | 'mouse' // 导航模式
-  offsetY?: number // 垂直偏移量（正数=远离锚点，负数=覆盖锚点）
-  offsetX?: number // 水平偏移量（正数=向右，负数=向左）
-  preferPlacement?: 'auto' | 'above' | 'below' // 放置偏好
-  selectedIndex?: number // 当前选中索引（用于可视项对齐）
-  scrollPadding?: number // 选中项距离容器边缘的最小留白
+  dataNav?: 'keyboard' | 'mouse'
+  offsetY?: number // ==
+  offsetX?: number // ==
+  preferPlacement?: 'auto' | 'above' | 'below'
+  selectedIndex?: number
+  scrollPadding?: number
 }
 
 interface Emits {
@@ -106,7 +105,6 @@ const selectedIndex = ref(0)
 const scrollableRef = ref<any>()
 const containerRef = ref<HTMLElement>()
 
-// 计算属性
 const dropdownStyle = computed(() => {
   const style: any = {
     position: 'fixed',
@@ -120,70 +118,65 @@ const dropdownStyle = computed(() => {
   const viewportHeight = window.innerHeight
   const triggerRect = props.position
 
-  // 计算dropdown的总高度
-  const searchHeight = props.showSearch ? 32 : 0  // 搜索框高度
-  const footerHeight = 25 // 底部footer高度
-  const dropdownTotalHeight = searchHeight + 240 + footerHeight // 使用最大高度240px
+  // dropdown
+  const searchHeight = props.showSearch ? 32 : 0
+  const footerHeight = 25 // footer
+  const dropdownTotalHeight = searchHeight + 240 + footerHeight // 240px
 
-  // 计算上方和下方的可用空间
   const spaceAbove = triggerRect.top
   const spaceBelow = viewportHeight - triggerRect.top - (triggerRect.height || 0)
 
-  // 根据 preferPlacement 决定显示位置
+  // preferPlacement
   let showBelow: boolean
   if (props.preferPlacement === 'below') {
     showBelow = true
   } else if (props.preferPlacement === 'above') {
     showBelow = false
   } else {
-    // auto 模式：优先下方，空间不足时选择上方
+    // auto
     showBelow = spaceBelow >= dropdownTotalHeight || spaceBelow > spaceAbove
   }
 
-  // 垂直定位（使用 offsetY，正数=远离锚点，负数=覆盖锚点）
+  // offsetY==
   if (showBelow) {
-    // 显示在触发器下方
     style.top = `${triggerRect.top + (triggerRect.height || 0) + props.offsetY}px`
   } else {
-    // 显示在触发器上方（offsetY 为负数时会"压住"锚点上沿）
+    // offsetY ""
     style.bottom = `${viewportHeight - triggerRect.top + props.offsetY}px`
   }
 
-  // 水平定位 - 支持左对齐、右对齐、居中
+  // -
   const triggerWidth = triggerRect.width || 0
-  // 使用传入的宽度或默认最大宽度240px进行计算
+  // 240px
   const dropdownWidth = props.width || 240
 
-  // 计算初始 left 位置（基于 align）
+  // left align
   let leftPosition = 0
   switch (props.align) {
     case 'right':
-      // 右对齐：dropdown右边缘与触发器右边缘对齐
+      // dropdown
       leftPosition = triggerRect.left + triggerWidth - dropdownWidth
       break
     case 'center':
-      // 居中对齐：dropdown中心与触发器中心对齐
+      // dropdown
       leftPosition = triggerRect.left + triggerWidth / 2 - dropdownWidth / 2
       break
     case 'left':
     default:
-      // 左对齐：dropdown左边缘与触发器左边缘对齐
+      // dropdown
       leftPosition = triggerRect.left
       break
   }
 
-  // 应用水平偏移量
   leftPosition += props.offsetX
 
-  // 确保不超出屏幕边界
-  const leftBoundary = 8  // 最小左边距
-  const rightPadding = 24 // 右侧安全距离
+  const leftBoundary = 8
+  const rightPadding = 24
   const rightBoundary = viewportWidth - rightPadding
 
   if (leftPosition < leftBoundary) {
     leftPosition = leftBoundary
   } else if (leftPosition + dropdownWidth > rightBoundary) {
-    // 菜单会超出右边界，向左调整并额外留出间隔
     leftPosition = rightBoundary - dropdownWidth
   }
 
@@ -192,7 +185,6 @@ const dropdownStyle = computed(() => {
   return style
 })
 
-// 方法
 function close() {
   emit('close')
 }
@@ -201,7 +193,6 @@ function onSearchInput() {
   emit('search', searchTerm.value)
 }
 
-// 键盘导航
 function handleKeydown(event: KeyboardEvent) {
   if (!props.isVisible) return
 
@@ -213,16 +204,13 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-// 点击外部关闭
 function handleClickOutside(event: MouseEvent) {
   if (!props.isVisible || !props.closeOnClickOutside) return
 
   const target = event.target as HTMLElement
 
-  // 检查是否点击了下拉菜单内部
   if (target.closest('.dropdown-popover')) return
 
-  // 检查是否点击了触发器元素
   const excludeSelectors = [
     '.premium-pill',
     '.dropdown-trigger',
@@ -236,7 +224,6 @@ function handleClickOutside(event: MouseEvent) {
   close()
 }
 
-// 生命周期
 watch(() => props.isVisible, (visible) => {
   if (visible && props.shouldAutoFocus) {
     nextTick(() => {
@@ -255,7 +242,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// 最小位移：确保选中项在可视区域内
 function ensureSelectedVisible() {
   if (!props.isVisible) return
   if (props.selectedIndex == null || props.selectedIndex < 0) return
@@ -273,15 +259,14 @@ function ensureSelectedVisible() {
   const wrapperH = wrapper.clientHeight
   const contentH = content.scrollHeight
 
-  // 如果内容不足以滚动，直接返回，避免空白填充
   if (contentH <= wrapperH + 1) return
 
-  // 当前"滚动量"（通过 transform 推导）
+  // "" transform
   const contentRect = content.getBoundingClientRect()
   const wrapperRect = wrapper.getBoundingClientRect()
   const currentTop = wrapperRect.top - contentRect.top
 
-  // 选中项相对 content 顶部的偏移
+  // content
   let offsetTop = 0
   let el: HTMLElement | null = selectedEl
   while (el && el !== content) {
@@ -291,7 +276,6 @@ function ensureSelectedVisible() {
   const itemTop = offsetTop
   const itemBottom = itemTop + selectedEl.offsetHeight
 
-  // 目标可视窗口边界
   const visibleTop = currentTop + padding
   const visibleBottom = currentTop + wrapperH - padding
 
@@ -304,7 +288,6 @@ function ensureSelectedVisible() {
     return
   }
 
-  // 严格限制滚动范围，确保不会滚动超出内容边界
   const maxTop = Math.max(0, contentH - wrapperH)
   newTop = Math.max(0, Math.min(maxTop, newTop))
 
@@ -314,7 +297,7 @@ function ensureSelectedVisible() {
 }
 
 watch(() => props.selectedIndex, () => {
-  // 使用双重 RAF 确保 DOM 更新和布局计算都已完成
+  // RAF DOM
   requestAnimationFrame(() => {
     requestAnimationFrame(() => ensureSelectedVisible())
   })
@@ -328,7 +311,6 @@ watch(() => props.isVisible, (visible) => {
   }
 })
 
-// 暴露方法给父组件
 defineExpose({
   focusSearch: () => searchInput.value?.focus(),
   setSearchTerm: (term: string) => { searchTerm.value = term },
@@ -421,7 +403,7 @@ defineExpose({
   border-top: 1px solid var(--vscode-commandCenter-inactiveBorder, var(--vscode-widget-border));
 }
 
-/* 淡入动画 */
+/* */
 .fade-in-fast {
   animation: fadein 0.1s linear;
 }

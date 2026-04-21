@@ -189,13 +189,12 @@ function handleModelSelect(item: DropdownItemData, close: () => void) {
   console.log('Selected model:', item)
   close()
 
-  // 发送模型切换事件
   emit('modelSelect', item.id)
 }
 </script>
 
 <style scoped>
-/* Model 下拉样式 - 简洁透明样式 */
+/* Model - */
 .model-dropdown {
   display: flex;
   gap: 4px;
@@ -213,7 +212,7 @@ function handleModelSelect(item: DropdownItemData, close: () => void) {
   overflow: hidden;
 }
 
-/* 共享的 Dropdown 样式 */
+/* Dropdown */
 .dropdown-content {
   display: flex;
   align-items: center;

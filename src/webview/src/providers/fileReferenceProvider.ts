@@ -2,7 +2,6 @@ import type { DropdownItemType } from '../types/dropdown'
 import type { RuntimeInstance } from '../composables/useRuntime'
 
 /**
- * 文件引用项
  */
 export interface FileReference {
   path: string
@@ -11,11 +10,10 @@ export interface FileReference {
 }
 
 /**
- * 获取文件列表
- * @param query 搜索查询
- * @param runtime Runtime 实例
- * @param signal 可选的 AbortSignal,用于取消请求
- * @returns 文件引用数组
+ * @param query
+ * @param runtime Runtime
+ * @param signal AbortSignal,
+ * @returns
  */
 export async function getFileReferences(
   query: string,
@@ -30,14 +28,14 @@ export async function getFileReferences(
   try {
     const connection = await runtime.connectionManager.get()
 
-    // 空查询传递空字符串,让后端返回顶层内容（目录 + 顶层文件）
+    // , +
     const pattern = (query && query.trim()) ? query : ''
     const response = await connection.listFiles(pattern, signal)
 
-    // response.files 格式：{ path, name, type }
+    // response.files { path, name, type }
     return response.files || []
   } catch (error) {
-    // 如果是 AbortError,静默处理
+    // AbortError,
     if (error instanceof Error && error.name === 'AbortError') {
       return []
     }
@@ -47,7 +45,7 @@ export async function getFileReferences(
 }
 
 /**
- * 将文件引用转换为 DropdownItem 格式
+ * DropdownItem
  */
 export function fileToDropdownItem(file: FileReference): DropdownItemType {
   return {
@@ -55,7 +53,7 @@ export function fileToDropdownItem(file: FileReference): DropdownItemType {
     type: 'item',
     label: file.name,
     detail: file.path,
-    // 不设置 icon，交由 FileIcon 组件根据 isDirectory/folderName 匹配
+    // icon FileIcon isDirectory/folderName
     data: {
       file
     }

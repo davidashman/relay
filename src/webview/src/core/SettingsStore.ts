@@ -42,7 +42,7 @@ export interface SdkCapabilities {
 
 export class SettingsStore {
   private readonly _settings = signal<SettingsState>({
-    // 为 Switch 提供布尔默认值，避免 modelValue 为 undefined 的 Vue 警告
+    // Switch modelValue undefined Vue
     systemNotifications: false,
     completionSound: true
   } as SettingsState);
@@ -54,7 +54,7 @@ export class SettingsStore {
   // Whether a workspace folder is open (determines if shared/local scopes are available)
   private readonly _hasWorkspace = signal<boolean>(false);
 
-  // SDK 能力数据
+  // SDK
   private readonly _sdkCapabilities = signal<SdkCapabilities>({
     supportedModels: [],
     supportedCommands: [],
@@ -68,7 +68,7 @@ export class SettingsStore {
   }
 
   private async initialize() {
-    // 并行获取设置和 SDK 能力
+    // SDK
     await Promise.all([
       this.fetchSettings(),
       this.fetchSdkCapabilities()
@@ -99,7 +99,7 @@ export class SettingsStore {
     try {
       const response = await this.transport.sdkProbe(
         ['supportedModels', 'supportedCommands', 'mcpServerStatus', 'accountInfo'],
-        30000 // 30s 超时
+        30000 // 30s
       );
       const rawModels = response.data?.supportedModels || [];
       this._sdkCapabilities({
@@ -110,7 +110,6 @@ export class SettingsStore {
       });
     } catch (error) {
       console.error('Failed to fetch SDK capabilities:', error);
-      // 保持默认空数组
     } finally {
       this._sdkCapabilitiesLoading(false);
     }
@@ -258,7 +257,7 @@ export class SettingsStore {
   }
 
   /**
-   * 刷新 SDK 能力数据
+   * SDK
    */
   async refreshSdkCapabilities() {
     await this.fetchSdkCapabilities();

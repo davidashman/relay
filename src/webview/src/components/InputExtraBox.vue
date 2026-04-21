@@ -6,7 +6,7 @@
         :visible="showTodos"
         @todo-toggle="$emit('todoToggle', $event)"
       />
-      <!-- 分割线 - Todo 和 Queue 之间 -->
+      <!--  - Todo  Queue  -->
       <div
         v-if="shouldShowTodoQueueDivider"
         style="height: 1px; background: color-mix(in srgb, var(--vscode-input-border, var(--vscode-widget-border)) 40%, transparent); margin: 2px -5px;"
@@ -17,7 +17,7 @@
         @remove="$emit('queueRemove', $event)"
         @send-now="$emit('queueSendNow', $event)"
       />
-      <!-- 分割线 - Queue 和 Files 之间 -->
+      <!--  - Queue  Files  -->
       <div
         v-if="shouldShowQueueFilesDivider"
         style="height: 1px; background: color-mix(in srgb, var(--vscode-input-border, var(--vscode-widget-border)) 40%, transparent); margin: 2px -5px;"
@@ -64,7 +64,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<Emits>()
 
-// 内部显示逻辑：当有任一项需要显示时才显示整个容器
 const shouldShow = computed(() => {
   const hasTodos = props.showTodos && props.todos.length > 0
   const hasFiles = props.showFiles && props.filesEdited.length > 0
@@ -72,14 +71,14 @@ const shouldShow = computed(() => {
   return hasTodos || hasFiles || hasQueue
 })
 
-// Todo 与 Queue 之间的分割线
+// Todo Queue
 const shouldShowTodoQueueDivider = computed(() => {
   const hasTodos = props.showTodos && props.todos.length > 0
   const hasQueue = props.showQueue && props.queuedMessages.length > 0
   return hasTodos && hasQueue
 })
 
-// Queue 与 Files 之间的分割线
+// Queue Files
 const shouldShowQueueFilesDivider = computed(() => {
   const hasQueue = props.showQueue && props.queuedMessages.length > 0
   const hasFiles = props.showFiles && props.filesEdited.length > 0

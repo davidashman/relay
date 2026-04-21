@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 import { useSignal } from '@gn8/alien-signals-vue';
 import type { SessionStore } from '../core/SessionStore';
 import type { Session } from '../core/Session';
@@ -6,9 +6,9 @@ import type { SessionOptions } from '../core/Session';
 
 export interface UseTabsReturn {
   /** The explicitly-opened tabs - independent of the full session history */
-  tabs: ReturnType<typeof ref<Session[]>>;
+  tabs: Ref<Session[]>;
   /** Index of the active session in tabs.value; -1 if none */
-  activeTabIndex: ReturnType<typeof computed<number>>;
+  activeTabIndex: ComputedRef<number>;
   /** Register the initial startup session as the first (and only) tab */
   addTab: (session: Session) => void;
   /** Create a new session and open it in a new tab */
@@ -90,17 +90,17 @@ export function useTabs(sessionStore: SessionStore): UseTabsReturn {
     if (isActive) {
       // Switch to the nearest remaining tab
       const newIndex = Math.min(index, arr.length - 1);
-      sessionStore.setActiveSession(arr[newIndex]);
+      sessionStore.setActiveSession(arr[newIndex] as unknown as Session);
     }
   }
 
   function switchToTab(index: number): void {
     const session = openTabs.value[index];
-    if (session) sessionStore.setActiveSession(session);
+    if (session) sessionStore.setActiveSession(session as Session);
   }
 
   return {
-    tabs: openTabs,
+    tabs: openTabs as unknown as Ref<Session[]>,
     activeTabIndex,
     addTab,
     createNewTab,

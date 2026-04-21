@@ -1,5 +1,5 @@
 /**
- * DI 框架测试 / DI Framework Tests
+ * DI Framework Tests
  */
 
 import { describe, it, expect } from 'vitest';
@@ -8,7 +8,7 @@ import { ServiceCollection } from '../src/di/serviceCollection';
 import { SyncDescriptor } from '../src/di/descriptors';
 import { createDecorator } from '../src/di/instantiation';
 
-// 测试服务接口
+// Test service interface
 const ITestService = createDecorator<ITestService>('testService');
 
 interface ITestService {

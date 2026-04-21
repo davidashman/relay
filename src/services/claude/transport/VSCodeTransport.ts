@@ -1,15 +1,13 @@
 /**
- * VSCodeTransport - VSCode WebView 传输适配器
+ * VSCodeTransport - VSCode WebView
  *
- * 职责：
- * 1. 实现 BaseTransport 抽象类
- * 2. 通过 WebViewService 封装 VSCode WebView 通信
- * 3. 在 Agent 和 WebView 之间传递消息
+ * 1.  BaseTransport
+ * 2.  WebViewService  VSCode WebView
+ * 3.  Agent  WebView
  *
- * 特点：
- * - 将 VSCode 原生 API 与核心逻辑隔离
- * - 通过 DI 注入所有依赖服务
- * - 便于未来替换为其他传输层（如 NestJS WebSocket）
+ * -  VSCode  API
+ * -  DI
+ * -  NestJS WebSocket
  */
 
 import { BaseTransport } from './BaseTransport';
@@ -17,7 +15,7 @@ import { ILogService } from '../../logService';
 import { IWebViewService } from '../../webViewService';
 
 /**
- * VSCode WebView Transport 实现
+ * VSCode WebView Transport
  */
 export class VSCodeTransport extends BaseTransport {
     constructor(
@@ -25,18 +23,18 @@ export class VSCodeTransport extends BaseTransport {
         @ILogService private readonly logService: ILogService
     ) {
         super();
-        this.logService.info('[VSCodeTransport] 已初始化');
+        this.logService.info('[VSCodeTransport] ');
     }
 
     /**
-     * 发送消息到 WebView
+     *  WebView
      */
     send(message: any): void {
         try {
-            this.logService.info(`[VSCodeTransport] 发送消息: ${message.type}`);
+            this.logService.info(`[VSCodeTransport] : ${message.type}`);
             this.webViewService.postMessage(message);
         } catch (error) {
-            this.logService.error('[VSCodeTransport] 发送消息失败:', error);
+            this.logService.error('[VSCodeTransport] :', error);
         }
     }
 }

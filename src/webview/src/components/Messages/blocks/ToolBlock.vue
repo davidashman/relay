@@ -16,7 +16,6 @@ import type { ToolUseContentBlock } from '../../../models/ContentBlock';
 import type { ContentBlockWrapper } from '../../../models/ContentBlockWrapper';
 import type { ToolContext } from '../../../types/tool';
 
-// 导入所有工具组件
 import AskUserQuestionTool from './tools/AskUserQuestion.vue';
 import ReadTool from './tools/Read.vue';
 import WriteTool from './tools/Write.vue';
@@ -45,16 +44,16 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 🔥 使用 useSignal 包装 alien-signals，确保 Vue 可以追踪响应式变化
+// 🔥 useSignal alien-signals Vue
 const toolResult = props.wrapper ? useSignal(props.wrapper.toolResult) : ref(undefined);
 
-// 获取 tool use result（会话加载时的数据）
+// tool use result
 const toolUseResult = computed(() => {
   if (!props.wrapper) return undefined;
   return props.wrapper.toolUseResult;
 });
 
-// Tool 使用信息
+// Tool
 const toolUse = computed(() => {
   return {
     name: props.block.name,
@@ -63,11 +62,10 @@ const toolUse = computed(() => {
   };
 });
 
-// 根据工具名称选择对应的组件
 const toolComponent = computed(() => {
   const name = props.block.name;
 
-  // MCP 工具匹配（以 mcp__ 开头）
+  // MCP mcp__
   if (name.startsWith('mcp__')) {
     return McpTool;
   }
@@ -114,5 +112,5 @@ const toolComponent = computed(() => {
 </script>
 
 <style scoped>
-/* 工具块样式由各个具体工具组件自己管理 */
+/* */
 </style>

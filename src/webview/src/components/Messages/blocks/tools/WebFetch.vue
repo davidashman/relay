@@ -28,7 +28,6 @@
         <pre class="result-content">{{ result }}</pre>
       </div>
 
-      <!-- 错误内容 -->
       <ToolError :tool-result="toolResult" />
     </template>
   </ToolMessageWrapper>
@@ -57,19 +56,18 @@ const prompt = computed(() => {
   return props.toolUse?.input?.prompt || props.toolUseResult?.prompt;
 });
 
-// 响应结果
 const result = computed(() => {
-  // 优先使用 toolUseResult (会话加载)
+  // toolUseResult ()
   if (props.toolUseResult?.result) {
     return props.toolUseResult.result;
   }
 
-  // 实时对话 - 从 toolResult.content 获取
+  // - toolResult.content
   if (props.toolResult?.content) {
     if (typeof props.toolResult.content === 'string') {
       return props.toolResult.content;
     }
-    // 如果是数组，提取text内容
+    // text
     if (Array.isArray(props.toolResult.content)) {
       return props.toolResult.content
         .filter((item: any) => item.type === 'text')
@@ -81,22 +79,19 @@ const result = computed(() => {
   return '';
 });
 
-// HTTP状态码
+// HTTP
 const statusCode = computed(() => {
   return props.toolUseResult?.code;
 });
 
-// 状态文本
 const codeText = computed(() => {
   return props.toolUseResult?.codeText;
 });
 
-// 响应时间
 const durationMs = computed(() => {
   return props.toolUseResult?.durationMs;
 });
 
-// 状态徽章样式
 const statusClass = computed(() => {
   if (!statusCode.value) return '';
   const code = statusCode.value;
@@ -107,7 +102,7 @@ const statusClass = computed(() => {
   return '';
 });
 
-// 缩短 URL 显示
+// URL
 const displayUrl = computed(() => {
   if (!url.value) return '';
   try {
@@ -115,34 +110,29 @@ const displayUrl = computed(() => {
     const hostname = urlObj.hostname;
     const pathname = urlObj.pathname;
 
-    // 如果路径太长，截断显示
     if (pathname.length > 30) {
       return `${hostname}${pathname.substring(0, 27)}...`;
     }
 
     return `${hostname}${pathname}`;
   } catch {
-    // 如果 URL 解析失败，直接显示原始 URL
+    // URL URL
     return url.value.length > 50 ? url.value.substring(0, 47) + '...' : url.value;
   }
 });
 
-// 判断是否为权限请求阶段
 const isPermissionRequest = computed(() => {
   const hasToolUseResult = !!props.toolUseResult;
   const hasToolResult = !!props.toolResult && !props.toolResult.is_error;
   return !hasToolUseResult && !hasToolResult;
 });
 
-// 权限请求阶段默认展开,执行完成后不展开
+// ,
 const shouldExpand = computed(() => {
-  // 权限请求阶段展开
   if (isPermissionRequest.value && prompt.value) return true;
 
-  // 有错误时展开
   if (props.toolResult?.is_error) return true;
 
-  // 有结果时展开
   if (result.value) return true;
 
   return false;
@@ -176,6 +166,7 @@ const shouldExpand = computed(() => {
   border-radius: 3px;
   font-size: 0.9em;
   font-weight: 500;
+  line-height: 1;
 }
 
 .status-success {
@@ -207,6 +198,7 @@ const shouldExpand = computed(() => {
   border-radius: 3px;
   font-size: 0.9em;
   font-weight: 500;
+  line-height: 1;
 }
 
 .section {

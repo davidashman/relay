@@ -1,5 +1,5 @@
 /**
- * 服务测试 / Services Tests
+ * Services Tests
  */
 
 import { describe, it, expect } from 'vitest';
@@ -19,7 +19,7 @@ describe('Services', () => {
 			const logService = accessor.get(ILogService);
 			expect(logService).toBeDefined();
 
-			// 测试日志方法不抛出异常
+			// Test that log methods don't throw
 			expect(() => {
 				logService.info('Test message');
 				logService.warn('Warning');

@@ -86,10 +86,10 @@ if (!runtime) {
   throw new Error('[SessionsPage] runtime not provided');
 }
 
-// 🔥 使用 useSessionStore 包装为 Vue-friendly API
+// 🔥 useSessionStore Vue-friendly API
 const store = useSessionStore(runtime.sessionStore);
 
-// 🔥 视图模型：将 alien-signals Session 转换为 Vue-friendly 包装
+// 🔥 alien-signals Session Vue-friendly
 const sessionList = computed(() => {
   const rawSessions = (store.sessionsByLastModified.value || []).filter(Boolean) as Session[];
   return rawSessions.map(raw => useSession(raw));
@@ -127,7 +127,7 @@ const refreshSessions = async () => {
   error.value = '';
 
   try {
-    // 🔥 使用包装后的方法
+    // 🔥
     await store.listSessions();
   } catch (err) {
     error.value = `Failed to load sessions: ${err}`;

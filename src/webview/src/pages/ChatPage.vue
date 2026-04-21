@@ -1,6 +1,5 @@
 <template>
   <div class="chat-page">
-    <!-- 主体：消息容器 -->
     <div class="main">
       <!-- <div class="chatContainer"> -->
         <div
@@ -160,18 +159,18 @@
   // Session loading state (true while fetching an existing session from sidebar click)
   const sessionLoading = useSignal<boolean>(runtime.sessionLoading);
 
-  // 订阅 activeSession（alien-signal → Vue ref）
+  // activeSessionalien-signal → Vue ref
   const activeSessionRaw = useSignal<Session | undefined>(
     runtime.sessionStore.activeSession
   );
 
-  // 使用 useSession 将 alien-signals 转换为 Vue Refs
+  // useSession alien-signals Vue Refs
   const session = computed(() => {
     const raw = activeSessionRaw.value;
     return raw ? useSession(raw) : null;
   });
 
-  // 现在所有访问都使用 Vue Ref（.value）
+  // Vue Ref.value
   const title = computed(() => session.value?.summary.value || 'New Conversation');
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
 
@@ -287,9 +286,9 @@
   const pendingPermission = computed(() => permissionRequests.value[0] as any);
   const platform = computed(() => runtime.appContext.platform);
 
-  // 注册命令：permissionMode.toggle（在下方定义函数后再注册）
+  // permissionMode.toggle
 
-  // 估算 Token 使用占比（基于 usageData）
+  // Token usageData
   const usageComputed = computed(() => {
     const s = session.value;
     if (!s) return { percentage: 0, totalTokens: 0, contextWindow: 200000 };
@@ -321,10 +320,8 @@
   const endEl = ref<HTMLDivElement | null>(null);
   const chatInputRef = ref<InstanceType<typeof ChatInputBox> | null>(null);
 
-  // 附件状态管理
   const attachments = ref<AttachmentItem[]>([]);
 
-  // 记录上次消息数量，用于判断是否需要滚动
   let prevCount = 0;
 
   // Scroll state management
@@ -375,7 +372,6 @@
   }
 
   watch(session, async () => {
-    // 切换会话：复位并滚动底部
     prevCount = 0;
     await nextTick();
     scrollToBottom(true); // Force scroll on session change
@@ -396,7 +392,6 @@
   );
 
   watch(permissionRequestsLen, async (newLen) => {
-    // 有权限请求出现时也确保滚动到底部
     await nextTick();
     scrollToBottom(); // Only auto-scroll if near bottom
     // Restore focus to input after last permission modal is dismissed
@@ -442,13 +437,13 @@
     document.removeEventListener('keydown', handleDoubleEscape);
   });
 
-  // ChatInput 事件处理
+  // ChatInput
   async function handleSubmit(content: string, snapshot?: SendSnapshot | null) {
     const trimmed = (content || '').trim();
 
     // Handle built-in /clear command
     if (trimmed === '/clear') {
-      await runtime.tabs.replaceCurrentTab();
+      await runtime!.tabs.replaceCurrentTab();
       return;
     }
 
@@ -465,12 +460,11 @@
     const willQueue = !!rawSession && !willLandInMessages;
 
     try {
-      // 传递附件给 send 方法
+      // send
       // Note: we no longer gate on isBusy — the SDK's long-lived query loop
       // interleaves user turns, so submitting mid-turn is expected.
       await s.send(trimmed || ' ', attachments.value);
 
-      // 发送成功后清空附件
       attachments.value = [];
 
       await nextTick();
@@ -552,7 +546,7 @@
     await s.setPermissionMode(mode);
   }
 
-  // permissionMode.toggle：按固定顺序轮转
+  // permissionMode.toggle
   const togglePermissionMode = () => {
     const s = session.value;
     if (!s) return;
@@ -563,7 +557,7 @@
     void s.setPermissionMode(next);
   };
 
-  // 现在注册命令（toggle 已定义）
+  // toggle
   const unregisterToggle = runtime.appContext.commandRegistry.registerAction(
     {
       id: 'permissionMode.toggle',
@@ -576,7 +570,7 @@
     }
   );
 
-  // 注册快捷键：shift+tab → permissionMode.toggle（允许在输入区生效）
+  // shift+tab → permissionMode.toggle
   useKeybinding({
     keys: 'shift+tab',
     handler: togglePermissionMode,
@@ -601,7 +595,7 @@
   function handleStop() {
     const s = session.value;
     if (s) {
-      // 方法已经在 useSession 中绑定，可以直接调用
+      // useSession
       void s.interrupt();
     }
   }
@@ -634,12 +628,11 @@
     if (!files || files.length === 0) return;
 
     try {
-      // 将所有文件转换为 AttachmentItem
+      // AttachmentItem
       const conversions = await Promise.all(
         Array.from(files).map(convertFileToAttachment)
       );
 
-      // 添加到附件列表
       attachments.value = [...attachments.value, ...conversions];
 
       console.log('[ChatPage] Added attachments:', conversions.map(a => a.fileName));
@@ -689,7 +682,7 @@
     isolation: isolate; /* Create stacking context */
   }
 
-  /* Chat 容器与消息滚动容器（对齐 React） */
+  /* Chat React */
   .chatContainer {
     position: relative;
     height: 100%;
@@ -751,14 +744,14 @@
     color: var(--vscode-editor-foreground);
   }
 
-  /* 其他样式复用 */
+  /* */
 
-  /* 输入区域容器 */
+  /* */
   .inputContainer {
     padding: 8px 12px 12px;
   }
 
-  /* 底部对话框区域钉在底部 */
+  /* */
   .main > :last-child {
     flex-shrink: 0;
     background-color: var(--vscode-panel-background);
@@ -768,7 +761,7 @@
     align-self: center;
   }
 
-  /* 空状态样式 */
+  /* */
   .emptyState {
     display: flex;
     flex-direction: column;

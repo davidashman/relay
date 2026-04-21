@@ -259,10 +259,10 @@ export function activate(context: vscode.ExtensionContext) {
 					const webViewServiceInner = accessorInner.get(IWebViewService);
 					const logServiceInner = accessorInner.get(ILogService);
 					try {
-						// Settings 页为单实例，不传 instanceId，使用 page 作为 key
+						// Settings  instanceId page  key
 						webViewServiceInner.openEditorPage('settings', 'Relay Settings');
 					} catch (error) {
-						logServiceInner.error('[Command] 打开 Settings 页面失败', error);
+						logServiceInner.error('[Command]  Settings ', error);
 					}
 				});
 			})

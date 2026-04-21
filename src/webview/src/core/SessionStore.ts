@@ -194,13 +194,13 @@ export class SessionStore {
   }
 
   dispose(): void {
-    // 清理所有 effects
+    // effects
     for (const cleanup of this.effectCleanups) {
       cleanup();
     }
     this.effectCleanups = [];
 
-    // 清理所有 sessions
+    // sessions
     for (const session of this.sessions()) {
       session.dispose();
     }

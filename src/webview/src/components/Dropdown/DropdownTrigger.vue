@@ -1,6 +1,5 @@
 <template>
   <div class="dropdown-trigger-container" ref="containerRef">
-    <!-- 触发器按钮 -->
     <div
       ref="triggerRef"
       :class="triggerClass"
@@ -8,14 +7,12 @@
       @click="toggleDropdown"
       v-bind="triggerProps"
     >
-      <!-- 触发器内容通过slot定制 -->
+      <!-- slot -->
       <slot name="trigger" :isOpen="isVisible" :toggle="toggleDropdown">
-        <!-- 默认触发器样式 -->
         <span class="codicon codicon-chevron-down"></span>
       </slot>
     </div>
 
-    <!-- 下拉菜单 -->
     <div
       v-if="isVisible"
       ref="dropdownRef"
@@ -31,7 +28,6 @@
         :style="containerStyle"
         @keydown.escape="closeDropdown"
       >
-        <!-- 搜索框（可选） -->
         <div v-if="showSearch" class="search-input-section">
           <input
             ref="searchInput"
@@ -42,10 +38,10 @@
           />
         </div>
 
-        <!-- 顶部区域 slot -->
+        <!--  slot -->
         <slot name="header" />
 
-        <!-- 中部可滚动区域（自适应高度 + 最大高度限制） -->
+        <!--  +  -->
         <ScrollableElement ref="scrollableRef">
           <div class="menu-content">
             <slot
@@ -56,14 +52,13 @@
           </div>
         </ScrollableElement>
 
-        <!-- 底部区域 slot -->
+        <!--  slot -->
         <slot name="footer" />
       </div>
     </div>
 
   </div>
 
-  <!-- 点击外部关闭的遮罩 -->
   <div
     v-if="isVisible && closeOnClickOutside"
     class="dropdown-trigger-backdrop"
@@ -76,28 +71,24 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import ScrollableElement from '../ScrollableElement.vue'
 
 interface Props {
-  // 触发器相关
   triggerClass?: string
   triggerStyle?: Record<string, any>
   triggerProps?: Record<string, any>
 
-  // 下拉菜单相关
   width?: number
   contentHeight?: number
   containerStyle?: Record<string, any>
   popoverStyle?: Record<string, any>
 
-  // 功能配置
   showSearch?: boolean
   searchPlaceholder?: string
   shouldAutoFocus?: boolean
   closeOnClickOutside?: boolean
   align?: 'left' | 'right' | 'center'
-  dataNav?: 'keyboard' | 'mouse' // 导航模式
+  dataNav?: 'keyboard' | 'mouse'
   selectedIndex?: number
   scrollPadding?: number
 
-  // 行为控制
   disabled?: boolean
 }
 
@@ -124,7 +115,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>()
 
-// DOM 引用
+// DOM
 const containerRef = ref<HTMLElement>()
 const triggerRef = ref<HTMLElement>()
 const dropdownRef = ref<HTMLElement>()
@@ -132,11 +123,9 @@ const searchInput = ref<HTMLInputElement>()
 const scrollableRef = ref<any>()
 const innerContainerRef = ref<HTMLElement>()
 
-// 状态
 const isVisible = ref(false)
 const searchTerm = ref('')
 
-// 智能定位计算
 const dropdownStyle = computed(() => {
   const style: any = {
     position: 'absolute',
@@ -152,19 +141,17 @@ const dropdownStyle = computed(() => {
   const viewportHeight = window.innerHeight
   const triggerRect = triggerRef.value.getBoundingClientRect()
 
-  // 计算dropdown的总高度
+  // dropdown
   const searchHeight = props.showSearch ? 32 : 0
   const footerHeight = 25
-  const dropdownTotalHeight = searchHeight + 240 + footerHeight // 使用最大高度240px
+  const dropdownTotalHeight = searchHeight + 240 + footerHeight // 240px
 
-  // 计算可用空间
   const spaceAbove = triggerRect.top
   const spaceBelow = viewportHeight - triggerRect.bottom
 
-  // 智能选择显示位置
   const showBelow = spaceBelow >= dropdownTotalHeight || spaceBelow > spaceAbove
 
-  // 垂直定位 - 相对于触发器
+  // -
   if (showBelow) {
     style.top = '100%'
     style.marginTop = '4px'
@@ -174,49 +161,45 @@ const dropdownStyle = computed(() => {
     style.marginBottom = '4px'
   }
 
-  // 计算 dropdown 宽度（用于边界检查）
-  const dropdownWidth = props.width || 240 // 使用 props.width 或默认最大宽度
+  // dropdown
+  const dropdownWidth = props.width || 240 // props.width
 
-  // 水平定位 - 智能处理边界
-  const padding = 8 // 屏幕边缘留白
+  // -
+  const padding = 8
 
-  // 根据 align 设置初始位置
+  // align
   let leftPosition = 0
 
   switch (props.align) {
     case 'right':
-      // 右对齐：dropdown 右边缘与触发器右边缘对齐
+      // dropdown
       leftPosition = triggerRect.right - dropdownWidth
       break
     case 'center':
-      // 居中对齐：dropdown 中心与触发器中心对齐
+      // dropdown
       leftPosition = triggerRect.left + (triggerRect.width / 2) - (dropdownWidth / 2)
       break
     case 'left':
     default:
-      // 左对齐：dropdown 左边缘与触发器左边缘对齐
+      // dropdown
       leftPosition = triggerRect.left
       break
   }
 
-  // 检查左边界
   if (leftPosition < padding) {
     leftPosition = padding
   }
 
-  // 检查右边界
   if (leftPosition + dropdownWidth > viewportWidth - padding) {
     leftPosition = viewportWidth - dropdownWidth - padding
   }
 
-  // 转换为相对于触发器的位置
   const relativeLeft = leftPosition - triggerRect.left
   style.left = `${relativeLeft}px`
 
   return style
 })
 
-// 方法
 function toggleDropdown() {
   if (props.disabled) return
 
@@ -252,7 +235,6 @@ function onSearchInput() {
   emit('search', searchTerm.value)
 }
 
-// 键盘事件处理
 function handleKeydown(event: KeyboardEvent) {
   if (!isVisible.value) return
 
@@ -262,19 +244,16 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-// 点击外部关闭
 function handleClickOutside(event: MouseEvent) {
   if (!isVisible.value || !props.closeOnClickOutside) return
 
   const target = event.target as HTMLElement
 
-  // 检查是否点击了组件内部
   if (containerRef.value?.contains(target)) return
 
   closeDropdown()
 }
 
-// 生命周期
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   document.addEventListener('click', handleClickOutside)
@@ -285,7 +264,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// 最小位移保证选中项在可视区域
 function ensureSelectedVisible() {
   if (!isVisible.value) return
   if (props.selectedIndex == null || props.selectedIndex < 0) return
@@ -308,7 +286,7 @@ function ensureSelectedVisible() {
   const wrapperRect = wrapper.getBoundingClientRect()
   const currentTop = wrapperRect.top - contentRect.top
 
-  // 选中项 offsetTop 相对 content
+  // offsetTop content
   let offsetTop = 0
   let el: HTMLElement | null = selectedEl
   while (el && el !== content) {
@@ -345,7 +323,6 @@ watch(isVisible, (visible) => {
   if (visible) requestAnimationFrame(() => ensureSelectedVisible())
 })
 
-// 暴露方法
 defineExpose({
   open: openDropdown,
   close: closeDropdown,

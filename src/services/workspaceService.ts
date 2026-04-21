@@ -1,5 +1,5 @@
 /**
- * 工作区服务 / Workspace Service
+ * Workspace Service
  */
 
 import * as vscode from 'vscode';
@@ -10,24 +10,12 @@ export const IWorkspaceService = createDecorator<IWorkspaceService>('workspaceSe
 export interface IWorkspaceService {
 	readonly _serviceBrand: undefined;
 
-	/**
-	 * 获取所有工作区文件夹
-	 */
 	getWorkspaceFolders(): readonly vscode.WorkspaceFolder[] | undefined;
 
-	/**
-	 * 根据 URI 获取对应的工作区文件夹
-	 */
 	getWorkspaceFolder(uri: vscode.Uri): vscode.WorkspaceFolder | undefined;
 
-	/**
-	 * 获取默认（第一个）工作区文件夹
-	 */
 	getDefaultWorkspaceFolder(): vscode.WorkspaceFolder | undefined;
 
-	/**
-	 * 工作区变更事件
-	 */
 	onDidChangeWorkspaceFolders: vscode.Event<vscode.WorkspaceFoldersChangeEvent>;
 }
 

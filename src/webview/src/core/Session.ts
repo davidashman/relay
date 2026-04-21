@@ -224,7 +224,7 @@ export class Session {
     session.lastModifiedTime(summary.lastModified);
     session.summary(summary.summary);
     session.worktree(summary.worktree);
-    session.messageCount(summary.messageCount ?? 0);  // 保存服务器返回的消息数量
+    session.messageCount(summary.messageCount ?? 0);
     return session;
   }
 
@@ -272,11 +272,11 @@ export class Session {
         }
 
         this.processMessage(raw);
-        // 使用 processAndAttachMessage 来绑定 tool_result
-        // 这样历史消息中的 tool_result 也会正确绑定到 tool_use
+        // processAndAttachMessage tool_result
+        // tool_result tool_use
         processAndAttachMessage(accumulator, raw);
       }
-      // 移除 ReadCoalesced 合并逻辑
+      // ReadCoalesced
       // this.messages(mergeConsecutiveReadMessages(accumulator));
       this.messages(accumulator);
       await this.launchClaude();
@@ -577,7 +577,7 @@ export class Session {
     }
 
     return connection.permissionRequested.add((request) => {
-      // 动态获取当前 channelId，避免闭包捕获旧值
+      // channelId
       if (request.channelId === this.claudeChannelId()) {
         callback(request);
       }
@@ -620,14 +620,13 @@ export class Session {
       }
     }
 
-    // 处理 LLM 请求错误（来自 SDK stderr 致命错误）
-    // 双路分发：
-    //   - 用户触发的请求（busy=true）→ 以 tip 消息追加到消息流，由 LLMErrorBlock 渲染
-    //   - 非用户触发（busy=false，如 Profile 切换预热）→ VSCode Notification
+    // LLM SDK stderr
+    // - busy=true→ tip LLMErrorBlock
+    // - busy=false Profile → VSCode Notification
     if (event?.type === '__llm_request_error__') {
       if (this.busy()) {
-        // 用户主动请求期间的 LLM 错误：构造标准 raw 事件，走统一的 fromRaw → contentParsers 路径
-        // 与 Interrupt 消息的分化方式一致：user 消息 → llm_error content block → tip 类型分化
+        // LLM raw fromRaw → contentParsers
+        // Interrupt user → llm_error content block → tip
         const syntheticEvent = {
           type: 'user',
           message: {
@@ -644,7 +643,7 @@ export class Session {
           void this.drainOutboundQueue();
         }
       } else {
-        // 非用户触发（Profile 切换预热、channel 启动探测等）：VSCode Notification
+        // Profile channel VSCode Notification
         this.context.showNotification?.(event.error, 'error');
       }
       return;
@@ -737,10 +736,10 @@ export class Session {
       this.compactionBuffer = [];
     }
 
-    // 当 Claude 调用 EnterPlanMode 时，同步 UI 的模式选择器。
-    // SDK 内部已处理模式切换，这里只更新本地信号。
-    // 必须只在 live 事件上执行，否则历史回放会把 UI 卡在 'plan'
-    // 模式（因为历史中的 ExitPlanMode 批准不会被回放）。
+    // Claude EnterPlanMode UI
+    // SDK
+    // live UI 'plan'
+    // ExitPlanMode
     if (
       event?.type === 'assistant' &&
       Array.isArray(event.message?.content)
@@ -753,27 +752,27 @@ export class Session {
       }
     }
 
-    // 🔥 使用完整的消息处理流程
+    // 🔥
 
-    // 1. 获取当前消息数组（转为可变数组）
+    // 1.
     const currentMessages = [...this.messages()] as Message[];
 
-    // 2. 处理特殊消息（TodoWrite, usage 等）
+    // 2. TodoWrite, usage
     this.processMessage(event);
 
-    // 3. 使用工具函数处理消息：
-    //    - 关联 tool_result 到 tool_use（响应式更新）
-    //    - 将原始事件转换为 Message 并添加到数组
+    // 3.
+    // - tool_result tool_use
+    // - Message
     processAndAttachMessage(currentMessages, event);
 
-    // 4. 合并连续 Read 消息为 ReadCoalesced（已禁用，保留作为参考）
+    // 4. Read ReadCoalesced
     // const merged = mergeConsecutiveReadMessages(currentMessages);
 
-    // 5. 更新 messages signal
+    // 5. messages signal
     // this.messages(merged);
     this.messages(currentMessages);
 
-    // 6. 更新其他状态 — counter/pending already handled at the top of this
+    // 6. — counter/pending already handled at the top of this
     // method; only `system/init` still needs to update the session id here.
     if (event?.type === 'system') {
       this.sessionId(event.session_id);
@@ -814,7 +813,7 @@ export class Session {
   }
 
   /**
-   * 处理特殊消息（TodoWrite, usage 统计）
+   * TodoWrite, usage
    */
   private processMessage(event: any): void {
     if (
@@ -822,7 +821,7 @@ export class Session {
       event.message?.content &&
       Array.isArray(event.message.content)
     ) {
-      // 处理 TodoWrite
+      // TodoWrite
       for (const block of event.message.content) {
         if (
           block.type === 'tool_use' &&
@@ -835,7 +834,7 @@ export class Session {
         }
       }
 
-      // 处理 usage 统计
+      // usage
       if (event.message.usage) {
         this.updateUsage(event.message.usage);
       }
@@ -843,7 +842,7 @@ export class Session {
   }
 
   /**
-   * 更新 token 使用统计
+   * token
    */
   private updateUsage(usage: any): void {
     const totalTokens =

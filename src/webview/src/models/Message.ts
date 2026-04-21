@@ -1,10 +1,9 @@
 /**
- * Message - 消息类
+ * Message -
  *
- * 核心功能：
- * 1. 包装消息数据
- * 2. 提供 isEmpty getter（动态计算）
- * 3. 支持 ContentBlockWrapper 响应式 tool_result 关联
+ * 1.
+ * 2. isEmpty getter
+ * 3. ContentBlockWrapper tool_result
  */
 
 import type { ContentBlockType } from '../models/ContentBlock';
@@ -12,12 +11,10 @@ import { parseMessageContent } from '../models/contentParsers';
 import { ContentBlockWrapper } from '../models/ContentBlockWrapper';
 
 /**
- * 消息类型
  */
 export type MessageRole = 'user' | 'assistant' | 'system' | 'result' | 'tip' | 'slash_command_result' | 'compaction';
 
 /**
- * 消息内容数据
  */
 export interface MessageData {
   role: MessageRole;
@@ -25,18 +22,16 @@ export interface MessageData {
 }
 
 /**
- * 消息类
  *
- * 对应原版逻辑：
- * - user/assistant 消息：content 是 ContentBlockWrapper[]
- * - system/result 消息：content 是 string
+ * - user/assistant content ContentBlockWrapper[]
+ * - system/result content string
  */
 export class Message {
   type: MessageRole;
   message: MessageData;
   timestamp: number;
 
-  // 额外字段（用于 system 和 result 消息）
+  // system result
   subtype?: string;
   session_id?: string;
   is_error?: boolean;
@@ -63,35 +58,34 @@ export class Message {
   }
 
   /**
-   * isEmpty getter - 判断消息是否为"空"
+   * isEmpty getter - ""
    *
-   * 判断逻辑：
-   * 1. system 消息永远不是 empty
-   * 2. user/assistant 消息：
-   *    - 内容为空数组 → empty
-   *    - 所有内容块都是 tool_result → empty
+   * 1. system empty
+   * 2. user/assistant
+   * - → empty
+   * - tool_result → empty
    */
   get isEmpty(): boolean {
-    // system 消息永远不是 empty
+    // system empty
     if (this.type === 'system') {
       return false;
     }
 
     const content = this.message.content;
 
-    // 字符串内容不会是 empty
+    // empty
     if (typeof content === 'string') {
       return content.length === 0;
     }
 
-    // ContentBlockWrapper 数组
+    // ContentBlockWrapper
     if (Array.isArray(content)) {
-      // 空数组 → empty
+      // → empty
       if (content.length === 0) {
         return true;
       }
 
-      // 所有内容块都是 tool_result → empty
+      // tool_result → empty
       return content.every((wrapper) => wrapper.content.type === 'tool_result');
     }
 
@@ -99,10 +93,10 @@ export class Message {
   }
 
   /**
-   * 静态工厂方法 - 从原始消息创建 Message 实例
+   * - Message
    *
-   * @param raw 原始消息对象
-   * @returns Message 实例或 null
+   * @param raw
+   * @returns Message null
    */
   static fromRaw(raw: any): Message | null {
     if (raw.type === 'user' || raw.type === 'assistant') {
@@ -112,16 +106,15 @@ export class Message {
           ? [{ type: 'text', text: String(raw.message.content) }]
           : [];
 
-      // 解析原始 content
+      // content
       const contentBlocks = parseMessageContent(rawContent);
 
-      // 包装为 ContentBlockWrapper
+      // ContentBlockWrapper
       const wrappedContent = contentBlocks.map((block) => new ContentBlockWrapper(block));
 
-      // 基于 contentParsers 的解析结果判断消息类型
+      // contentParsers
       let messageType: MessageRole = raw.type;
 
-      // 检查是否为特殊消息类型
       if (raw.type === 'user') {
         const specialType = getSpecialMessageType(contentBlocks);
         if (specialType) {
@@ -139,23 +132,22 @@ export class Message {
       );
     }
 
-    // 不渲染 system 消息（仅用于状态更新）
+    // system
     if (raw.type === 'system') {
       return null;
     }
 
-    // 不渲染 result 消息（仅用于结束标志/用量统计等状态更新）
+    // result /
     if (raw.type === 'result') {
       return null;
     }
 
-    // stream_event 等不创建消息
+    // stream_event
     return null;
   }
 }
 
 /**
- * 类型守卫
  */
 export function isUserMessage(msg: Message): boolean {
   return msg.type === 'user';
@@ -174,16 +166,14 @@ export function isResultMessage(msg: Message): boolean {
 }
 
 /**
- * 获取特殊消息类型
  *
- * 基于 contentParsers.ts 的解析结果判断
- * 返回特定的消息类型，用于分化渲染
+ * contentParsers.ts
  */
 function getSpecialMessageType(contentBlocks: ContentBlockType[]): MessageRole | null {
   if (contentBlocks.length === 1) {
     const blockType = contentBlocks[0].type;
 
-    if (blockType === 'interrupt') {
+    if (blockType === 'interrupt' || blockType === 'llm_error') {
       return 'tip';
     }
 

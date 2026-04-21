@@ -9,7 +9,6 @@
     </template>
 
     <template #expandable>
-      <!-- 参数列表 -->
       <div v-if="hasParams" class="params-list">
         <div v-for="(value, key) in flatParams" :key="key" class="param-row">
           <span class="param-key">{{ key }}:</span>
@@ -17,13 +16,11 @@
         </div>
       </div>
 
-      <!-- 空参数提示 -->
       <div v-if="!hasParams" class="empty-params">
         <span class="codicon codicon-info"></span>
         No parameters
       </div>
 
-      <!-- 错误内容 -->
       <ToolError :tool-result="toolResult" />
     </template>
   </ToolMessageWrapper>
@@ -42,19 +39,16 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// 工具名称
 const toolName = computed(() => {
   return props.toolUse?.name || 'Unknown Tool';
 });
 
-// 获取输入参数
 const input = computed(() => {
-  // 优先使用 toolUseResult (会话加载)
+  // toolUseResult ()
   if (props.toolUseResult?.input) {
     return props.toolUseResult.input;
   }
 
-  // 实时对话
   if (props.toolUse?.input) {
     return props.toolUse.input;
   }
@@ -62,7 +56,6 @@ const input = computed(() => {
   return null;
 });
 
-// 扁平化所有参数
 const flatParams = computed(() => {
   if (!input.value || typeof input.value !== 'object') {
     return {};
@@ -81,19 +74,16 @@ const hasParams = computed(() => {
   return Object.keys(flatParams.value).length > 0;
 });
 
-// 判断是否为权限请求阶段
 const isPermissionRequest = computed(() => {
   const hasToolUseResult = !!props.toolUseResult;
   const hasToolResult = !!props.toolResult && !props.toolResult.is_error;
   return !hasToolUseResult && !hasToolResult;
 });
 
-// 权限请求阶段默认展开,执行完成后不展开
+// ,
 const shouldExpand = computed(() => {
-  // 权限请求阶段展开
   if (isPermissionRequest.value && hasParams.value) return true;
 
-  // 有错误时展开
   if (props.toolResult?.is_error) return true;
 
   return false;
