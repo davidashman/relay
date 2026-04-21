@@ -1,13 +1,11 @@
 # Relay
 
-English | [简体中文](README_CN.md)
-
 ![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visual-studio-code)
 ![Built with TypeScript](https://img.shields.io/badge/Built%20with-TypeScript-blue?logo=typescript)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 
-[![Mentioned in Awesome Claude Code](assets/mentioned-badge.png)](https://github.com/hesreallyhim/awesome-claude-code)
 ![Powered by Claude Agent SDK](https://img.shields.io/badge/Powered%20by-Claude%20Agent%20SDK-orange)
+![Originally Inspired and Forked from Claudix](https://github.com/Haleclipse/Claudix)
 
 A VSCode extension that brings Claude Code directly into your editor.
 
@@ -113,4 +111,4 @@ AGPL-3.0
 
 ## Star History
 
-[![Star History](https://api.star-history.com/svg?repos=Haleclipse/Relay&type=date&legend=top-left)](https://www.star-history.com/#Haleclipse/Relay&type=date&legend=top-left)
+[![Star History](https://api.star-history.com/svg?repos=davidashman/relay&type=date&legend=top-left)](https://www.star-history.com/#davidashman/relay&type=date&legend=top-left)

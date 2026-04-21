@@ -204,6 +204,20 @@ export function activate(context: vscode.ExtensionContext) {
 				webViewService.openChatPanel(null, 'New Chat');
 			})
 		);
+		context.subscriptions.push(
+			vscode.commands.registerCommand('relay.newSessionPanel', () => {
+				webViewService.openChatPanel(null, 'New Chat');
+			})
+		);
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand('relay.toggleSearch', () => {
+				webViewService.postMessage({
+					type: 'toggle_search',
+					webviewId: 'sidebar:sessions:'
+				});
+			})
+		);
 
 		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.clearSession', () => {

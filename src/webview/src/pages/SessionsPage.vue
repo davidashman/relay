@@ -1,20 +1,5 @@
 <template>
   <div class="sessions-page">
-    <div class="page-header">
-      <div class="header-left">
-      </div>
-      <div class="header-center">
-      </div>
-      <div class="header-right">
-        <button class="icon-btn" @click="toggleSearch" :class="{ active: showSearch }">
-          <span class="codicon codicon-search"></span>
-        </button>
-        <button class="icon-btn" @click="createNewSession">
-          <span class="codicon codicon-add"></span>
-        </button>
-      </div>
-    </div>
-
     <!-- Search bar - only shown when needed -->
     <Motion
       v-if="showSearch"
@@ -77,10 +62,8 @@
               </div>
             </div>
 
-            <div class="session-meta">
-              <span class="session-messages">{{ session.messageCount.value }} messages</span>
-              <span v-if="session.sessionId.value" class="session-id">{{ session.sessionId.value }}</span>
-            </div>
+            <span v-if="session.sessionId.value" class="session-id">{{ session.sessionId.value }}</span>
+            <span class="session-messages">{{ session.messageCount.value }} messages</span>
 
         </div>
       </div>
@@ -89,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, inject } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { Motion } from 'motion-v';
 import Icon from '../components/Icon.vue';
 import { RuntimeKey } from '../composables/runtimeContext';
@@ -206,9 +189,21 @@ function formatRelativeTime(input?: number | string | Date): string {
   return date.toLocaleDateString('en-US');
 }
 
+// Handle messages from the extension (e.g. relay.toggleSearch command)
+const handleExtensionMessage = async (event: MessageEvent) => {
+  if (event.data?.type === 'from-extension' && event.data?.message?.type === 'toggle_search') {
+    await toggleSearch();
+  }
+};
+
 // Lifecycle
 onMounted(() => {
   refreshSessions();
+  window.addEventListener('message', handleExtensionMessage);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleExtensionMessage);
 });
 </script>
 
@@ -221,73 +216,10 @@ onMounted(() => {
   color: var(--vscode-editor-foreground);
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--vscode-panel-border);
-  min-height: 32px;
-  padding: 0 12px 0 8px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-center {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  justify-content: center;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--vscode-titleBar-activeForeground);
-}
-
-.header-right {
-  display: flex;
-  gap: 4px;
-}
-
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: var(--vscode-titleBar-activeForeground);
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  opacity: 0.7;
-}
-
-.icon-btn .codicon {
-  font-size: 12px;
-}
-
-.icon-btn:hover {
-  background: var(--vscode-toolbar-hoverBackground);
-  opacity: 1;
-}
-
-.icon-btn.active {
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-  opacity: 1;
-}
-
 .search-bar {
   border-bottom: 1px solid var(--vscode-panel-border);
   background: var(--vscode-panel-background);
+  padding: 8px 12px;
 }
 
 .search-bar .search-input {
@@ -414,9 +346,7 @@ onMounted(() => {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 80px;
-  gap: 8px;
+  gap: 3px;
 }
 
 .session-card:hover {
@@ -465,10 +395,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.session-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.session-messages {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
 }
