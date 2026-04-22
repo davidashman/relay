@@ -79,6 +79,42 @@ export function captureSourceSnapshot(
 }
 
 /**
+ * Capture the visual state of a queue item so it can be animated into the
+ * thread when the user sends it immediately. Similar to captureSourceSnapshot
+ * but reads from the queue item's DOM structure.
+ */
+export function captureQueueItemSnapshot(
+  queueItemEl: HTMLElement
+): SendSnapshot | null {
+  const textEl = queueItemEl.querySelector<HTMLElement>('.aislash-editor-input-readonly');
+  if (!textEl) return null;
+
+  const content = textEl.innerText ?? '';
+  if (!content.trim()) return null;
+
+  // Use the inner text element's rect (matching how captureSourceSnapshot uses
+  // .aislash-editor-input), but take background/padding/borderRadius from the
+  // outer queue item so the ghost renders as the full queue item card.
+  const rect = textEl.getBoundingClientRect();
+  const cs = window.getComputedStyle(textEl);
+  const pillStyle = window.getComputedStyle(queueItemEl);
+
+  return {
+    text: {
+      rect,
+      content,
+      font: cs.font,
+      color: cs.color,
+      background: pillStyle.backgroundColor,
+      padding: pillStyle.padding,
+      borderRadius: pillStyle.borderRadius,
+      lineHeight: cs.lineHeight,
+    },
+    attachments: [],
+  };
+}
+
+/**
  * Animate a captured snapshot onto the newly-rendered user message element.
  *
  * Two-phase flow to avoid a flash of the landing spot:

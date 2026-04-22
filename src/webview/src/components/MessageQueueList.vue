@@ -27,6 +27,7 @@
         v-for="message in queuedMessages"
         :key="message.id"
         class="queue-item"
+        :data-message-id="message.id"
       >
         <div class="queue-item-content">
           <div style="max-height: 56px; mask-image: none;">

@@ -28,6 +28,10 @@
         <div v-if="filePath" class="diff-file-header">
           <FileIcon :file-name="filePath" :size="16" class="file-icon" />
           <span class="file-name">{{ fileName }}</span>
+          <span v-if="diffStats" class="diff-view-stats">
+            <span class="stat-add">+{{ diffStats.added }}</span>
+            <span class="stat-remove">-{{ diffStats.removed }}</span>
+          </span>
         </div>
         <!-- Diff : +  -->
         <div class="diff-scroll-container">
@@ -275,6 +279,13 @@ function getLineNumber(patch: any, lineIndex: number): string {
   font-weight: 500;
 }
 
+.diff-view-stats {
+  display: flex;
+  gap: 4px;
+  font-size: 1em;
+  font-weight: 500;
+}
+
 .stat-add {
   color: var(--vscode-gitDecoration-addedResourceForeground);
 }
@@ -307,6 +318,7 @@ function getLineNumber(patch: any, lineIndex: number): string {
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
   overflow: hidden;
+  margin-top: 2px;
 }
 
 .diff-file-header {

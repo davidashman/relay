@@ -133,7 +133,7 @@
   import { useKeybinding } from '../utils/useKeybinding';
   import { useSignal } from '@gn8/alien-signals-vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
-  import { prepareSendAnimation, type SendSnapshot } from '../composables/useSendAnimation';
+  import { prepareSendAnimation, captureQueueItemSnapshot, type SendSnapshot } from '../composables/useSendAnimation';
 
   const runtime = inject(RuntimeKey);
   if (!runtime) throw new Error('[ChatPage] runtime not provided');
@@ -525,8 +525,32 @@
     session.value?.removeFromQueue(id);
   }
 
-  function handleQueueSendNow(id: string) {
+  async function handleQueueSendNow(id: string) {
+    // Capture the queue item's visual position BEFORE sendQueuedNow removes it
+    // from the queue, so we can animate it gliding into the thread.
+    const queueItemEl = document.querySelector<HTMLElement>(
+      `.message-queue-section .queue-item[data-message-id="${id}"]`
+    );
+    const snapshot = queueItemEl ? captureQueueItemSnapshot(queueItemEl) : null;
+
     session.value?.sendQueuedNow(id);
+
+    if (!snapshot) return;
+
+    await nextTick();
+
+    // Find the new user message that just landed in the thread.
+    const container = containerEl.value;
+    const userMessages = container?.querySelectorAll<HTMLElement>('.user-message');
+    const targetEl = userMessages?.[userMessages.length - 1];
+    if (!targetEl) return;
+
+    const animation = prepareSendAnimation(snapshot, targetEl, 'thread');
+    scrollToBottom(true);
+
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    void animation.play();
   }
 
   async function handleToggleThinking() {
