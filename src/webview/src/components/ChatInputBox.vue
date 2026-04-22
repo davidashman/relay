@@ -9,19 +9,28 @@
         :key="attachment.id"
         class="attachment-item"
       >
-        <div class="icon-wrapper">
-          <div class="attachment-icon">
-            <FileIcon :file-name="attachment.fileName" :size="16" />
+        <!-- Image: fills tile as thumbnail -->
+        <img
+          v-if="attachment.mediaType?.startsWith('image/')"
+          :src="`data:${attachment.mediaType};base64,${attachment.data}`"
+          :alt="attachment.fileName"
+          class="attachment-thumbnail"
+        />
+        <!-- Non-image: icon + name stacked -->
+        <template v-else>
+          <div class="attachment-file-icon">
+            <FileIcon :file-name="attachment.fileName" :size="20" />
           </div>
-          <button
-            class="remove-button"
-            @click.stop="handleRemoveAttachment(attachment.id)"
-            :aria-label="`Remove ${attachment.fileName}`"
-          >
-            <span class="codicon codicon-close" />
-          </button>
-        </div>
-        <span class="attachment-name">{{ attachment.fileName }}</span>
+          <span class="attachment-name">{{ attachment.fileName }}</span>
+        </template>
+        <!-- Remove X (top-right corner, appears on hover) -->
+        <button
+          class="remove-button-thumbnail"
+          @click.stop="handleRemoveAttachment(attachment.id)"
+          :aria-label="`Remove ${attachment.fileName}`"
+        >
+          <span class="codicon codicon-close" />
+        </button>
       </div>
     </div>
 
@@ -1037,37 +1046,37 @@ defineExpose({
   pointer-events: none;
 }
 
-/* - pills */
+/* Attachment tiles */
 .attachments-list {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
+  padding: 6px 0px 8px;
   width: 100%;
   box-sizing: border-box;
-  min-height: 20px;
-  /* max-height: 44px; */
-  overflow: hidden;
+  overflow: visible;
 }
 
 .attachment-item {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 0 8px 0 2px;
+  padding: 4px;
   border: 1px solid var(--vscode-editorWidget-border);
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 6px;
   flex-shrink: 0;
-  max-width: 200px;
+  width: 48px;
+  height: 48px;
   cursor: pointer;
   transition: all 0.15s;
   position: relative;
   outline: none;
-  line-height: 16px;
-  height: 24px;
-  margin-bottom: 4px;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .attachment-item:hover {
@@ -1075,83 +1084,54 @@ defineExpose({
   border-color: var(--vscode-focusBorder);
 }
 
-/* */
-.icon-wrapper {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+.attachment-thumbnail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 5px;
 }
 
-.attachment-icon {
-  position: absolute;
-  top: 0;
-  left: 0;
+.attachment-file-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  opacity: 1;
-  transition: opacity 0.15s ease;
-  scale: 0.8;
-}
-
-/* :deep FileIcon */
-.attachment-item .attachment-icon :deep(.mdi),
-.attachment-item .attachment-icon :deep(.codicon) {
-  color: var(--vscode-foreground);
-  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .attachment-name {
-  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--vscode-foreground);
-  opacity: 1;
-  max-width: 140px;
+  width: 100%;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.2;
 }
 
-.attachment-size {
-  display: none; /*  */
-}
-
-.remove-button {
+.remove-button-thumbnail {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: -6px;
+  right: -6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   padding: 0;
-  background: none;
-  border: none;
-  border-radius: 2px;
+  background: color-mix(in srgb, var(--vscode-foreground) 18%, var(--vscode-editor-background));
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 50%, var(--vscode-editor-background));
+  border-radius: 50%;
   cursor: pointer;
   color: var(--vscode-foreground);
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  z-index: 1;
 }
 
-.remove-button .codicon {
-  font-size: 14px;
-}
-
-/* hover attachment-item */
-.attachment-item:hover .attachment-icon {
-  opacity: 0;
-}
-
-.attachment-item:hover .remove-button {
-  opacity: 0.8;
-}
-
-.remove-button:hover {
-  opacity: 1 !important;
+.remove-button-thumbnail .codicon {
+  font-size: 10px;
 }
 
 </style>

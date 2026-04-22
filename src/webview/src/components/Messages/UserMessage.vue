@@ -14,10 +14,20 @@
           :title="attachment.fileName"
           @click.stop="handleOpenAttachment(attachment)"
         >
-          <div class="attachment-tile-icon">
-            <FileIcon :file-name="attachment.fileName" :size="16" />
-          </div>
-          <span class="attachment-tile-name">{{ attachment.fileName }}</span>
+          <!-- Image: fills tile as thumbnail -->
+          <img
+            v-if="attachment.mediaType?.startsWith('image/')"
+            :src="`data:${attachment.mediaType};base64,${attachment.data}`"
+            :alt="attachment.fileName"
+            class="attachment-tile-thumbnail"
+          />
+          <!-- Non-image: icon + name stacked -->
+          <template v-else>
+            <div class="attachment-tile-icon">
+              <FileIcon :file-name="attachment.fileName" :size="20" />
+            </div>
+            <span class="attachment-tile-name">{{ attachment.fileName }}</span>
+          </template>
         </button>
       </div>
 
@@ -286,38 +296,38 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-/* - message-content pill */
+/* Attachment tiles */
 .attachment-tiles {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   width: 100%;
   box-sizing: border-box;
-  min-height: 20px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-/* ChatInputBox .attachment-item */
 .attachment-tile {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 0 8px 0 2px;
+  padding: 4px;
   background: transparent;
   border: 1px solid var(--vscode-editorWidget-border);
-  border-radius: 4px;
+  border-radius: 8px;
   font-family: inherit;
-  font-size: 12px;
   flex-shrink: 0;
-  max-width: 200px;
+  width: 64px;
+  height: 64px;
   cursor: pointer;
   transition: all 0.15s;
   position: relative;
   outline: none;
-  line-height: 16px;
-  height: 24px;
+  overflow: hidden;
+  box-sizing: border-box;
   color: var(--vscode-foreground);
 }
 
@@ -326,15 +336,20 @@ onUnmounted(() => {
   border-color: var(--vscode-focusBorder);
 }
 
+.attachment-tile-thumbnail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .attachment-tile-icon {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  scale: 0.8;
+  flex-shrink: 0;
 }
 
 .attachment-tile-icon :deep(.mdi),
@@ -344,13 +359,14 @@ onUnmounted(() => {
 }
 
 .attachment-tile-name {
-  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--vscode-foreground);
-  opacity: 1;
-  max-width: 140px;
+  width: 100%;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.2;
 }
 
 .message-view .message-text {

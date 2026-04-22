@@ -1,14 +1,15 @@
 <template>
   <div class="text-block">
-    <div :class="markdownClasses" v-html="renderedMarkdown"></div>
+    <div :class="markdownClasses" v-html="renderedMarkdown" @click="handleLinkClick"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import type { TextBlock as TextBlockType } from '../../../models/ContentBlock';
 import type { ToolContext } from '../../../types/tool';
 import { marked } from 'marked';
+import { RuntimeKey } from '../../../composables/runtimeContext';
 // import DOMPurify from 'dompurify'; // TODO:
 
 interface Props {
@@ -17,6 +18,34 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const runtime = inject(RuntimeKey);
+
+function handleLinkClick(event: MouseEvent) {
+  const target = (event.target as HTMLElement).closest('a');
+  if (!target) return;
+
+  const href = target.getAttribute('href');
+  if (!href) return;
+
+  event.preventDefault();
+
+  // External URLs
+  if (/^https?:\/\//i.test(href)) {
+    runtime?.appContext.openURL(href);
+    return;
+  }
+
+  // Relative file paths, optionally with #L42 or #L42-L51 fragment
+  const match = href.match(/^([^#]+)(?:#L(\d+)(?:-L(\d+))?)?$/);
+  if (match) {
+    const filePath = match[1];
+    const startLine = match[2] ? parseInt(match[2], 10) : undefined;
+    const endLine = match[3] ? parseInt(match[3], 10) : undefined;
+    const location = startLine !== undefined ? { startLine, endLine } : undefined;
+    runtime?.appContext.fileOpener.open(filePath, location);
+  }
+}
 
 // Markdown
 const markdownClasses = computed(() => {
@@ -98,6 +127,7 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(a) {
   color: var(--vscode-textLink-foreground);
   text-decoration: none;
+  cursor: pointer;
 }
 
 .markdown-content :deep(a:hover) {
