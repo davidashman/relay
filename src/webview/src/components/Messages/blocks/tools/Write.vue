@@ -133,7 +133,7 @@ function handleContentScroll() {
   display: flex;
   gap: 4px;
   margin-left: 0px;
-  font-size: 0.85em;
+  font-size: 0.9em;
   color: var(--vscode-gitDecoration-addedResourceForeground);
 }
 

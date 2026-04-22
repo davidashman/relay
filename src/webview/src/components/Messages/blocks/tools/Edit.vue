@@ -271,7 +271,7 @@ function getLineNumber(patch: any, lineIndex: number): string {
 .diff-stats {
   display: flex;
   gap: 4px;
-  font-size: 0.85em;
+  font-size: 0.9em;
   font-weight: 500;
 }
 
