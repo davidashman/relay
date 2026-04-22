@@ -1,6 +1,6 @@
 <template>
   <ToolMessageWrapper
-    tool-icon="codicon-book"
+    tool-icon="codicon-files"
     tool-name="Read"
     :tool-result="toolResult"
   >
