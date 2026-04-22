@@ -204,6 +204,7 @@ function handleRerun() {
   display: flex;
   flex-direction: column;
   padding: 0px 8px 0px 0px;
+  font-size: 12px;
 }
 
 .main-line {
@@ -258,8 +259,8 @@ function handleRerun() {
   display: inline-flex;
   align-items: center;
   padding: 3px 6px 2px;
-  background-color: color-mix(in srgb, var(--vscode-charts-orange) 25%, transparent);
-  color: var(--vscode-foreground);
+  background-color: color-mix(in srgb, var(--vscode-charts-purple) 25%, transparent);
+  color: var(--vscode-charts-purple);
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
@@ -270,8 +271,8 @@ function handleRerun() {
 
 .description-text {
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.85em;
-  color: color-mix(in srgb, var(--vscode-foreground) 85%, transparent);
+  font-size: 1em;
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
   font-style: italic;
 }
 
