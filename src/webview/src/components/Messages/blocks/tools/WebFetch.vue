@@ -12,7 +12,6 @@
       <span v-if="statusCode" class="status-badge" :class="statusClass">
         {{ statusCode }} {{ codeText }}
       </span>
-      <span v-if="durationMs" class="duration-badge">{{ durationMs }}ms</span>
     </template>
 
     <template #expandable>
@@ -151,12 +150,10 @@ const shouldExpand = computed(() => {
   color: var(--vscode-textLink-foreground);
   text-decoration: none;
   font-size: 1em;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s;
 }
 
 .url-link:hover {
-  border-bottom-color: var(--vscode-textLink-foreground);
+  text-decoration: underline;
 }
 
 .status-badge {
@@ -180,25 +177,13 @@ const shouldExpand = computed(() => {
 }
 
 .status-client-error {
-  background-color: color-mix(in srgb, var(--vscode-charts-orange) 20%, transparent);
-  color: var(--vscode-charts-orange);
+  background-color: color-mix(in srgb, var(--vscode-charts-red) 20%, transparent);
+  color: var(--vscode-charts-red);
 }
 
 .status-server-error {
   background-color: color-mix(in srgb, var(--vscode-charts-red) 20%, transparent);
   color: var(--vscode-charts-red);
-}
-
-.duration-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 6px;
-  background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
-  color: color-mix(in srgb, var(--vscode-foreground) 80%, transparent);
-  border-radius: 3px;
-  font-size: 1em;
-  font-weight: 500;
-  line-height: 1;
 }
 
 .section {
