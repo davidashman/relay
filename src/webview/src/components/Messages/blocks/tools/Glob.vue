@@ -91,12 +91,11 @@ const fileCount = computed(() => resultFiles.value.length);
   font-family: var(--vscode-editor-font-family);
   color: var(--vscode-charts-yellow);
   background-color: color-mix(in srgb, var(--vscode-charts-yellow) 15%, transparent);
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-weight: 500;
   font-size: 1em;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .detail-item {

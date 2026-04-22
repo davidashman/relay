@@ -147,12 +147,11 @@ const fileCount = computed(() => resultFiles.value.length);
   font-family: var(--vscode-editor-font-family);
   color: var(--vscode-charts-purple);
   background-color: color-mix(in srgb, var(--vscode-charts-purple) 15%, transparent);
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-weight: 500;
   font-size: 1em;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .options-section,
@@ -211,12 +210,11 @@ const fileCount = computed(() => resultFiles.value.length);
   gap: 4px;
   background-color: color-mix(in srgb, var(--vscode-charts-blue) 15%, transparent);
   color: var(--vscode-charts-blue);
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .flag-tag .codicon {

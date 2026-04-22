@@ -249,6 +249,14 @@ function handleRerun() {
   min-width: 0;
 }
 
+/* Match ToolMessageWrapper: give every direct child identical vertical
+   padding + line-height so all items on the row have equal heights. */
+.main-content > :deep(*) {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  line-height: 1;
+}
+
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
@@ -258,7 +266,7 @@ function handleRerun() {
 .agent-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   background-color: color-mix(in srgb, var(--vscode-charts-purple) 25%, transparent);
   color: var(--vscode-charts-purple);
   border-radius: 3px;
@@ -266,7 +274,6 @@ function handleRerun() {
   font-weight: 500;
   font-family: var(--vscode-editor-font-family);
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .description-text {

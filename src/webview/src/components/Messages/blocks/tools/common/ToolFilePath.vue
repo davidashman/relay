@@ -57,7 +57,7 @@ function handleClick(event: MouseEvent) {
   align-items: center;
   gap: 6px;
   border: none;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   cursor: pointer;
   font-family: var(--vscode-editor-font-family);
@@ -67,7 +67,6 @@ function handleClick(event: MouseEvent) {
   background-color: color-mix(in srgb, var(--vscode-textLink-foreground) 15%, transparent);
   transition: background-color 0.2s;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .tool-filepath:hover {

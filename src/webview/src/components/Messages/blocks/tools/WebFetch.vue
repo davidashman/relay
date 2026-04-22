@@ -150,7 +150,7 @@ const shouldExpand = computed(() => {
   font-family: var(--vscode-editor-font-family);
   color: var(--vscode-textLink-foreground);
   text-decoration: none;
-  font-size: 0.85em;
+  font-size: 1em;
   border-bottom: 1px solid transparent;
   transition: border-color 0.2s;
 }
@@ -162,12 +162,11 @@ const shouldExpand = computed(() => {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .status-success {
@@ -193,14 +192,13 @@ const shouldExpand = computed(() => {
 .duration-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
   color: color-mix(in srgb, var(--vscode-foreground) 80%, transparent);
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .section {

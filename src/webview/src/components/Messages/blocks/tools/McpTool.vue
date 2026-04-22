@@ -177,7 +177,7 @@ const shouldExpand = computed(() => {
 .server-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   background-color: color-mix(in srgb, var(--vscode-charts-purple) 20%, transparent);
   color: var(--vscode-charts-purple);
   border-radius: 3px;
@@ -185,7 +185,6 @@ const shouldExpand = computed(() => {
   font-weight: 500;
   font-family: var(--vscode-editor-font-family);
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .tool-name {

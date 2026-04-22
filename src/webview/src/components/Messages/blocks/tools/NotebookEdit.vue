@@ -92,12 +92,11 @@ const shouldExpand = computed(() => {
 .mode-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .mode-replace {

@@ -10,8 +10,7 @@
       <span class="tool-label">Write</span>
       <ToolFilePath v-if="filePath" :file-path="filePath" :context="context" />
       <span v-if="contentStats" class="content-stats">
-        <span class="stat-lines">{{ contentStats.lines }} Lines </span>
-        <span class="stat-chars">{{ contentStats.chars }} Chars </span>
+        <span class="stat-lines">+{{ contentStats.lines }}</span>
       </span>
     </template>
 
@@ -132,10 +131,10 @@ function handleContentScroll() {
 
 .content-stats {
   display: flex;
-  gap: 8px;
-  margin-left: 8px;
-  font-size: 0.8em;
-  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+  gap: 4px;
+  margin-left: 0px;
+  font-size: 0.85em;
+  color: var(--vscode-gitDecoration-addedResourceForeground);
 }
 
 .stat-lines,

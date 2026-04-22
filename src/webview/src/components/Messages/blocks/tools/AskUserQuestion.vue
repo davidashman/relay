@@ -144,14 +144,13 @@ function getAnswers(header: string): string[] {
   align-items: center;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  padding: 3px 10px 2px;
+  padding: 3px 10px;
   border-radius: 12px;
   font-size: 1em;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .question-text {
@@ -227,11 +226,10 @@ function getAnswers(header: string): string[] {
   align-items: center;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  padding: 3px 12px 2px;
+  padding: 3px 12px;
   border-radius: 12px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 </style>

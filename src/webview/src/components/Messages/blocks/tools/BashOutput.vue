@@ -145,12 +145,11 @@ const shouldExpand = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .status-badge.running {
@@ -178,12 +177,11 @@ const shouldExpand = computed(() => {
   gap: 4px;
   background-color: color-mix(in srgb, var(--vscode-charts-orange) 20%, transparent);
   color: var(--vscode-charts-orange);
-  padding: 3px 6px 2px;
+  padding: 3px 6px;
   border-radius: 3px;
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
-  margin-bottom: 1px;
 }
 
 .filter-badge .codicon {

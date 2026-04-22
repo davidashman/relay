@@ -209,6 +209,17 @@ function toggleExpand() {
   min-width: 0;
 }
 
+/* Normalize every direct child on the tool-header row so they have identical
+   top/bottom padding and line-height. This guarantees equal box heights and
+   prevents 1px chip jitter from sub-pixel rounding when content above
+   expands/collapses. Chips already use `padding: 3px 6px` so top/bottom are
+   unchanged; plain text spans gain matching 3px vertical padding. */
+.main-content > :deep(*) {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  line-height: 1;
+}
+
 .tool-count-badge {
   flex-shrink: 0;
   padding: 0 6px;
