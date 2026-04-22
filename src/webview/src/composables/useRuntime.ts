@@ -100,14 +100,35 @@ export function useRuntime(): RuntimeInstance {
     return s && s.length > 20 ? `${s.slice(0, 19)}\u2026` : (s || 'New Conversation');
   }
 
-  // In panel mode, keep the VSCode editor tab badge in sync with pending permission requests
+  // In panel mode, keep the VSCode tab icon in sync with session state:
+  // pending (blue) → working (orange) → done (green)
+  let _panelIconLastSession: Session | undefined;
+  let _panelIconEverBusy = false;
+
   const stopPanelBadgeEffect = isPanelMode
     ? effect(() => {
         const activeSession = sessionStore.activeSession();
         const conn = connectionManager.connection();
+
+        // Reset ever-busy tracking when the active session changes (e.g. after /clear)
+        if (activeSession !== _panelIconLastSession) {
+          _panelIconEverBusy = false;
+          _panelIconLastSession = activeSession;
+        }
+
         if (!activeSession || !conn) return;
-        const count = activeSession.permissionRequests().length;
-        void conn.setPanelBadge(count);
+
+        const permCount = activeSession.permissionRequests().length;
+        const busy = activeSession.busy();
+
+        if (busy) _panelIconEverBusy = true;
+
+        let iconState: 'default' | 'done' | 'pending';
+        if (permCount > 0) iconState = 'pending';
+        else if (!busy && _panelIconEverBusy) iconState = 'done';
+        else iconState = 'default';
+
+        void conn.setPanelBadge(permCount, iconState);
       })
     : undefined;
 

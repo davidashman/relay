@@ -250,8 +250,8 @@ export abstract class BaseTransport {
   updatePanelSession(sessionId: string | null): Promise<any> {
     return this.sendRequest({ type: "update_panel_session", sessionId } as any);
   }
-  setPanelBadge(count: number): Promise<any> {
-    return this.sendRequest({ type: "set_panel_badge", count } as any);
+  setPanelBadge(count: number, iconState?: 'default' | 'working' | 'done' | 'pending'): Promise<any> {
+    return this.sendRequest({ type: "set_panel_badge", count, iconState } as any);
   }
   openClaudeInTerminal(): Promise<any> {
     return this.sendRequest({ type: "open_claude_in_terminal" });

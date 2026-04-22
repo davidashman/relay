@@ -74,10 +74,10 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	closeChatPanel(webviewId: string): void;
 
 	/**
-	 *  badge  webviewId
-	 * count > 0 shows the badge; count === 0 clears it
+	 * Update the tab icon state for a chat panel.
+	 * iconState: 'pending' = blue (permission waiting), 'done' = green (turn complete), 'default' = orange (idle/working)
 	 */
-	updateChatPanelBadge(webviewId: string, count: number): void;
+	updateChatPanelBadge(webviewId: string, count: number, iconState?: string): void;
 
 	/**
 	 * Re-open chat panels that were open when the workspace was last closed.
@@ -109,8 +109,8 @@ export class WebViewService implements IWebViewService {
 	private readonly panelKeyToSessionId = new Map<string, string>();
 	/** Base (unprefixed) title for each chat panel, so we can re-derive the displayed title when the pending state toggles */
 	private readonly panelKeyToBaseTitle = new Map<string, string>();
-	/** Pending-permission state for each chat panel (drives title prefix + icon swap) */
-	private readonly panelKeyToPending = new Map<string, boolean>();
+	/** Icon state for each chat panel: 'default' (orange), 'done' (green), 'pending' (blue) */
+	private readonly panelKeyToIconState = new Map<string, 'default' | 'done' | 'pending'>();
 
 	private static readonly PENDING_PREFIX = '● ';
 
@@ -302,9 +302,9 @@ export class WebViewService implements IWebViewService {
 			}
 		);
 
-		// Track base title and initial pending state, then apply icon + (prefixed) title
+		// Track base title and initial icon state, then apply icon + title
 		this.panelKeyToBaseTitle.set(key, title);
-		this.panelKeyToPending.set(key, false);
+		this.panelKeyToIconState.set(key, 'default');
 		this.applyPanelPresentation(key);
 
 		const panelWebview = panel.webview;
@@ -324,7 +324,7 @@ export class WebViewService implements IWebViewService {
 				this.chatPanels.delete(key);
 				this.chatPanelWebviewIds.delete(webviewId);
 				this.panelKeyToBaseTitle.delete(key);
-				this.panelKeyToPending.delete(key);
+				this.panelKeyToIconState.delete(key);
 				const currentSessionId = this.panelKeyToSessionId.get(key);
 				this.panelKeyToSessionId.delete(key);
 				if (currentSessionId) {
@@ -366,17 +366,21 @@ export class WebViewService implements IWebViewService {
 	}
 
 	/**
-	 * Apply the current base title + pending state to the panel's `title` and `iconPath`.
-	 * A pending panel gets a '● ' prefix and a blue-accent Claude logo; a clean panel
-	 * shows the base title and the default orange logo.
+	 * Apply the current base title + icon state to the panel's `title` and `iconPath`.
+	 * - pending: '● ' prefix + blue Claude logo (permission waiting)
+	 * - done:    green Claude logo (turn completed)
+	 * - default: orange Claude logo (idle or working)
 	 */
 	private applyPanelPresentation(panelKey: string): void {
 		const panel = this.chatPanels.get(panelKey);
 		if (!panel) return;
 		const base = this.panelKeyToBaseTitle.get(panelKey) ?? panel.title;
-		const pending = this.panelKeyToPending.get(panelKey) ?? false;
+		const state = this.panelKeyToIconState.get(panelKey) ?? 'default';
+		const pending = state === 'pending';
 		panel.title = pending ? WebViewService.PENDING_PREFIX + base : base;
-		const iconFile = pending ? 'claude-logo-pending.svg' : 'claude-logo.svg';
+		const iconFile = state === 'pending' ? 'claude-logo-pending.svg'
+		               : state === 'done'    ? 'claude-logo-done.svg'
+		               :                       'claude-logo.svg';
 		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', iconFile));
 		panel.iconPath = { light: iconUri, dark: iconUri };
 	}
@@ -424,15 +428,20 @@ export class WebViewService implements IWebViewService {
 		}
 	}
 
-	updateChatPanelBadge(webviewId: string, count: number): void {
+	updateChatPanelBadge(webviewId: string, count: number, iconState?: string): void {
 		const panelKey = this.chatPanelWebviewIds.get(webviewId);
 		if (!panelKey) return;
 		if (!this.chatPanels.has(panelKey)) return;
 		// Note: vscode.WebviewPanel has no `badge` property (that exists only on WebviewView/TreeView),
-		// so we signal "pending" by toggling a '●' title prefix and swapping the tab icon to a blue accent.
-		const pending = count > 0;
-		if (this.panelKeyToPending.get(panelKey) !== pending) {
-			this.panelKeyToPending.set(panelKey, pending);
+		// so we signal state by toggling a '●' title prefix and swapping the tab icon.
+		const newState: 'default' | 'done' | 'pending' =
+			iconState === 'pending' ? 'pending' :
+			iconState === 'done'    ? 'done' :
+			iconState === 'default' ? 'default' :
+			// Legacy fallback: derive from count if iconState not provided
+			count > 0               ? 'pending' : 'default';
+		if (this.panelKeyToIconState.get(panelKey) !== newState) {
+			this.panelKeyToIconState.set(panelKey, newState);
 			this.applyPanelPresentation(panelKey);
 		}
 	}
