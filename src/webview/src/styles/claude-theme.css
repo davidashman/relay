@@ -132,12 +132,6 @@ body {
   gap: 8px;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background-color 0.1s ease;
-  cursor: pointer;
-}
-
-.todo-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .todo-item-icon-container {

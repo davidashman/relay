@@ -4,7 +4,6 @@
       <TodoList
         :todos="todos"
         :visible="showTodos"
-        @todo-toggle="$emit('todoToggle', $event)"
       />
       <!--  - Todo  Queue  -->
       <div
@@ -48,7 +47,6 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'todoToggle', index: number): void
   (e: 'queueRemove', messageId: string): void
   (e: 'queueSendNow', messageId: string): void
 }

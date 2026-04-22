@@ -29,7 +29,6 @@
             :key="index"
             class="todo-item fade-in-todo"
             :class="todo.status"
-            @click="toggleTodo(index)"
           >
             <div class="todo-item-icon-container">
               <div
@@ -75,26 +74,16 @@ interface Props {
   initialExpanded?: boolean
 }
 
-interface Emits {
-  (e: 'todoToggle', index: number): void
-}
-
 const props = withDefaults(defineProps<Props>(), {
   todos: () => [],
   visible: false,
   initialExpanded: true
 })
 
-const emit = defineEmits<Emits>()
-
 const expanded = ref(props.initialExpanded)
 
 function toggleExpanded() {
   expanded.value = !expanded.value
-}
-
-function toggleTodo(index: number) {
-  emit('todoToggle', index)
 }
 </script>
 
