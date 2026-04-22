@@ -85,14 +85,17 @@ const fileCount = computed(() => resultFiles.value.length);
 }
 
 .pattern-text {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--vscode-editor-font-family);
-  color: var(--vscode-charts-orange);
-  background-color: color-mix(in srgb, var(--vscode-charts-orange) 15%, transparent);
-  padding: 4px 5px 2px;
+  color: var(--vscode-charts-yellow);
+  background-color: color-mix(in srgb, var(--vscode-charts-yellow) 15%, transparent);
+  padding: 3px 6px 2px;
   border-radius: 3px;
   font-weight: 500;
   font-size: 0.9em;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .detail-item {

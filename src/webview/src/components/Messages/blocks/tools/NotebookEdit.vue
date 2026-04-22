@@ -92,12 +92,12 @@ const shouldExpand = computed(() => {
 .mode-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
+  padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.75em;
-  font-weight: 600;
-  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  font-weight: 500;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .mode-replace {

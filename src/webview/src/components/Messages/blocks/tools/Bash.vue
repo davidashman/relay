@@ -97,6 +97,7 @@ const shouldExpand = computed(() => {
   font-size: 0.9em;
   font-weight: 500;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .bash-command {

@@ -108,6 +108,7 @@ const shouldExpand = computed(() => {
   font-weight: 500;
   font-size: 0.9em;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .detail-item {
@@ -133,11 +134,15 @@ const shouldExpand = computed(() => {
 }
 
 .domain-tag {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--vscode-editor-font-family);
-  padding: 3px 8px;
+  padding: 3px 6px 2px;
   border-radius: 3px;
   font-size: 0.9em;
+  font-weight: 500;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .domain-tag.allowed {

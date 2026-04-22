@@ -217,6 +217,7 @@ function toggleExpand() {
   border-radius: 10px;
   line-height: 18px;
   white-space: nowrap;
+  margin-bottom: 1px;
 }
 
 .expandable-content {

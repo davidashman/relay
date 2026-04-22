@@ -184,6 +184,7 @@ const shouldExpand = computed(() => {
   font-weight: 500;
   font-family: var(--vscode-editor-font-family);
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .tool-name {

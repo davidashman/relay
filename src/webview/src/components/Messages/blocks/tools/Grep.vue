@@ -151,6 +151,7 @@ const fileCount = computed(() => resultFiles.value.length);
   font-weight: 500;
   font-size: 0.9em;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .options-section,
@@ -204,15 +205,17 @@ const fileCount = computed(() => resultFiles.value.length);
 }
 
 .flag-tag {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   background-color: color-mix(in srgb, var(--vscode-charts-blue) 15%, transparent);
   color: var(--vscode-charts-blue);
-  padding: 3px 8px;
+  padding: 3px 6px 2px;
   border-radius: 3px;
+  font-size: 0.9em;
   font-weight: 500;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .flag-tag .codicon {

@@ -1,6 +1,6 @@
 <template>
   <ToolMessageWrapper
-    tool-icon="codicon-eye"
+    tool-icon="codicon-book"
     tool-name="Read"
     :tool-result="toolResult"
   >

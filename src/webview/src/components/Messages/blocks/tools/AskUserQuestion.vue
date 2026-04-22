@@ -140,15 +140,18 @@ function getAnswers(header: string): string[] {
 }
 
 .header-chip {
+  display: inline-flex;
+  align-items: center;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  padding: 4px 10px;
+  padding: 3px 10px 2px;
   border-radius: 12px;
-  font-size: 0.75em;
-  font-weight: 600;
+  font-size: 0.9em;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1;
+  margin-bottom: 1px;
 }
 
 .question-text {
@@ -220,12 +223,15 @@ function getAnswers(header: string): string[] {
 }
 
 .answer-chip {
+  display: inline-flex;
+  align-items: center;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  padding: 4px 12px;
+  padding: 3px 12px 2px;
   border-radius: 12px;
-  font-size: 0.85em;
+  font-size: 0.9em;
   font-weight: 500;
   line-height: 1;
+  margin-bottom: 1px;
 }
 </style>
