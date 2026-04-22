@@ -1,23 +1,17 @@
 <template>
   <div class="sessions-page">
-    <!-- Search bar - only shown when needed -->
-    <Motion
-      v-if="showSearch"
-      class="search-bar"
-      :initial="{ opacity: 0, y: -20 }"
-      :animate="{ opacity: 1, y: 0 }"
-      :exit="{ opacity: 0, y: -20 }"
-      :transition="{ duration: 0.2, ease: 'easeOut' }"
-    >
-      <input
-        ref="searchInput"
-        v-model="searchQuery"
-        type="text"
-        placeholder="Search Agent/Chat Threads"
-        class="search-input"
-        @keydown.escape="hideSearch"
-      >
-    </Motion>
+    <!-- Search bar - always visible -->
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <Icon icon="search" :size="14" class="search-icon" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search sessions..."
+          class="search-input"
+        >
+      </div>
+    </div>
 
     <div class="page-content custom-scroll-container">
       <!-- Loading state -->
@@ -72,8 +66,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue';
-import { Motion } from 'motion-v';
+import { ref, computed, onMounted, inject } from 'vue';
+import Fuse from 'fuse.js';
 import Icon from '../components/Icon.vue';
 import { RuntimeKey } from '../composables/runtimeContext';
 import { useSessionStore } from '../composables/useSessionStore';
@@ -99,26 +93,21 @@ const sessionList = computed(() => {
 const loading = ref(true);
 const error = ref('');
 const searchQuery = ref('');
-const showSearch = ref(false);
-const searchInput = ref<HTMLInputElement | null>(null);
-
 
 // Computed: filter and sort session list
 const filteredSessions = computed(() => {
-  let sessions = [...sessionList.value];
+  const sessions = [...sessionList.value];
+  const query = searchQuery.value.trim();
 
-  // Search filter
-  const query = searchQuery.value.trim().toLowerCase();
-  if (query) {
-    sessions = sessions.filter(session => {
-      const summary = (session.summary.value || '').toLowerCase();
-      const sessionId = (session.sessionId.value || '').toLowerCase();
-      return summary.includes(query) || sessionId.includes(query);
-    });
-  }
+  if (!query) return sessions;
 
-  // Already sorted by sessionsByLastModified in reverse chronological order, no need to sort again
-  return sessions;
+  const fuse = new Fuse(sessions, {
+    keys: ['summary.value', 'sessionId.value'],
+    threshold: 0.4,
+    ignoreLocation: true,
+  });
+
+  return fuse.search(query).map(result => result.item);
 });
 
 // Methods
@@ -148,30 +137,9 @@ const openSession = async (wrappedSession: ReturnType<typeof useSession> | undef
   );
 };
 
-const createNewSession = async () => {
-  const connection = await runtime.connectionManager.get();
-  await connection.startNewConversationTab();
-};
-
 const startNewChat = async () => {
   const connection = await runtime.connectionManager.get();
   await connection.startNewConversationTab();
-};
-
-// Search functionality
-const toggleSearch = async () => {
-  showSearch.value = !showSearch.value;
-  if (showSearch.value) {
-    await nextTick();
-    searchInput.value?.focus();
-  } else {
-    searchQuery.value = '';
-  }
-};
-
-const hideSearch = () => {
-  showSearch.value = false;
-  searchQuery.value = '';
 };
 
 // Format relative time
@@ -189,22 +157,11 @@ function formatRelativeTime(input?: number | string | Date): string {
   return date.toLocaleDateString('en-US');
 }
 
-// Handle messages from the extension (e.g. relay.toggleSearch command)
-const handleExtensionMessage = async (event: MessageEvent) => {
-  if (event.data?.type === 'from-extension' && event.data?.message?.type === 'toggle_search') {
-    await toggleSearch();
-  }
-};
-
 // Lifecycle
 onMounted(() => {
   refreshSessions();
-  window.addEventListener('message', handleExtensionMessage);
 });
 
-onUnmounted(() => {
-  window.removeEventListener('message', handleExtensionMessage);
-});
 </script>
 
 <style scoped>
@@ -222,15 +179,29 @@ onUnmounted(() => {
   padding: 8px 12px;
 }
 
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--vscode-input-placeholderForeground);
+  pointer-events: none;
+}
+
 .search-bar .search-input {
   width: 100%;
-  padding: 2px 8px;
+  padding: 2px 8px 2px 28px;
   border: 1px solid var(--vscode-input-border);
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border-radius: 4px;
   font-size: 14px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .search-bar .search-input:focus {

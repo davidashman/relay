@@ -178,11 +178,6 @@
       ],
       "view/title": [
         {
-          "command": "relay.toggleSearch",
-          "when": "view == relay.sessionList",
-          "group": "navigation@1"
-        },
-        {
           "command": "relay.newSession",
           "when": "view == relay.sessionList",
           "group": "navigation@2"
