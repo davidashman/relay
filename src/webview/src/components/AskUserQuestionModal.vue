@@ -292,7 +292,7 @@ function handleKeyDown(e: KeyboardEvent) {
 
 .option-label {
   font-weight: 500;
-  font-size: 0.9em;
+  font-size: 1em;
   color: var(--vscode-foreground);
 }
 
@@ -316,7 +316,7 @@ function handleKeyDown(e: KeyboardEvent) {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 4px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease;

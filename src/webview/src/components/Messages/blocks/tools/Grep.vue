@@ -137,7 +137,8 @@ const fileCount = computed(() => resultFiles.value.length);
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
-  font-size: 0.9em;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 1em;
 }
 
 .pattern-text {
@@ -149,7 +150,7 @@ const fileCount = computed(() => resultFiles.value.length);
   padding: 3px 6px 2px;
   border-radius: 3px;
   font-weight: 500;
-  font-size: 0.9em;
+  font-size: 1em;
   line-height: 1;
   margin-bottom: 1px;
 }
@@ -212,7 +213,7 @@ const fileCount = computed(() => resultFiles.value.length);
   color: var(--vscode-charts-blue);
   padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;

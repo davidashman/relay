@@ -67,7 +67,7 @@ function toggleExpanded() {
   margin-left: 16px;
   padding: 4px 0;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--app-secondary-foreground);
   white-space: pre-wrap;

@@ -159,6 +159,7 @@ function toggleExpand() {
   display: flex;
   flex-direction: column;
   padding: 0px 8px 0px 0px;
+  font-size: 12px;
 }
 
 /* Group provides the margin; don't double-pad inside a collapsed group */
@@ -239,7 +240,7 @@ function toggleExpand() {
 .btn-accept {
   padding: 4px 12px;
   border-radius: 4px;
-  font-size: 0.9em;
+  font-size: 1em;
   cursor: pointer;
   border: 1px solid var(--vscode-button-border);
 }

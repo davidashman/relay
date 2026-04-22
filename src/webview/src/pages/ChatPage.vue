@@ -701,7 +701,7 @@
   .tool-group-msg {
     padding: 0 16px 0.4rem 12px;
     background-color: var(--vscode-sideBar-background);
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.6;
     color: var(--vscode-editor-foreground);
     word-wrap: break-word;

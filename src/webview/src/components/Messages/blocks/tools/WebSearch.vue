@@ -94,7 +94,7 @@ const shouldExpand = computed(() => {
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .query-text {
@@ -106,7 +106,7 @@ const shouldExpand = computed(() => {
   padding: 3px 6px 2px;
   border-radius: 3px;
   font-weight: 500;
-  font-size: 0.9em;
+  font-size: 1em;
   line-height: 1;
   margin-bottom: 1px;
 }
@@ -139,7 +139,7 @@ const shouldExpand = computed(() => {
   font-family: var(--vscode-editor-font-family);
   padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;

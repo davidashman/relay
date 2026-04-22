@@ -143,7 +143,7 @@ const shouldExpand = computed(() => {
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .url-link {
@@ -164,7 +164,7 @@ const shouldExpand = computed(() => {
   align-items: center;
   padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;
@@ -197,7 +197,7 @@ const shouldExpand = computed(() => {
   background-color: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
   color: color-mix(in srgb, var(--vscode-foreground) 80%, transparent);
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;

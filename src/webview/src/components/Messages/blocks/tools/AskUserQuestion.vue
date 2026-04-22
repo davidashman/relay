@@ -119,7 +119,7 @@ function getAnswers(header: string): string[] {
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .questions-container {
@@ -146,7 +146,7 @@ function getAnswers(header: string): string[] {
   color: var(--vscode-badge-foreground);
   padding: 3px 10px 2px;
   border-radius: 12px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -186,7 +186,7 @@ function getAnswers(header: string): string[] {
 
 .option-label {
   font-weight: 500;
-  font-size: 0.9em;
+  font-size: 1em;
   color: var(--vscode-foreground);
 }
 
@@ -229,7 +229,7 @@ function getAnswers(header: string): string[] {
   color: var(--vscode-badge-foreground);
   padding: 3px 12px 2px;
   border-radius: 12px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;

@@ -45,7 +45,7 @@ const triggerLabel = computed(() => props.block.trigger ?? '');
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .meta {

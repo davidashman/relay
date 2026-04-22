@@ -251,7 +251,7 @@ function handleRerun() {
 .tool-label {
   font-weight: 500;
   color: var(--vscode-foreground);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .agent-badge {
@@ -261,7 +261,7 @@ function handleRerun() {
   background-color: color-mix(in srgb, var(--vscode-charts-orange) 25%, transparent);
   color: var(--vscode-foreground);
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   font-family: var(--vscode-editor-font-family);
   line-height: 1;

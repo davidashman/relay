@@ -75,15 +75,15 @@ const shouldExpand = computed(() => {
   font-weight: 500;
   color: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
-  line-height: 1.4;
+  font-size: 1em;
+  line-height: 1;
 }
 
 .tool-description {
-  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
-  line-height: 1.4;
+  font-size: 1em;
+  line-height: 1;
   font-style: italic;
 }
 
@@ -94,7 +94,7 @@ const shouldExpand = computed(() => {
   color: var(--vscode-charts-blue);
   padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;
@@ -115,7 +115,7 @@ const shouldExpand = computed(() => {
   padding: 8px 12px;
   color: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
+  font-size: 1em;
   overflow-x: auto;
   margin: 0;
   white-space: pre-wrap;

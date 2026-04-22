@@ -86,7 +86,7 @@ const shouldExpand = computed(() => {
   font-weight: 500;
   color: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .mode-badge {
@@ -94,7 +94,7 @@ const shouldExpand = computed(() => {
   align-items: center;
   padding: 3px 6px 2px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   line-height: 1;
   margin-bottom: 1px;

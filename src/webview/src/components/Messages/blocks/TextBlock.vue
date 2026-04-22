@@ -92,7 +92,7 @@ const renderedMarkdown = computed(() => {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 3px;
   padding: 2px 4px;
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .markdown-content :deep(a) {

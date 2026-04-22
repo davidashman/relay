@@ -168,9 +168,10 @@ const shouldExpand = computed(() => {
 
 <style scoped>
 .mcp-label {
-  font-weight: 600;
-  font-size: 0.85em;
+  font-weight: 500;
+  font-size: 1em;
   color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family);
 }
 
 .server-badge {
@@ -180,7 +181,7 @@ const shouldExpand = computed(() => {
   background-color: color-mix(in srgb, var(--vscode-charts-purple) 20%, transparent);
   color: var(--vscode-charts-purple);
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   font-family: var(--vscode-editor-font-family);
   line-height: 1;

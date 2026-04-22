@@ -6,13 +6,7 @@
   >
     <template #main>
       <span class="tool-label">Read</span>
-      <ToolFilePath
-        v-if="filePath"
-        :file-path="filePath"
-        :context="context"
-        :start-line="startLine"
-        :end-line="endLine"
-      />
+      <ToolFilePath v-if="filePath" :file-path="filePath" :context="context" />
       <span class="tool-label">{{ lineRangeLabel }}</span>
     </template>
 
@@ -83,6 +77,6 @@ const lineRangeLabel = computed(() => {
   font-weight: 500;
   color: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 </style>

@@ -265,14 +265,13 @@ function getLineNumber(patch: any, lineIndex: number): string {
   font-weight: 500;
   color: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
+  font-size: 1em;
 }
 
 .diff-stats {
   display: flex;
   gap: 4px;
-  margin-left: 8px;
-  font-size: 0.85em;
+  font-size: 0.9em;
   font-weight: 500;
 }
 

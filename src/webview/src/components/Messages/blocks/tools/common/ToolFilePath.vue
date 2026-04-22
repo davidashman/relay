@@ -61,7 +61,7 @@ function handleClick(event: MouseEvent) {
   border-radius: 3px;
   cursor: pointer;
   font-family: var(--vscode-editor-font-family);
-  font-size: 0.9em;
+  font-size: 1em;
   font-weight: 500;
   color: var(--vscode-textLink-foreground);
   background-color: color-mix(in srgb, var(--vscode-textLink-foreground) 15%, transparent);
