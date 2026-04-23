@@ -459,7 +459,7 @@ export class ClaudeSessionService implements IClaudeSessionService {
             //  sidechain  Task  mainTranscript
             const toolUseCache = new Map<string, string>();
             const sidechainMessages: Array<{ msg: SessionMessage; parentToolUseId: string }> = [];
-            for (const msg of sessionMessageList) {
+            for (const msg of data.messages.values()) {
                 if (!msg.isSidechain) continue;
                 const parentToolUseId = resolveParentToolUseId(msg, data.messages, toolUseCache);
                 if (!parentToolUseId) continue;
