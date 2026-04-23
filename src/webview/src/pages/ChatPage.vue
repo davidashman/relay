@@ -11,7 +11,7 @@
               <div class="emptyWordmark">
                 <ClaudeWordmark class="emptyWordmarkSvg" />
               </div>
-              <div class="spinnerRow">
+              <div class="loadingSpinnerRow">
                 <Spinner :size="20" :permission-mode="'default'" />
               </div>
             </div>
@@ -730,6 +730,9 @@
     word-wrap: break-word;
   }
 
+  .loadingSpinnerRow {
+    padding-left: 0px;
+  }
   .spinnerRow {
     padding-left: 12px;
   }
