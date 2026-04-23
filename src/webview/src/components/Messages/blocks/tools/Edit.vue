@@ -7,10 +7,10 @@
     :always-expanded="true"
     :class="{ 'has-diff-view': hasDiffView }"
   >
-    <template #main>
+    <template #main="{ isExpanded }">
       <span class="tool-label">Edit</span>
       <ToolFilePath v-if="filePath" :file-path="filePath" :context="context" />
-      <span v-if="diffStats" class="diff-stats">
+      <span v-if="diffStats && !isExpanded" class="diff-stats">
         <span class="stat-add">+{{ diffStats.added }}</span>
         <span class="stat-remove">-{{ diffStats.removed }}</span>
       </span>

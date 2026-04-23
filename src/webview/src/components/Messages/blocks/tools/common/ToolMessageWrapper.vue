@@ -31,7 +31,7 @@
         </Tooltip>
 
         <div class="main-content">
-          <slot name="main"></slot>
+          <slot name="main" :is-expanded="isExpanded"></slot>
         </div>
 
         <!-- Group count badge (shown left of status dot when collapsed) -->
