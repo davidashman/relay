@@ -15,7 +15,10 @@ declare global {
     RELAY_BOOTSTRAP?: {
       host?: 'sidebar' | 'editor' | 'panel';
       page?: string;
+      /** Stable unique panel key (for webviewId) */
       id?: string;
+      /** Session to preload — separate from the panel key */
+      sessionId?: string;
       title?: string;
     };
   }

@@ -23,12 +23,12 @@ export function useRuntime(): RuntimeInstance {
   const bootstrap = window.RELAY_BOOTSTRAP;
   const isPanelMode = bootstrap?.host === 'panel';
   // The sessionId to pre-select in panel mode (empty string = create new)
-  const panelSessionId = isPanelMode ? (bootstrap?.id ?? '') : '';
+  const panelSessionId = isPanelMode ? (bootstrap?.sessionId ?? '') : '';
   // The initial title for this panel (from bootstrap, set before sessions load)
   const panelTitle = isPanelMode ? (bootstrap?.title ?? '') : '';
 
   // True while the panel is loading an existing session (before activeSession is set)
-  const isLoadingExistingSession = isPanelMode && !!panelSessionId && !panelSessionId.startsWith('new-chat-');
+  const isLoadingExistingSession = isPanelMode && !!panelSessionId;
   const sessionLoadingSignal = signal(isLoadingExistingSession);
 
   // Transport Webview
@@ -292,8 +292,8 @@ export function useRuntime(): RuntimeInstance {
       await sessionStore.listSessions();
       if (!disposed && !sessionStore.activeSession()) {
         if (isPanelMode) {
-          // Panel mode: pre-select the session from bootstrap.id, or create new
-          const isNewSession = !panelSessionId || panelSessionId.startsWith('new-chat-');
+          // Panel mode: pre-select the session from bootstrap.sessionId, or create new
+          const isNewSession = !panelSessionId;
           if (!isNewSession) {
             // Find the session with matching ID in the loaded sessions
             const targetSession = sessionStore.sessions().find(

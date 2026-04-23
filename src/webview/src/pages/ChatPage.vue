@@ -46,7 +46,7 @@
               </template>
             <!-- </div> -->
             <div v-if="isBusy && !pendingPermission" class="spinnerRow">
-              <Spinner :size="16" :permission-mode="permissionMode" />
+              <Spinner :size="18" :permission-mode="permissionMode" />
             </div>
             <div ref="endEl" />
           </template>

@@ -19,7 +19,10 @@ export type WebviewHost = 'sidebar' | 'editor' | 'panel';
 export interface WebviewBootstrapConfig {
 	host: WebviewHost;
 	page?: string;
+	/** Stable unique key for this panel (used for webviewId — never changes for the lifetime of the panel) */
 	id?: string;
+	/** The session to preload in this panel (separate from the panel key; may change if session is cleared) */
+	sessionId?: string;
 	/** Initial panel title for chat panels, so the WebView can set it before sessions load */
 	title?: string;
 }
@@ -99,7 +102,7 @@ export class WebViewService implements IWebViewService {
 	private readonly webviewIdMap = new Map<string, vscode.Webview>();
 	private messageHandler?: (message: any) => void;
 	private readonly editorPanels = new Map<string, vscode.WebviewPanel>();
-	/** Map from panelKey (sessionId or generated key) to chat panel */
+	/** Map from stable panelKey to chat panel (panelKey is independent of the session in the panel) */
 	private readonly chatPanels = new Map<string, vscode.WebviewPanel>();
 	/** Map from webviewId (e.g. 'panel:chat:key') to panel key, for title updates */
 	private readonly chatPanelWebviewIds = new Map<string, string>();
@@ -107,6 +110,8 @@ export class WebViewService implements IWebViewService {
 	private readonly openSessionIds = new Map<string, string>();
 	/** Tracks the current real sessionId for each panelKey (absent entry means no real session yet) */
 	private readonly panelKeyToSessionId = new Map<string, string>();
+	/** Reverse lookup: sessionId → panelKey, for fast "is this session already open?" checks */
+	private readonly sessionIdToPanelKey = new Map<string, string>();
 	/** Base (unprefixed) title for each chat panel, so we can re-derive the displayed title when the pending state toggles */
 	private readonly panelKeyToBaseTitle = new Map<string, string>();
 	/** Icon state for each chat panel: 'default' (orange), 'done' (green), 'pending' (blue) */
@@ -270,21 +275,37 @@ export class WebViewService implements IWebViewService {
 	/**
 	 */
 	openChatPanel(sessionId: string | null, title: string): void {
-		const key = sessionId || `new-chat-${Date.now()}`;
-		const existing = this.chatPanels.get(key);
-		if (existing) {
-			try {
-				existing.reveal(vscode.ViewColumn.Active);
-				this.logService.info(`[WebViewService] : sessionId=${sessionId}`);
-				return;
-			} catch (error) {
-				this.logService.warn(
-					`[WebViewService] : sessionId=${sessionId}`,
-					error as Error
-				);
-				this.chatPanels.delete(key);
+		// If this session is already open in a panel, just reveal that panel.
+		// Using the sessionIdToPanelKey reverse lookup means we never confuse
+		// a cleared panel (whose key is now decoupled from the old sessionId)
+		// with a panel that is genuinely showing the requested session.
+		if (sessionId) {
+			const existingKey = this.sessionIdToPanelKey.get(sessionId);
+			if (existingKey) {
+				const existingPanel = this.chatPanels.get(existingKey);
+				if (existingPanel) {
+					try {
+						existingPanel.reveal(vscode.ViewColumn.Active);
+						this.logService.info(`[WebViewService] : sessionId=${sessionId}`);
+						return;
+					} catch (error) {
+						this.logService.warn(
+							`[WebViewService] : sessionId=${sessionId}`,
+							error as Error
+						);
+						// Panel is dead — clean up the stale entries and fall through to create a new one.
+						this.chatPanels.delete(existingKey);
+						this.sessionIdToPanelKey.delete(sessionId);
+					}
+				} else {
+					// Reverse lookup pointed at a key with no panel — clean up.
+					this.sessionIdToPanelKey.delete(sessionId);
+				}
 			}
 		}
+
+		// Each panel gets a stable key that is independent of which session it currently shows.
+		const key = `panel-${Date.now()}`;
 
 		this.logService.info(`[WebViewService] : sessionId=${sessionId}, title=${title}`);
 
@@ -309,12 +330,13 @@ export class WebViewService implements IWebViewService {
 
 		const panelWebview = panel.webview;
 
-		// Use key as the bootstrap id so the webviewId is always unique and
-		// the webview knows which sessionId to pre-select (or '' for new session)
-		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, title };
+		// The panel key (id) uniquely identifies this panel for the webviewId.
+		// The sessionId field tells the webview which session to preload — it is
+		// separate so that it can change (e.g. after /clear) without affecting the key.
+		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, sessionId: sessionId || '', title };
 		this.registerWebview(panelWebview, bootstrap);
 
-		// Track webviewId → panelKey for title updates
+		// Track webviewId → panelKey for title/badge updates
 		const webviewId = this.getWebviewId(bootstrap);
 		this.chatPanelWebviewIds.set(webviewId, key);
 
@@ -328,6 +350,7 @@ export class WebViewService implements IWebViewService {
 				const currentSessionId = this.panelKeyToSessionId.get(key);
 				this.panelKeyToSessionId.delete(key);
 				if (currentSessionId) {
+					this.sessionIdToPanelKey.delete(currentSessionId);
 					this.openSessionIds.delete(currentSessionId);
 					this.persistOpenSessions();
 				}
@@ -339,6 +362,7 @@ export class WebViewService implements IWebViewService {
 
 		if (sessionId) {
 			this.panelKeyToSessionId.set(key, sessionId);
+			this.sessionIdToPanelKey.set(sessionId, key);
 			this.openSessionIds.set(sessionId, title);
 			this.persistOpenSessions();
 		}
@@ -403,10 +427,12 @@ export class WebViewService implements IWebViewService {
 
 		if (previousSessionId) {
 			this.openSessionIds.delete(previousSessionId);
+			this.sessionIdToPanelKey.delete(previousSessionId);
 		}
 
 		if (sessionId) {
 			this.panelKeyToSessionId.set(panelKey, sessionId);
+			this.sessionIdToPanelKey.set(sessionId, panelKey);
 			this.openSessionIds.set(sessionId, title);
 		} else {
 			this.panelKeyToSessionId.delete(panelKey);

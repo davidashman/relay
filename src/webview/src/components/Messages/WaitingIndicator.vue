@@ -1,6 +1,6 @@
 <template>
   <div class="spinner" :data-permission-mode="permissionMode">
-    <span class="icon" :style="{ fontSize: size + 'px' }">
+    <span class="icon" :style="{ fontSize: size + 'px', paddingBottom: ((size - 14) / 2) + 'px' }">
       {{ currentIcon }}
     </span>
     <span class="text">{{ displayText }}</span>
@@ -21,7 +21,7 @@
     permissionMode: undefined,
   });
 
-  const SPINNER_ICONS = ['·', '✢', '*', '✶', '✻', '✽'];
+  const SPINNER_ICONS = ['·', '✢', '*', '✻', '✽'];
   const ANIMATION_ICONS = [...SPINNER_ICONS, ...[...SPINNER_ICONS].reverse()];
   const DISPLAY_TEXT = 'Working...';
 
@@ -42,7 +42,7 @@
   onMounted(() => {
     iconTimer = setInterval(() => {
       iconIndex.value = (iconIndex.value + 1) % ANIMATION_ICONS.length;
-    }, 80);
+    }, 100);
 
     const intervals = [2000, 3000, 5000];
     let count = 0;
@@ -150,26 +150,16 @@
     display: inline-flex;
     flex-direction: row;
     align-items: center;
+    font-size: 12px;
+    font-weight: 500;
     gap: 5px;
     color: var(--app-spinner-foreground, var(--vscode-descriptionForeground));
-    padding-left: 3px;
+    padding-left: 2px;
   }
   .icon {
-    /* color: var(--app-spinner-foreground, var(--vscode-descriptionForeground)); */
     font-family: monospace;
     display: inline-block;
     width: 1em;
     text-align: center;
-  }
-  /* .spinner[data-permission-mode='acceptEdits'] .icon {
-    color: var(--app-spinner-foreground, var(--vscode-descriptionForeground));
-  }
-  .spinner[data-permission-mode='plan'] .icon {
-    color: var(--vscode-focusBorder, var(--app-button-background));
-  } */
-  .text {
-    font-weight: 500;
-    font-size: 12px;
-    /* color: var(--app-spinner-foreground, var(--vscode-descriptionForeground)); */
   }
 </style>
