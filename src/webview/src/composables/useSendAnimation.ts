@@ -92,10 +92,10 @@ export function captureQueueItemSnapshot(
   const content = textEl.innerText ?? '';
   if (!content.trim()) return null;
 
-  // Use the inner text element's rect (matching how captureSourceSnapshot uses
-  // .aislash-editor-input), but take background/padding/borderRadius from the
-  // outer queue item so the ghost renders as the full queue item card.
-  const rect = textEl.getBoundingClientRect();
+  // Use the outer queue item card's rect so the ghost overlays the full card,
+  // and take background/padding/borderRadius from the same element so styling
+  // and position are consistent.
+  const rect = queueItemEl.getBoundingClientRect();
   const cs = window.getComputedStyle(textEl);
   const pillStyle = window.getComputedStyle(queueItemEl);
 
