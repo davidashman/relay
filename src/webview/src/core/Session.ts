@@ -10,6 +10,7 @@ import { normalizeModelId } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
 import type { Message } from '../models/Message';
 import { ContentBlockWrapper } from '../models/ContentBlockWrapper';
+import type { CompactionBlock } from '../models/ContentBlock';
 import type { QueuedMessage } from '../types/queue';
 
 export interface SelectionRange {
@@ -22,7 +23,8 @@ export interface SelectionRange {
 }
 
 export interface UsageData {
-  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
   totalCost: number;
   contextWindow: number;
 }
@@ -74,8 +76,18 @@ export class Session {
   // Context-compaction interception state. When the SDK streams a compacting
   // window, we buffer the summary assistant output here and surface it as a
   // single collapsible "compaction" message once `compact_boundary` arrives.
+  //
+  // compactionStartMessages: snapshot of messages[] taken at the moment
+  // compaction begins (either via status(compacting) or the first isReplay
+  // user message).  When compact_boundary arrives we restore from this
+  // snapshot so that any assistant turns the model emitted while generating
+  // the summary are stripped out and replaced by the single CompactionBlock.
   private compactingMode = false;
   private compactionBuffer: string[] = [];
+  private compactionStartMessages: Message[] | undefined;
+  // Holds the ContentBlockWrapper for the most-recently-created CompactionBlock
+  // so the isSynthetic user message that follows can be attached to it.
+  private pendingCompactionWrapper: ContentBlockWrapper | undefined;
 
   readonly connection = signal<BaseTransport | undefined>(undefined);
 
@@ -105,7 +117,8 @@ export class Session {
   readonly worktree = signal<{ name: string; path: string } | undefined>(undefined);
   readonly selection = signal<SelectionRange | undefined>(undefined);
   readonly usageData = signal<UsageData>({
-    totalTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
     totalCost: 0,
     contextWindow: 200000
   });
@@ -676,17 +689,26 @@ export class Session {
       if (event.status === 'compacting') {
         this.compactingMode = true;
         this.compactionBuffer = [];
+        this.compactionStartMessages = [...this.messages()] as Message[];
       } else if (this.compactingMode) {
         // Status cleared without boundary (e.g. interrupted): drop buffer.
         this.compactingMode = false;
         this.compactionBuffer = [];
+        this.compactionStartMessages = undefined;
       }
       return;
     }
 
     // Compact summary messages arrive as user events with isReplay:true.
     // Buffer their text content; do NOT render them as regular messages.
+    // On the first replay event we also snapshot the current message list so
+    // that compact_boundary can restore it, stripping any assistant turns the
+    // model emitted while generating the summary.
     if (event?.type === 'user' && (event as any).isReplay === true) {
+      if (!this.compactingMode) {
+        this.compactingMode = true;
+        this.compactionStartMessages = [...this.messages()] as Message[];
+      }
       if (Array.isArray(event.message?.content)) {
         for (const part of event.message.content) {
           if (part?.type === 'text' && typeof part.text === 'string' && part.text.length > 0) {
@@ -701,18 +723,25 @@ export class Session {
       const summary = this.compactionBuffer.join('\n\n').trim();
       this.compactingMode = false;
       this.compactionBuffer = [];
+      // Restore to the pre-compaction snapshot so that any assistant turns
+      // the model emitted while generating the summary are discarded.
+      const baseMessages = this.compactionStartMessages ?? [...this.messages()];
+      this.compactionStartMessages = undefined;
       const block = new ContentBlockWrapper({
         type: 'compaction',
         summary,
         preTokens: event.compact_metadata?.pre_tokens,
         trigger: event.compact_metadata?.trigger,
       });
+      // Keep a reference so the isSynthetic message that follows can attach
+      // its text as the injectedContext on this block.
+      this.pendingCompactionWrapper = block;
       const msg = new MessageModel(
         'compaction',
         { role: 'system', content: [block] },
         Date.now(),
       );
-      const next = [...this.messages(), msg] as Message[];
+      const next = [...baseMessages, msg] as Message[];
       this.messages(next);
       return;
     }
@@ -729,9 +758,34 @@ export class Session {
       return;
     }
 
-    // A real (non-replay) user message means a new turn is starting — clear
-    // any stale compaction buffer so old content doesn't bleed into a future
-    // CompactionBlock.
+    // Synthetic user messages are system-generated context injections — e.g.
+    // the compacted-context message that opens a new post-compaction session.
+    // Attach their text to the preceding CompactionBlock instead of rendering
+    // them as a regular user message.
+    if (event?.type === 'user' && (event as any).isSynthetic === true) {
+      if (this.pendingCompactionWrapper) {
+        const parts: string[] = [];
+        if (Array.isArray(event.message?.content)) {
+          for (const part of event.message.content) {
+            if (part?.type === 'text' && typeof part.text === 'string' && part.text.length > 0) {
+              parts.push(part.text);
+            }
+          }
+        }
+        if (parts.length > 0) {
+          (this.pendingCompactionWrapper.content as CompactionBlock).injectedContext =
+            parts.join('\n\n');
+          // Nudge the messages signal so Vue picks up the mutation.
+          this.messages([...this.messages()] as Message[]);
+        }
+        this.pendingCompactionWrapper = undefined;
+      }
+      return;
+    }
+
+    // A real (non-replay, non-synthetic) user message means a new turn is
+    // starting — clear any stale compaction buffer so old content doesn't
+    // bleed into a future CompactionBlock.
     if (event?.type === 'user' && !(event as any).isReplay) {
       this.compactionBuffer = [];
     }
@@ -845,15 +899,16 @@ export class Session {
    * token
    */
   private updateUsage(usage: any): void {
-    const totalTokens =
+    const inputTokens =
       usage.input_tokens +
       (usage.cache_creation_input_tokens ?? 0) +
-      (usage.cache_read_input_tokens ?? 0) +
-      usage.output_tokens;
+      (usage.cache_read_input_tokens ?? 0);
+    const outputTokens = usage.output_tokens ?? 0;
 
     const current = this.usageData();
     this.usageData({
-      totalTokens,
+      inputTokens,
+      outputTokens,
       totalCost: current.totalCost,
       contextWindow: current.contextWindow
     });

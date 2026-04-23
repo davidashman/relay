@@ -124,9 +124,11 @@ const isExpanded = computed({
     if (toolGroupExpanded?.value) return true;
     // File-modifying tools always expand when they have content to show
     if (props.alwaysExpanded && props.defaultExpanded) return true;
-    // Respect the global expandToolOutput setting; fall back to defaultExpanded
-    const globalExpand = runtime?.appContext.expandToolOutput ?? true;
-    return globalExpand && props.defaultExpanded;
+    // A block that explicitly opts out of default expansion is always collapsed
+    // regardless of the global expandToolOutput setting.
+    if (!props.defaultExpanded) return false;
+    // Respect the global expandToolOutput setting
+    return runtime?.appContext.expandToolOutput ?? true;
   },
   set: (value) => {
     userToggled.value = true;

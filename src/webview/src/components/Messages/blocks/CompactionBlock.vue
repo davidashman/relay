@@ -10,8 +10,8 @@
       <span v-if="triggerLabel" class="meta">· {{ triggerLabel }}</span>
     </template>
 
-    <template v-if="block.summary" #expandable>
-      <TextBlock :block="{ type: 'text', text: block.summary }" />
+    <template v-if="block.injectedContext || block.summary" #expandable>
+      <TextBlock :block="{ type: 'text', text: block.injectedContext ?? block.summary }" />
     </template>
   </ToolMessageWrapper>
 </template>

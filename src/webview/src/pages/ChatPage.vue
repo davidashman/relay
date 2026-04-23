@@ -88,6 +88,9 @@
             :show-progress="true"
             :progress-percentage="progressPercentage"
             :context-tooltip="contextTooltip"
+            :input-tokens="inputTokens"
+            :output-tokens="outputTokens"
+            :show-token-usage="showTokenUsage"
             :conversation-working="isBusy"
             :attachments="attachments"
             :thinking-enabled="session?.thinkingLevel.value !== 'off'"
@@ -290,28 +293,32 @@
   // Token usageData
   const usageComputed = computed(() => {
     const s = session.value;
-    if (!s) return { percentage: 0, totalTokens: 0, contextWindow: 200000 };
+    if (!s) return { percentage: 0, inputTokens: 0, outputTokens: 0, contextWindow: 200000 };
 
     const usage = s.usageData.value;
-    const total = usage.totalTokens;
+    const total = usage.inputTokens + usage.outputTokens;
     const windowSize = usage.contextWindow || 200000;
     const percentage = (typeof total === 'number' && total > 0)
       ? Math.max(0, Math.min(100, (total / windowSize) * 100))
       : 0;
 
-    return { percentage, totalTokens: total, contextWindow: windowSize };
+    return { percentage, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, contextWindow: windowSize };
   });
 
   const progressPercentage = computed(() => usageComputed.value.percentage);
+  const inputTokens = computed(() => usageComputed.value.inputTokens);
+  const outputTokens = computed(() => usageComputed.value.outputTokens);
+  const showTokenUsage = computed(() => runtime.appContext.showTokenUsage);
 
   const contextTooltip = computed(() => {
-    const { totalTokens, contextWindow } = usageComputed.value;
+    const { inputTokens, outputTokens, contextWindow } = usageComputed.value;
+    const total = inputTokens + outputTokens;
     const fmt = (n: number) => {
       if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
       if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
       return `${n}`;
     };
-    return `${fmt(totalTokens)} / ${fmt(contextWindow)} context used`;
+    return `${fmt(total)} / ${fmt(contextWindow)} context used`;
   });
 
   // DOM refs

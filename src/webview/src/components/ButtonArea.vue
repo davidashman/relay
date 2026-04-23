@@ -26,11 +26,18 @@
 
       <!-- Right Section: Token Indicator + Action Buttons -->
       <div class="actions-section">
+        <!-- Token Usage Count -->
+        <span
+          v-if="showProgress && showTokenUsage && (inputTokens > 0 || outputTokens > 0)"
+          class="token-count-label"
+        >{{ formattedTokens }}</span>
+
         <!-- Token Indicator -->
         <TokenIndicator
           v-if="showProgress"
           :percentage="progressPercentage"
           :context-tooltip="contextTooltip"
+          :size="19"
         />
 
         <!-- Thinking Toggle Button -->
@@ -103,6 +110,9 @@ interface Props {
   showProgress?: boolean
   progressPercentage?: number
   contextTooltip?: string
+  inputTokens?: number
+  outputTokens?: number
+  showTokenUsage?: boolean
   thinkingEnabled?: boolean
   effortLevel?: string
   permissionMode?: PermissionMode
@@ -129,6 +139,9 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
+  inputTokens: 0,
+  outputTokens: 0,
+  showTokenUsage: true,
   thinkingEnabled: true,
   effortLevel: 'high',
   permissionMode: 'default'
@@ -137,6 +150,15 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const fileInputRef = ref<HTMLInputElement>()
+
+const formattedTokens = computed(() => {
+  const fmt = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+    return `${n}`
+  }
+  return `in: ${fmt(props.inputTokens)} / out: ${fmt(props.outputTokens)}`
+})
 
 
 const submitVariant = computed(() => {
@@ -301,6 +323,13 @@ function handleFileUpload(event: Event) {
   outline-offset: 1px;
 }
 
+.token-count-label {
+  font-size: 12px;
+  color: color-mix(in srgb,var(--vscode-foreground) 60%,transparent);
+  white-space: nowrap;
+  line-height: 1;
+  user-select: none;
+}
 
 .codicon-modifier-spin {
   animation: spin 1s linear infinite;

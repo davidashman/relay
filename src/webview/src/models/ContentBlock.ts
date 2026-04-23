@@ -102,6 +102,8 @@ export interface CompactionBlock {
   summary: string;
   preTokens?: number;
   trigger?: 'auto' | 'manual';
+  /** Text content of the isSynthetic user message injected after compaction. */
+  injectedContext?: string;
 }
 
 export type ContentBlockType =

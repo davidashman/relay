@@ -107,6 +107,7 @@ export async function handleInit(
     const defaultPermissionMode = vscodeConfig.get<string>('defaultPermissionMode') ?? 'default';
     const expandToolOutput = vscodeConfig.get<boolean>('expandToolOutput') ?? true;
     const showThinking = vscodeConfig.get<boolean>('showThinking') ?? false;
+    const showTokenUsage = vscodeConfig.get<boolean>('showTokenUsage') ?? true;
 
     const thinkingLevel = defaultThinkingLevel;
     const permissionMode = defaultPermissionMode;
@@ -123,7 +124,8 @@ export async function handleInit(
             effortLevel,
             permissionMode,
             expandToolOutput,
-            showThinking
+            showThinking,
+            showTokenUsage
         }
     };
 }

@@ -49,7 +49,8 @@ export interface UseSessionReturn {
   selection: Ref<SelectionRange | undefined>;
 
   usageData: Ref<{
-    totalTokens: number;
+    inputTokens: number;
+    outputTokens: number;
     totalCost: number;
     contextWindow: number;
   }>;

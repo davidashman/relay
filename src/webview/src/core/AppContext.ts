@@ -168,4 +168,9 @@ export class AppContext {
     const connection = this.connectionManager.connection();
     return connection?.config()?.showThinking ?? false;
   }
+
+  get showTokenUsage(): boolean {
+    const connection = this.connectionManager.connection();
+    return connection?.config()?.showTokenUsage ?? true;
+  }
 }
