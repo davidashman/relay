@@ -899,16 +899,19 @@ export class Session {
    * token
    */
   private updateUsage(usage: any): void {
+    // input_tokens already includes the full conversation context for this turn
+    // (the SDK re-sends all history), so we replace it with the latest value.
     const inputTokens =
       usage.input_tokens +
       (usage.cache_creation_input_tokens ?? 0) +
       (usage.cache_read_input_tokens ?? 0);
-    const outputTokens = usage.output_tokens ?? 0;
+    // output_tokens is only for the current response, so accumulate across turns.
+    const outputTokens = (usage.output_tokens ?? 0);
 
     const current = this.usageData();
     this.usageData({
       inputTokens,
-      outputTokens,
+      outputTokens: current.outputTokens + outputTokens,
       totalCost: current.totalCost,
       contextWindow: current.contextWindow
     });

@@ -296,10 +296,11 @@
     if (!s) return { percentage: 0, inputTokens: 0, outputTokens: 0, contextWindow: 200000 };
 
     const usage = s.usageData.value;
-    const total = usage.inputTokens + usage.outputTokens;
     const windowSize = usage.contextWindow || 200000;
-    const percentage = (typeof total === 'number' && total > 0)
-      ? Math.max(0, Math.min(100, (total / windowSize) * 100))
+    // inputTokens already reflects the full current context (SDK re-sends all
+    // history each turn), so use it alone for the context window percentage.
+    const percentage = (usage.inputTokens > 0)
+      ? Math.max(0, Math.min(100, (usage.inputTokens / windowSize) * 100))
       : 0;
 
     return { percentage, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, contextWindow: windowSize };
@@ -311,14 +312,13 @@
   const showTokenUsage = computed(() => runtime.appContext.showTokenUsage);
 
   const contextTooltip = computed(() => {
-    const { inputTokens, outputTokens, contextWindow } = usageComputed.value;
-    const total = inputTokens + outputTokens;
+    const { inputTokens, contextWindow } = usageComputed.value;
     const fmt = (n: number) => {
       if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
       if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
       return `${n}`;
     };
-    return `${fmt(total)} / ${fmt(contextWindow)} context used`;
+    return `${fmt(inputTokens)} / ${fmt(contextWindow)} context used`;
   });
 
   // DOM refs
