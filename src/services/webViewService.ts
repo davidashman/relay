@@ -116,6 +116,8 @@ export class WebViewService implements IWebViewService {
 	private readonly panelKeyToBaseTitle = new Map<string, string>();
 	/** Icon state for each chat panel: 'default' (orange), 'done' (green), 'pending' (blue) */
 	private readonly panelKeyToIconState = new Map<string, 'default' | 'done' | 'pending'>();
+	/** Monotonic counter used to generate unique panel keys within a single service lifetime */
+	private panelCounter = 0;
 
 	private static readonly PENDING_PREFIX = '● ';
 
@@ -305,7 +307,9 @@ export class WebViewService implements IWebViewService {
 		}
 
 		// Each panel gets a stable key that is independent of which session it currently shows.
-		const key = `panel-${Date.now()}`;
+		// Combine a monotonic counter with the timestamp so that keys are unique even when
+		// multiple panels are created synchronously in the same millisecond (e.g. during restore).
+		const key = `panel-${Date.now()}-${this.panelCounter++}`;
 
 		this.logService.info(`[WebViewService] : sessionId=${sessionId}, title=${title}`);
 
