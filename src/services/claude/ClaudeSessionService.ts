@@ -237,6 +237,8 @@ interface SessionData {
     sessionMessages: Map<string, Set<string>>;
     messages: Map<string, SessionMessage>;
     summaries: Map<string, string>;
+    /** agentId → messages from agent-<id>.jsonl files (Task subagent sessions) */
+    agentMessages: Map<string, SessionMessage[]>;
 }
 
 /**
@@ -251,7 +253,8 @@ async function loadProjectData(cwd: string, configDir: string): Promise<SessionD
         return {
             sessionMessages: new Map(),
             messages: new Map(),
-            summaries: new Map()
+            summaries: new Map(),
+            agentMessages: new Map()
         };
     }
 
@@ -320,10 +323,33 @@ async function loadProjectData(cwd: string, configDir: string): Promise<SessionD
         }
     }
 
+    // Load agent-*.jsonl files: Task subagent sessions named agent-<agentId>.jsonl.
+    // These are not UUID-named so validateSessionId skips them, but they contain
+    // the subagent turns that belong to a Task tool invocation in the main session.
+    const agentMessages = new Map<string, SessionMessage[]>();
+    const agentFiles = jsonlFiles.filter(f => {
+        const base = path.basename(f.name, ".jsonl");
+        return base.startsWith("agent-");
+    });
+    await Promise.all(agentFiles.map(async file => {
+        const agentId = path.basename(file.name, ".jsonl").slice("agent-".length);
+        try {
+            const msgs = (await readJSONL(file.name)).filter(
+                m => !m.isMeta && (m.type === "user" || m.type === "assistant")
+            );
+            if (msgs.length > 0) {
+                agentMessages.set(agentId, msgs);
+            }
+        } catch {
+            // ignore unreadable agent files
+        }
+    }));
+
     return {
         sessionMessages,
         messages: allMessages,
-        summaries: allSummaries
+        summaries: allSummaries,
+        agentMessages
     };
 }
 
@@ -456,15 +482,25 @@ export class ClaudeSessionService implements IClaudeSessionService {
             const mainTranscript = getTranscript(latestMain, data);
             const mainUuidSet = new Set(mainTranscript.map(m => m.uuid));
 
-            //  sidechain  Task  mainTranscript
+            // Collect subagent (sidechain) messages that belong to Task tool invocations
+            // in this session's main transcript. There are two storage formats:
+            //
+            // Legacy format: isSidechain=true messages mixed into UUID-named JSONL files,
+            // with parentUuid chains linking back to the main transcript.
+            //
+            // Current format: subagent sessions stored in agent-<id>.jsonl files.
+            // The link is: main session user message toolUseResult.agentId matches the
+            // agent file name. parentUuid is null on those messages so we cannot walk
+            // the chain — we identify them via the agentId.
             const toolUseCache = new Map<string, string>();
             const sidechainMessages: Array<{ msg: SessionMessage; parentToolUseId: string }> = [];
+
+            // Legacy path: isSidechain messages with parentUuid chains
             for (const msg of data.messages.values()) {
                 if (!msg.isSidechain) continue;
                 const parentToolUseId = resolveParentToolUseId(msg, data.messages, toolUseCache);
                 if (!parentToolUseId) continue;
 
-                //  Task tool_use  assistant
                 let cursor: SessionMessage | undefined = msg;
                 while (cursor?.isSidechain) {
                     cursor = cursor.parentUuid ? data.messages.get(cursor.parentUuid) : undefined;
@@ -472,6 +508,25 @@ export class ClaudeSessionService implements IClaudeSessionService {
                 if (!cursor || !mainUuidSet.has(cursor.uuid)) continue;
 
                 sidechainMessages.push({ msg, parentToolUseId });
+            }
+
+            // Current path: agent-<id>.jsonl files linked via toolUseResult.agentId
+            for (const msg of mainTranscript) {
+                if (msg.type !== "user") continue;
+                const agentId = (msg.toolUseResult as any)?.agentId;
+                if (!agentId) continue;
+
+                const content = msg.message?.content;
+                if (!Array.isArray(content)) continue;
+
+                for (const block of content) {
+                    if (block?.type !== "tool_result") continue;
+                    const parentToolUseId: string = block.tool_use_id;
+                    const agentMsgs = data.agentMessages.get(agentId) ?? [];
+                    for (const agentMsg of agentMsgs) {
+                        sidechainMessages.push({ msg: agentMsg, parentToolUseId });
+                    }
+                }
             }
 
             //  sidechain subagent

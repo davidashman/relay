@@ -67,9 +67,9 @@
             :key="index"
             :file-path="file"
             :context="context"
-            class="file-item"
           />
         </div>
+        <span v-if="truncated" class="truncated-notice">Results are truncated. Consider using a more specific path or pattern.</span>
       </div>
 
       <ToolError :tool-result="toolResult" />
@@ -116,6 +116,8 @@ const hasFlags = computed(() => {
   return caseInsensitive.value || multiline.value || showLineNumbers.value || contextLines.value || headLimit.value;
 });
 
+const TRUNCATED_RE = /Results are truncated/i;
+
 const resultFiles = computed(() => {
   if (!props.toolResult?.content) return [];
 
@@ -123,11 +125,19 @@ const resultFiles = computed(() => {
 
   if (typeof content === 'string') {
     const lines = content.split('\n').filter(line => line.trim());
-    // "Found X files"
-    return lines.filter(line => !line.match(/^Found \d+ files?$/i));
+    return lines
+      .filter(line => !line.match(/^Found \d+ files?$/i) && !TRUNCATED_RE.test(line))
+      .sort((a, b) => a.localeCompare(b));
   }
 
   return [];
+});
+
+const truncated = computed(() => {
+  const content = props.toolResult?.content;
+  if (!content) return false;
+  if (typeof content === 'string') return TRUNCATED_RE.test(content);
+  return false;
 });
 
 const fileCount = computed(() => resultFiles.value.length);
@@ -223,7 +233,12 @@ const fileCount = computed(() => resultFiles.value.length);
 
 .file-list {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 4px;
+}
+
+.truncated-notice {
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
+  font-style: italic;
 }
 </style>

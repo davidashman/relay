@@ -381,6 +381,7 @@
     prevCount = 0;
     await nextTick();
     scrollToBottom(true); // Force scroll on session change
+    chatInputRef.value?.focus();
   });
 
   // moved above

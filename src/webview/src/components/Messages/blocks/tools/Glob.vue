@@ -14,7 +14,7 @@
         <span class="detail-value">{{ globPath }}</span>
       </div>
 
-      <div v-if="resultFiles.length > 0" class="detail-item">
+      <div v-if="resultFiles.length > 0" class="results-section">
         <div class="detail-label">
           <span>Found {{ fileCount }} files:</span>
         </div>
@@ -24,9 +24,9 @@
             :key="index"
             :file-path="file"
             :context="context"
-            class="file-item"
           />
         </div>
+        <span v-if="truncated" class="truncated-notice">Results are truncated. Consider using a more specific path or pattern.</span>
       </div>
 
       <ToolError :tool-result="toolResult" />
@@ -58,20 +58,30 @@ const globPath = computed(() => {
   return props.toolUse?.input?.path || '.';
 });
 
+const TRUNCATED_RE = /Results are truncated/i;
+
 const resultFiles = computed(() => {
   if (!props.toolResult?.content) return [];
 
   const content = props.toolResult.content;
 
   if (Array.isArray(content)) {
-    return content;
+    return [...content].filter(item => !TRUNCATED_RE.test(item)).sort((a, b) => a.localeCompare(b));
   }
 
   if (typeof content === 'string') {
-    return content.split('\n').filter(line => line.trim());
+    return content.split('\n').filter(line => line.trim() && !TRUNCATED_RE.test(line)).sort((a, b) => a.localeCompare(b));
   }
 
   return [];
+});
+
+const truncated = computed(() => {
+  const content = props.toolResult?.content;
+  if (!content) return false;
+  if (Array.isArray(content)) return content.some(item => TRUNCATED_RE.test(item));
+  if (typeof content === 'string') return TRUNCATED_RE.test(content);
+  return false;
 });
 
 const fileCount = computed(() => resultFiles.value.length);
@@ -108,7 +118,6 @@ const fileCount = computed(() => resultFiles.value.length);
 .detail-label {
   color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
   font-weight: 500;
-  min-width: 80px;
 }
 
 .detail-value {
@@ -117,14 +126,22 @@ const fileCount = computed(() => resultFiles.value.length);
   word-break: break-all;
 }
 
-.file-list {
+.results-section {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 0.85em;
+}
+
+.file-list {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
-.file-item {
-  /* background-color: color-mix(in srgb, var(--vscode-foreground) 5%, transparent); */
-  font-size: 1em;
+.truncated-notice {
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
+  font-style: italic;
 }
 </style>

@@ -853,6 +853,12 @@ export class Session {
           }
         }
       }
+
+      // Include subagent token usage in session totals, but don't update
+      // contextTokens — subagents have their own independent context windows.
+      if (event.message.usage) {
+        this.updateUsage(event.message.usage, false);
+      }
     } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
       for (const block of event.message.content) {
         if (block?.type === 'tool_result') {
@@ -899,8 +905,11 @@ export class Session {
 
   /**
    * token
+   * updateContextTokens: set false for subagent turns whose context window is
+   * independent of the main session — accumulate totals but don't update the
+   * context-window-fill meter.
    */
-  private updateUsage(usage: any): void {
+  private updateUsage(usage: any, updateContextTokens = true): void {
     // The SDK re-sends the full conversation context each turn, so each call's
     // input_tokens represents the entire context at that point — accumulate all
     // of them to get the true session total.  contextTokens tracks only the
@@ -915,7 +924,7 @@ export class Session {
     this.usageData({
       inputTokens: current.inputTokens + turnInput,
       outputTokens: current.outputTokens + turnOutput,
-      contextTokens: turnInput,
+      contextTokens: updateContextTokens ? turnInput : current.contextTokens,
       totalCost: current.totalCost,
       contextWindow: current.contextWindow
     });

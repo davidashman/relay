@@ -28,7 +28,7 @@
       <div class="actions-section">
         <!-- Token Usage Count -->
         <span
-          v-if="showProgress && showTokenUsage && (inputTokens > 0 || outputTokens > 0)"
+          v-if="showProgress && showTokenUsage"
           class="token-count-label"
         >{{ formattedTokens }}</span>
 
