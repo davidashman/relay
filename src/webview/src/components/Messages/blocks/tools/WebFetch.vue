@@ -6,8 +6,8 @@
   >
     <template #main>
       <span class="tool-label">Fetch</span>
-      <a v-if="url" :href="url" target="_blank" class="url-link" @click.stop>
-        {{ displayUrl }}
+      <a v-if="url" :href="url" :title="url" target="_blank" class="url-link" @click.stop>
+        {{ url }}
       </a>
       <span v-if="statusCode" class="status-badge" :class="statusClass">
         {{ statusCode }} {{ codeText }}
@@ -87,10 +87,6 @@ const codeText = computed(() => {
   return props.toolUseResult?.codeText;
 });
 
-const durationMs = computed(() => {
-  return props.toolUseResult?.durationMs;
-});
-
 const statusClass = computed(() => {
   if (!statusCode.value) return '';
   const code = statusCode.value;
@@ -99,25 +95,6 @@ const statusClass = computed(() => {
   if (code >= 400 && code < 500) return 'status-client-error';
   if (code >= 500) return 'status-server-error';
   return '';
-});
-
-// URL
-const displayUrl = computed(() => {
-  if (!url.value) return '';
-  try {
-    const urlObj = new URL(url.value);
-    const hostname = urlObj.hostname;
-    const pathname = urlObj.pathname;
-
-    if (pathname.length > 30) {
-      return `${hostname}${pathname.substring(0, 27)}...`;
-    }
-
-    return `${hostname}${pathname}`;
-  } catch {
-    // URL URL
-    return url.value.length > 50 ? url.value.substring(0, 47) + '...' : url.value;
-  }
 });
 
 const isPermissionRequest = computed(() => {
@@ -150,6 +127,10 @@ const shouldExpand = computed(() => {
   color: var(--vscode-textLink-foreground);
   text-decoration: none;
   font-size: 1em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .url-link:hover {
@@ -164,6 +145,7 @@ const shouldExpand = computed(() => {
   font-size: 1em;
   font-weight: 500;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .status-success {

@@ -84,7 +84,6 @@
             @send-now="handleQueueSendNow"
           />
           <ChatInputBox
-            v-show="!(pendingPermission && toolContext)"
             ref="chatInputRef"
             :show-progress="true"
             :progress-percentage="progressPercentage"

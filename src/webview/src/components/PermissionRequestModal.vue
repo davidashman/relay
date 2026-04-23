@@ -8,7 +8,7 @@
     <div class="tool-title">
       <span class="codicon" :class="toolIcon"></span>
       <span class="tool-name">{{ toolLabel }}</span>
-      <span v-if="toolDescription" class="tool-description">{{ toolDescription }}</span>
+      <span v-if="toolDescription" class="tool-description" :title="toolDescription">{{ toolDescription }}</span>
     </div>
     <div class="permission-header">Do you approve?</div>
     <input
@@ -91,7 +91,17 @@ const TOOL_ICONS: Record<string, string> = {
 
 const toolIcon = computed(() => TOOL_ICONS[props.request.toolName] ?? 'codicon-tools');
 
-const toolLabel = computed(() => props.request.toolName);
+const TOOL_LABELS: Record<string, string> = {
+  MultiEdit: 'Edit',
+  TodoWrite: 'Todo',
+  WebFetch: 'Fetch',
+  WebSearch: 'Search',
+  KillShell: 'Kill Shell',
+  NotebookEdit: 'Notebook Edit',
+  ExitPlanMode: 'Plan Mode',
+};
+
+const toolLabel = computed(() => TOOL_LABELS[props.request.toolName] ?? props.request.toolName);
 
 const toolDescription = computed(() => {
   const inputs = props.request.inputs as Record<string, unknown>;
@@ -99,7 +109,7 @@ const toolDescription = computed(() => {
   if (name === 'Bash' || name === 'Task') return (inputs.description as string) || '';
   if (name === 'WebSearch') return (inputs.query as string) || '';
   if (name === 'WebFetch') {
-    try { return new URL(inputs.url as string).hostname; } catch { return ''; }
+    return (inputs.url as string) || '';
   }
   if (name === 'Glob') return (inputs.pattern as string) || '';
   if (name === 'Grep') return (inputs.pattern as string) || '';
@@ -192,9 +202,9 @@ useKeybinding([
 }
 
 .tool-description {
-  font-size: 0.85em;
+  font-size: 1em;
   font-style: italic;
-  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
