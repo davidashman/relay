@@ -293,17 +293,17 @@
   // Token usageData
   const usageComputed = computed(() => {
     const s = session.value;
-    if (!s) return { percentage: 0, inputTokens: 0, outputTokens: 0, contextWindow: 200000 };
+    if (!s) return { percentage: 0, inputTokens: 0, outputTokens: 0, contextTokens: 0, contextWindow: 200000 };
 
     const usage = s.usageData.value;
     const windowSize = usage.contextWindow || 200000;
-    // inputTokens already reflects the full current context (SDK re-sends all
-    // history each turn), so use it alone for the context window percentage.
-    const percentage = (usage.inputTokens > 0)
-      ? Math.max(0, Math.min(100, (usage.inputTokens / windowSize) * 100))
+    // contextTokens is the latest turn's input — the true measure of how full
+    // the context window is right now (not the cumulative session total).
+    const percentage = (usage.contextTokens > 0)
+      ? Math.max(0, Math.min(100, (usage.contextTokens / windowSize) * 100))
       : 0;
 
-    return { percentage, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, contextWindow: windowSize };
+    return { percentage, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, contextTokens: usage.contextTokens, contextWindow: windowSize };
   });
 
   const progressPercentage = computed(() => usageComputed.value.percentage);
@@ -312,13 +312,13 @@
   const showTokenUsage = computed(() => runtime.appContext.showTokenUsage);
 
   const contextTooltip = computed(() => {
-    const { inputTokens, contextWindow } = usageComputed.value;
+    const { contextTokens, contextWindow } = usageComputed.value;
     const fmt = (n: number) => {
       if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
       if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
       return `${n}`;
     };
-    return `${fmt(inputTokens)} / ${fmt(contextWindow)} context used`;
+    return `${fmt(contextTokens)} / ${fmt(contextWindow)} context used`;
   });
 
   // DOM refs

@@ -51,6 +51,7 @@ export interface UseSessionReturn {
   usageData: Ref<{
     inputTokens: number;
     outputTokens: number;
+    contextTokens: number;
     totalCost: number;
     contextWindow: number;
   }>;

@@ -23,8 +23,9 @@ export interface SelectionRange {
 }
 
 export interface UsageData {
-  inputTokens: number;
-  outputTokens: number;
+  inputTokens: number;   // cumulative session total (all turns × full context re-send)
+  outputTokens: number;  // cumulative session total
+  contextTokens: number; // latest turn's input only — used for context window meter
   totalCost: number;
   contextWindow: number;
 }
@@ -119,6 +120,7 @@ export class Session {
   readonly usageData = signal<UsageData>({
     inputTokens: 0,
     outputTokens: 0,
+    contextTokens: 0,
     totalCost: 0,
     contextWindow: 200000
   });
@@ -899,19 +901,21 @@ export class Session {
    * token
    */
   private updateUsage(usage: any): void {
-    // input_tokens already includes the full conversation context for this turn
-    // (the SDK re-sends all history), so we replace it with the latest value.
-    const inputTokens =
+    // The SDK re-sends the full conversation context each turn, so each call's
+    // input_tokens represents the entire context at that point — accumulate all
+    // of them to get the true session total.  contextTokens tracks only the
+    // latest turn's input for the context-window-fill meter.
+    const turnInput =
       usage.input_tokens +
       (usage.cache_creation_input_tokens ?? 0) +
       (usage.cache_read_input_tokens ?? 0);
-    // output_tokens is only for the current response, so accumulate across turns.
-    const outputTokens = (usage.output_tokens ?? 0);
+    const turnOutput = usage.output_tokens ?? 0;
 
     const current = this.usageData();
     this.usageData({
-      inputTokens,
-      outputTokens: current.outputTokens + outputTokens,
+      inputTokens: current.inputTokens + turnInput,
+      outputTokens: current.outputTokens + turnOutput,
+      contextTokens: turnInput,
       totalCost: current.totalCost,
       contextWindow: current.contextWindow
     });
