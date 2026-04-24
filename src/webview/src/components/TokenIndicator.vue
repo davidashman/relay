@@ -2,7 +2,7 @@
   <Tooltip :content="tooltipText" side="top" :side-offset="6">
     <div
       class="progress-container"
-      :style="{ width: size, height: size }"
+      :style="{ width: size, height: size, paddingBottom: `${STROKE_WIDTH}px` }"
     >
       <div class="progress-circle">
         <svg :width="size" :height="size" class="progress-svg">
@@ -90,7 +90,6 @@ const strokeColor = computed(() => {
 .progress-container {
   display: flex;
   align-items: center;
-  padding-bottom: 1px;
 }
 
 .progress-svg {

@@ -3,9 +3,10 @@
     tool-icon="codicon-search"
     :tool-result="toolResult"
   >
-    <template #main>
+    <template #main="{ isExpanded }">
       <span class="tool-label">Glob</span>
       <code v-if="pattern" class="pattern-text">{{ pattern }}</code>
+      <span v-if="toolResult && !isExpanded" class="result-summary">{{ fileCount }} {{ fileCount === 1 ? 'file' : 'files' }}</span>
     </template>
 
     <template #expandable>
@@ -27,6 +28,9 @@
           />
         </div>
         <span v-if="truncated" class="truncated-notice">Results are truncated. Consider using a more specific path or pattern.</span>
+      </div>
+      <div v-else-if="toolResult" class="results-section">
+        <div class="detail-label">Found 0 files</div>
       </div>
 
       <ToolError :tool-result="toolResult" />
@@ -106,6 +110,11 @@ const fileCount = computed(() => resultFiles.value.length);
   font-weight: 500;
   font-size: 1em;
   line-height: 1;
+}
+
+.result-summary {
+  font-size: 0.85em;
+  color: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
 }
 
 .detail-item {

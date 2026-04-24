@@ -29,15 +29,17 @@ interface SessionMessage {
     parentUuid?: string;
     timestamp: string;
     type: "user" | "assistant" | "attachment" | "system" | "summary";
+    subtype?: string;
     message?: any;
     isMeta?: boolean;
     isSidechain?: boolean;
+    isCompactSummary?: boolean;
     leafUuid?: string;
     summary?: string;
     toolUseResult?: any;
     gitBranch?: string;
     cwd?: string;
-
+    compactMetadata?: { trigger?: string; preTokens?: number };
 }
 
 /**
@@ -129,7 +131,11 @@ function convertMessage(msg: SessionMessage, parentToolUseId: string | null = nu
             message: msg.message,
             session_id: msg.uuid,
             parent_tool_use_id: parentToolUseId,
-            toolUseResult: msg.toolUseResult
+            toolUseResult: msg.toolUseResult,
+            // Map JSONL isCompactSummary to the SDK's isSynthetic flag so the
+            // webview's compaction-interception logic can suppress/fold this
+            // message the same way it does for live-stream events.
+            ...(msg.isCompactSummary ? { isSynthetic: true } : {}),
         };
     }
 
@@ -140,6 +146,20 @@ function convertMessage(msg: SessionMessage, parentToolUseId: string | null = nu
             session_id: msg.uuid,
             parent_tool_use_id: parentToolUseId,
             uuid: msg.message?.id
+        };
+    }
+
+    // Pass compact_boundary through so the webview can create a CompactionBlock
+    // when restoring a session that was previously compacted.  All other system
+    // and attachment records are dropped (they are not renderable).
+    if (msg.type === "system" && msg.subtype === "compact_boundary") {
+        return {
+            type: "system",
+            subtype: "compact_boundary",
+            compact_metadata: msg.compactMetadata
+                ? { trigger: msg.compactMetadata.trigger, pre_tokens: msg.compactMetadata.preTokens }
+                : undefined,
+            session_id: msg.uuid,
         };
     }
 

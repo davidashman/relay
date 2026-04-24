@@ -398,6 +398,16 @@
     }
   );
 
+  watch(
+    () => outboundQueue.value.length,
+    async (len, prevLen) => {
+      if (len > prevLen) {
+        await nextTick();
+        scrollToBottom(true);
+      }
+    }
+  );
+
   watch(permissionRequestsLen, async (newLen) => {
     await nextTick();
     scrollToBottom(); // Only auto-scroll if near bottom

@@ -274,6 +274,9 @@ export class Session {
       const connection = await this.getConnection();
       const response = await connection.getSession(sessionId);
       const accumulator: Message[] = [];
+      // Holds the most-recently-created CompactionBlock so the isSynthetic
+      // message that follows can attach its text as injectedContext.
+      let pendingRestoredCompactionWrapper: ContentBlockWrapper | undefined;
       for (const raw of response?.messages ?? []) {
         // Subagent (sidechain) messages: hoist their tool_use/tool_result
         // blocks onto the parent Task wrapper's childTools instead of
@@ -283,6 +286,46 @@ export class Session {
           raw.parent_tool_use_id != null
         ) {
           this.attachSubagentMessage(raw, accumulator);
+          continue;
+        }
+
+        // Compaction: compact_boundary → create a CollapsibleBlock.
+        if (raw?.type === 'system' && raw?.subtype === 'compact_boundary') {
+          const block = new ContentBlockWrapper({
+            type: 'compaction',
+            summary: '',
+            preTokens: raw.compact_metadata?.pre_tokens,
+            trigger: raw.compact_metadata?.trigger,
+          });
+          pendingRestoredCompactionWrapper = block;
+          const msg = new MessageModel(
+            'compaction',
+            { role: 'system', content: [block] },
+            Date.now(),
+          );
+          accumulator.push(msg as Message);
+          continue;
+        }
+
+        // Compaction: isSynthetic/isCompactSummary user message → attach as
+        // injectedContext.  isSynthetic is set by convertMessage (main path);
+        // isCompactSummary is the raw JSONL field (direct .jsonl import path).
+        if (raw?.type === 'user' && ((raw as any).isSynthetic === true || (raw as any).isCompactSummary === true)) {
+          if (pendingRestoredCompactionWrapper) {
+            const parts: string[] = [];
+            if (Array.isArray(raw.message?.content)) {
+              for (const part of raw.message.content) {
+                if (part?.type === 'text' && typeof part.text === 'string' && part.text.length > 0) {
+                  parts.push(part.text);
+                }
+              }
+            }
+            if (parts.length > 0) {
+              (pendingRestoredCompactionWrapper.content as CompactionBlock).injectedContext =
+                parts.join('\n\n');
+            }
+            pendingRestoredCompactionWrapper = undefined;
+          }
           continue;
         }
 
@@ -910,21 +953,30 @@ export class Session {
    * context-window-fill meter.
    */
   private updateUsage(usage: any, updateContextTokens = true): void {
-    // The SDK re-sends the full conversation context each turn, so each call's
-    // input_tokens represents the entire context at that point — accumulate all
-    // of them to get the true session total.  contextTokens tracks only the
-    // latest turn's input for the context-window-fill meter.
+    // Apply pricing multipliers so inputTokens reflects cost-equivalent tokens:
+    //   cache writes: 1.25× (5-min TTL) or 2.0× (1-hour TTL)
+    //   cache reads:  0.1×
+    //   regular input: 1.0×
+    const cacheCreation = usage.cache_creation
+      ? (usage.cache_creation.ephemeral_5m_input_tokens ?? 0) * 1.25
+        + (usage.cache_creation.ephemeral_1h_input_tokens ?? 0) * 2.0
+      : (usage.cache_creation_input_tokens ?? 0) * 1.25;
     const turnInput =
-      usage.input_tokens +
-      (usage.cache_creation_input_tokens ?? 0) +
-      (usage.cache_read_input_tokens ?? 0);
+      (usage.input_tokens ?? 0)
+      + cacheCreation
+      + (usage.cache_read_input_tokens ?? 0) * 0.1;
+    // Raw context size (unweighted) for the context-window-fill meter.
+    const turnContext =
+      (usage.input_tokens ?? 0)
+      + (usage.cache_creation_input_tokens ?? 0)
+      + (usage.cache_read_input_tokens ?? 0);
     const turnOutput = usage.output_tokens ?? 0;
 
     const current = this.usageData();
     this.usageData({
       inputTokens: current.inputTokens + turnInput,
       outputTokens: current.outputTokens + turnOutput,
-      contextTokens: updateContextTokens ? turnInput : current.contextTokens,
+      contextTokens: updateContextTokens ? turnContext : current.contextTokens,
       totalCost: current.totalCost,
       contextWindow: current.contextWindow
     });
