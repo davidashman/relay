@@ -93,6 +93,14 @@ export class Session {
   // that a subsequent `result` event from the SDK (which may or may not arrive)
   // is absorbed without double-decrementing a subsequent user turn's counter.
   private compactResultExpected = false;
+  // Stores the last non-slash user message sent to the SDK. If auto-compaction
+  // absorbs that turn before the SDK answers, compact_boundary re-submits it
+  // silently (no UI add) so the user gets a response.
+  private pendingReplayMessage: {
+    input: string;
+    attachments: AttachmentPayload[];
+    selectionPayload?: SelectionRange;
+  } | undefined;
 
   readonly connection = signal<BaseTransport | undefined>(undefined);
 
@@ -414,6 +422,8 @@ export class Session {
     // render them as visible user messages in the thread.
     if (messageModel && !isSlash) {
       this.messages([...this.messages(), messageModel]);
+      // Track for silent replay if auto-compaction absorbs this turn.
+      this.pendingReplayMessage = { input, attachments, selectionPayload };
     }
 
     if (!this.summary()) {
@@ -462,6 +472,20 @@ export class Session {
     if (this.outstandingTurns() === 0) {
       void this.drainOutboundQueue();
     }
+  }
+
+  /** Re-send a message to the SDK after auto-compaction without adding it to the UI. */
+  private async replayAfterCompaction(
+    input: string,
+    attachments: AttachmentPayload[],
+    selectionPayload?: SelectionRange
+  ): Promise<void> {
+    const connection = await this.getConnection();
+    const channelId = this.claudeChannelId();
+    if (!channelId) return;
+    const userMessage = this.buildUserMessage(input, attachments, selectionPayload);
+    this.incrementOutstandingTurns();
+    connection.sendInput(channelId, userMessage, false);
   }
 
   /** Pop the oldest queued message and push it into the SDK. */
@@ -540,6 +564,7 @@ export class Session {
     // counter and drop any queued work now so the UI recovers immediately
     // rather than waiting on the stream to tear down.
     this.resetOutstandingTurns();
+    this.pendingReplayMessage = undefined;
     this.hasActiveTool(false);
     this.streamingText(undefined);
     this.outboundQueue([]);
@@ -711,6 +736,7 @@ export class Session {
           void this.drainOutboundQueue();
         }
       } else {
+        this.pendingReplayMessage = undefined;
         this.decrementOutstandingTurns();
         if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
           void this.drainOutboundQueue();
@@ -849,17 +875,25 @@ export class Session {
       const next = [...baseMessages, msg] as Message[];
       this.messages(next);
 
-      // The /compact turn is consumed by the compaction itself — the SDK may
-      // not emit a `result` event for it.  Settle the outstanding-turn counter
-      // now so the thread doesn't get stuck in a permanent "busy" state.
-      // If a `result` does arrive later, compactResultExpected=true causes the
-      // result handler to absorb it without double-decrementing a subsequent
-      // user turn's counter.
+      // The compact turn is consumed by compaction itself. Settle the counter
+      // now so the thread doesn't get stuck busy.
+      //
+      // If a real user message was in flight when auto-compact fired, replay it
+      // silently (no UI add) so the SDK answers it in the new compact session.
+      //
+      // For manual /compact there's no message to replay; set compactResultExpected
+      // so any stray `result` event that arrives is absorbed harmlessly.
       if (this.outstandingTurns() > 0) {
         this.decrementOutstandingTurns();
-        this.compactResultExpected = true;
-        if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
-          void this.drainOutboundQueue();
+        const replayMsg = this.pendingReplayMessage;
+        this.pendingReplayMessage = undefined;
+        if (replayMsg) {
+          void this.replayAfterCompaction(replayMsg.input, replayMsg.attachments, replayMsg.selectionPayload);
+        } else {
+          this.compactResultExpected = true;
+          if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
+            void this.drainOutboundQueue();
+          }
         }
       }
       return;
