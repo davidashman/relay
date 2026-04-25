@@ -29,6 +29,7 @@ import type { ContentBlockWrapper } from '../../models/ContentBlockWrapper';
 import ContentBlock from './ContentBlock.vue';
 import ToolGroup from './blocks/ToolGroup.vue';
 import { RuntimeKey } from '../../composables/runtimeContext';
+import { isGroupableTool } from '../../utils/toolGroups';
 
 interface Props {
   message: Message;
@@ -69,12 +70,8 @@ type Segment =
   | { type: 'single'; wrapper: ContentBlockWrapper }
   | { type: 'tool-group'; wrappers: ContentBlockWrapper[] };
 
-// Edit, Write, and Task always stand alone — they break any current group and are never grouped.
-// Task renders as its own inline group (with subagent tool calls indented under the header).
-const STANDALONE_TOOLS = new Set(['Edit', 'Write', 'Task', 'Agent']);
-
 // Group consecutive tool_use blocks into ToolGroup segments.
-// Edit/Write break out of groups and render individually, starting a fresh group after them.
+// Standalone tools break out of groups and render individually.
 const segments = computed((): Segment[] => {
   const content = props.message.message.content;
   if (typeof content === 'string' || !Array.isArray(content)) return [];
@@ -83,7 +80,7 @@ const segments = computed((): Segment[] => {
   let currentGroup: ContentBlockWrapper[] | null = null;
 
   for (const wrapper of content) {
-    if (wrapper.content.type === 'tool_use' && STANDALONE_TOOLS.has(wrapper.content.name)) {
+    if (wrapper.content.type === 'tool_use' && !isGroupableTool(wrapper.content.name)) {
       // Close any open group, then render this tool standalone
       if (currentGroup) {
         result.push({ type: 'tool-group', wrappers: currentGroup });

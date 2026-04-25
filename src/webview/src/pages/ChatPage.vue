@@ -135,6 +135,7 @@
   import ToolGroup from '../components/Messages/blocks/ToolGroup.vue';
   import type { ContentBlockWrapper } from '../models/ContentBlockWrapper';
   import { useKeybinding } from '../utils/useKeybinding';
+  import { isGroupableTool } from '../utils/toolGroups';
   import { useSignal } from '@gn8/alien-signals-vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
   import { prepareSendAnimation, captureQueueItemSnapshot, type SendSnapshot } from '../composables/useSendAnimation';
@@ -179,8 +180,6 @@
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
 
   // Only these tool types are collapsed into a group; others render individually
-  const GROUPABLE_TOOLS = new Set(['Bash', 'BashOutput', 'Glob', 'Grep', 'Read', 'WebFetch', 'WebSearch', 'Write']);
-
   // True if the message contains only groupable tool_use blocks (ignoring empty text
   // and thinking blocks, which the Claude API commonly emits alongside tool_use on reload).
   function isToolOnlyAssistantMessage(msg: any): boolean {
@@ -192,7 +191,7 @@
     for (const w of content) {
       const type = w?.content?.type;
       if (type === 'tool_use') {
-        if (!GROUPABLE_TOOLS.has(w?.content?.name)) return false;
+        if (!isGroupableTool(w?.content?.name)) return false;
         hasGroupableTool = true;
       } else if (type === 'text') {
         // Ignore empty text blocks (Claude often emits these alongside tool_use)
