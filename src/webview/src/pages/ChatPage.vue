@@ -45,7 +45,8 @@
                 />
               </template>
             <!-- </div> -->
-            <div v-if="isBusy && !pendingPermission" class="spinnerRow">
+            <StreamingMessage v-if="streamingText" :text="streamingText" />
+            <div v-if="isBusy && !pendingPermission && !streamingText" class="spinnerRow">
               <Spinner :size="18" :permission-mode="permissionMode" :label="spinnerLabel" />
             </div>
             <div ref="endEl" />
@@ -130,6 +131,7 @@
   import ClaudeWordmark from '../components/ClaudeWordmark.vue';
   import RandomTip from '../components/RandomTip.vue';
   import MessageRenderer from '../components/Messages/MessageRenderer.vue';
+  import StreamingMessage from '../components/Messages/StreamingMessage.vue';
   import ToolGroup from '../components/Messages/blocks/ToolGroup.vue';
   import type { ContentBlockWrapper } from '../models/ContentBlockWrapper';
   import { useKeybinding } from '../utils/useKeybinding';
@@ -279,10 +281,9 @@
   const isBusy = computed(() => session.value?.busy.value ?? false);
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
   const currentThinking = computed(() => session.value?.currentThinking.value);
-  const isReceiving = computed(() => !!session.value?.streamingText.value);
+  const streamingText = computed(() => session.value?.streamingText.value);
   const spinnerLabel = computed(() => {
     if (isCompacting.value) return 'Compacting...';
-    if (isReceiving.value) return 'Receiving...';
     if (currentThinking.value) return 'Thinking...';
     return 'Working...';
   });
@@ -396,6 +397,7 @@
   // Scroll to bottom on any messages change (new messages or content updates within
   // existing messages) and when the spinner appears — but only if already at bottom.
   watch(messages, () => { scrollToBottom(); }, { flush: 'post' });
+  watch(streamingText, () => { scrollToBottom(); }, { flush: 'post' });
   watch(isBusy, (newVal) => { if (newVal) scrollToBottom(); }, { flush: 'post' });
 
   watch(

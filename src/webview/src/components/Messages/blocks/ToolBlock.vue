@@ -30,7 +30,7 @@ import McpTool from './tools/McpTool.vue';
 import MultiEditTool from './tools/MultiEdit.vue';
 import NotebookEditTool from './tools/NotebookEdit.vue';
 import SlashCommandTool from './tools/SlashCommand.vue';
-import TaskTool from './tools/Task.vue';
+import AgentTool from './tools/Agent.vue';
 import TodoWriteTool from './tools/TodoWrite.vue';
 import WebFetchTool from './tools/WebFetch.vue';
 import WebSearchTool from './tools/WebSearch.vue';
@@ -97,8 +97,9 @@ const toolComponent = computed(() => {
       return NotebookEditTool;
     case 'SlashCommand':
       return SlashCommandTool;
+    case 'Agent':
     case 'Task':
-      return TaskTool;
+      return AgentTool;
     case 'TodoWrite':
       return TodoWriteTool;
     case 'WebFetch':

@@ -106,7 +106,7 @@ const toolLabel = computed(() => TOOL_LABELS[props.request.toolName] ?? props.re
 const toolDescription = computed(() => {
   const inputs = props.request.inputs as Record<string, unknown>;
   const name = props.request.toolName;
-  if (name === 'Bash' || name === 'Task') return (inputs.description as string) || '';
+  if (name === 'Bash' || name === 'Task' || name === 'Agent') return (inputs.description as string) || '';
   if (name === 'WebSearch') return (inputs.query as string) || '';
   if (name === 'WebFetch') {
     return (inputs.url as string) || '';

@@ -201,7 +201,7 @@ function resolveParentToolUseId(
     if (!Array.isArray(content)) return undefined;
 
     const taskUse = content.find(
-        (b: any) => b?.type === 'tool_use' && b?.name === 'Task'
+        (b: any) => b?.type === 'tool_use' && (b?.name === 'Task' || b?.name === 'Agent')
     );
     const id: string | undefined = taskUse?.id;
     if (id) cache.set(msg.uuid, id);
