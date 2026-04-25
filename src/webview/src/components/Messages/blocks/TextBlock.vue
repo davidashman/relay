@@ -73,7 +73,7 @@ const renderedMarkdown = computed(() => {
 <style scoped>
 .text-block {
   margin: 0;
-  padding: 0px 2px;
+  padding: 0;
 }
 
 .markdown-content {
@@ -82,6 +82,7 @@ const renderedMarkdown = computed(() => {
   color: var(--vscode-editor-foreground);
   word-wrap: break-word;
   user-select: text;
+  padding: 0 2px;
 }
 
 .slash-command-text {

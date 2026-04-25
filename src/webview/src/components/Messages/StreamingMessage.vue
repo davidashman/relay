@@ -39,6 +39,7 @@ const renderedMarkdown = computed(() => marked.parse(props.text) as string);
   color: var(--vscode-editor-foreground);
   word-wrap: break-word;
   user-select: text;
+  padding: 0 2px;
 }
 
 .markdown-content :deep(p) {
