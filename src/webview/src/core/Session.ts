@@ -137,6 +137,7 @@ export class Session {
   readonly outboundQueue = signal<QueuedMessage[]>([]);
   readonly currentThinking = signal<string | undefined>(undefined);
   readonly hasActiveTool = signal(false);
+  readonly streamingText = signal<string | undefined>(undefined);
 
   readonly claudeConfig = computed(() => {
     const conn = this.connection();
@@ -540,6 +541,7 @@ export class Session {
     // rather than waiting on the stream to tear down.
     this.resetOutstandingTurns();
     this.hasActiveTool(false);
+    this.streamingText(undefined);
     this.outboundQueue([]);
   }
 
@@ -679,6 +681,7 @@ export class Session {
       // a `result` are orphaned. Reset unconditionally so the UI recovers.
       this.resetOutstandingTurns();
       this.hasActiveTool(false);
+      this.streamingText(undefined);
       // Don't drop the outbound queue here — if the stream ended because the
       // SDK naturally closed between turns, we still want the next queued
       // entry to drain when the channel comes back up. `interrupt()` is the
@@ -688,12 +691,18 @@ export class Session {
   }
 
   private processIncomingMessage(event: any): void {
+    const detail = event?.type === 'stream_event'
+      ? `stream_event/${event.event?.type}${event.event?.delta?.type ? `/${event.event.delta.type}` : ''}`
+      : event?.type;
+    console.log('[Session] io_message:', detail);
+
     // Settle counter FIRST, before heavier processing that might throw.
     // If we crash rendering a `result`, we still want the spinner to stop
     // and the queue to drain.
     if (event?.type === 'result') {
       this.currentThinking(undefined);
       this.hasActiveTool(false);
+      this.streamingText(undefined);
       if (this.compactResultExpected) {
         // compact_boundary already settled the compact turn — absorb this result
         // without touching outstandingTurns so subsequent user turns aren't miscounted.
@@ -707,6 +716,20 @@ export class Session {
           void this.drainOutboundQueue();
         }
       }
+    }
+
+    // Streaming partial text deltas — accumulate into streamingText for live preview.
+    // These are emitted because includePartialMessages: true; cleared when the
+    // complete assistant message arrives.
+    if (event?.type === 'stream_event') {
+      const sdkEvent = event.event;
+      if (sdkEvent?.type === 'content_block_delta' && sdkEvent.delta?.type === 'text_delta') {
+        // Text is now flowing — thinking phase is definitively over.
+        if (this.currentThinking()) this.currentThinking(undefined);
+        const current = this.streamingText() ?? '';
+        this.streamingText(current + sdkEvent.delta.text);
+      }
+      return;
     }
 
     // LLM SDK stderr
@@ -913,6 +936,9 @@ export class Session {
           break;
         }
       }
+      // Complete assistant message arrived — the streamed text is now in the thread.
+      this.streamingText(undefined);
+
       // Track latest thinking text for the waiting indicator; clear it when a
       // non-thinking message arrives so the hint disappears between thoughts.
       const thinkingBlock = event.message.content.find(

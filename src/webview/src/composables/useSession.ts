@@ -46,6 +46,7 @@ export interface UseSessionReturn {
   effortLevel: Ref<string | undefined>;
   currentThinking: Ref<string | undefined>;
   hasActiveTool: Ref<boolean>;
+  streamingText: Ref<string | undefined>;
   todos: Ref<any[]>;
   worktree: Ref<{ name: string; path: string } | undefined>;
   selection: Ref<SelectionRange | undefined>;
@@ -118,6 +119,7 @@ export function useSession(session: Session): UseSessionReturn {
   const effortLevel = useSignal(session.effortLevel);
   const currentThinking = useSignal(session.currentThinking);
   const hasActiveTool = useSignal(session.hasActiveTool);
+  const streamingText = useSignal(session.streamingText);
   const todos = useSignal(session.todos);
   const worktree = useSignal(session.worktree);
   const selection = useSignal(session.selection);
@@ -172,6 +174,7 @@ export function useSession(session: Session): UseSessionReturn {
     effortLevel,
     currentThinking,
     hasActiveTool,
+    streamingText,
     todos,
     worktree,
     selection,

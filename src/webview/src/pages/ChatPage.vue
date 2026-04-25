@@ -279,8 +279,10 @@
   const isBusy = computed(() => session.value?.busy.value ?? false);
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
   const currentThinking = computed(() => session.value?.currentThinking.value);
+  const isReceiving = computed(() => !!session.value?.streamingText.value);
   const spinnerLabel = computed(() => {
     if (isCompacting.value) return 'Compacting...';
+    if (isReceiving.value) return 'Receiving...';
     if (currentThinking.value) return 'Thinking...';
     return 'Working...';
   });
