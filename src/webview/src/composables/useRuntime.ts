@@ -279,6 +279,12 @@ export function useRuntime(): RuntimeInstance {
         // In panel mode the user closes the panel with the native VSCode X button
       });
 
+      connection.compactSessionEvents.add(() => {
+        if (disposed) return;
+        const activeSession = sessionStore.activeSession();
+        if (activeSession) void activeSession.send('/compact', [], false);
+      });
+
       try {
         const selection = await connection.getCurrentSelection();
         if (!disposed) appContext.currentSelection(selection?.selection ?? undefined);

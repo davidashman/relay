@@ -8,22 +8,23 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+  import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
 
   interface Props {
     size?: number;
     permissionMode?: PermissionMode;
+    label?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     size: 16,
     permissionMode: undefined,
+    label: 'Working...',
   });
 
   const SPINNER_ICONS = ['·', '✢', '*', '✻', '✽'];
   const ANIMATION_ICONS = [...SPINNER_ICONS, ...[...SPINNER_ICONS].reverse()];
-  const DISPLAY_TEXT = 'Working...';
 
   const iconIndex = ref(0);
   const currentIcon = computed(() => ANIMATION_ICONS[iconIndex.value]);
@@ -32,28 +33,36 @@
   let verbTimer: any;
   let rafId: number | null = null;
 
-  const animatedText = ref(' '.repeat(DISPLAY_TEXT.length));
+  const animatedText = ref(' '.repeat(props.label.length));
   const animIndex = ref(0);
   let lastTick = 0;
   const stepMs = 40;
 
   const displayText = computed(() => animatedText.value);
 
+  function resetTextTimer(label: string) {
+    if (verbTimer) clearTimeout(verbTimer);
+    const intervals = [2000, 3000, 5000];
+    let count = 0;
+    const schedule = () => {
+      startTextAnimation(label);
+      const next = count < intervals.length ? intervals[count++] : 5000;
+      verbTimer = setTimeout(schedule, next);
+    };
+    verbTimer = setTimeout(schedule, intervals[0]);
+    startTextAnimation(label);
+  }
+
   onMounted(() => {
     iconTimer = setInterval(() => {
       iconIndex.value = (iconIndex.value + 1) % ANIMATION_ICONS.length;
     }, 100);
 
-    const intervals = [2000, 3000, 5000];
-    let count = 0;
-    const schedule = () => {
-      startTextAnimation(DISPLAY_TEXT);
-      const next = count < intervals.length ? intervals[count++] : 5000;
-      verbTimer = setTimeout(schedule, next);
-    };
-    verbTimer = setTimeout(schedule, intervals[0]);
+    resetTextTimer(props.label);
+  });
 
-    startTextAnimation(DISPLAY_TEXT);
+  watch(() => props.label, (newLabel) => {
+    resetTextTimer(newLabel);
   });
 
   onBeforeUnmount(() => {

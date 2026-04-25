@@ -1,5 +1,4 @@
 import esbuild from "esbuild";
-import { createRequire } from "module";
 import path from "path";
 import fs from "fs/promises";
 
@@ -30,50 +29,68 @@ const esbuildProblemMatcherPlugin = {
 
 
 /**
- * After build, copy the Claude CLI and its runtime assets from the SDK package
- * into resources/claude-code/ so they are bundled in the VSIX without being
- * committed to the repository.
+ * After build, copy the Claude native binaries from the platform-specific SDK
+ * packages into resources/native-binaries/{platform}-{arch}/ so they are
+ * bundled in the VSIX without being committed to the repository.
+ *
+ * The new @anthropic-ai/claude-agent-sdk (>=0.2.x) ships a native executable
+ * per platform via optional dependencies named
+ *   @anthropic-ai/claude-agent-sdk-{platform}-{arch}
+ * e.g. @anthropic-ai/claude-agent-sdk-darwin-arm64
+ *
+ * ClaudeSdkService.getClaudeExecutablePath() checks
+ *   resources/native-binaries/{platform}-{arch}/claude[.exe]
+ * first, so copying here is all that's needed.
  * @type {import('esbuild').Plugin}
  */
 const copyClaudeCliPlugin = {
     name: 'copy-claude-cli',
     setup(build: { onEnd: (arg0: () => Promise<void>) => void; }) {
-        const require = createRequire(import.meta.url);
         build.onEnd(async () => {
             try {
-                const pkgDir = path.dirname(require.resolve('@anthropic-ai/claude-agent-sdk/cli.js'));
-                const outDir = path.resolve(process.cwd(), 'resources/claude-code');
-                await fs.mkdir(outDir, { recursive: true });
+                // Read the manifest to discover which platforms the SDK supports.
+                const sdkDir = path.resolve(process.cwd(), 'node_modules/@anthropic-ai/claude-agent-sdk');
+                const manifestPath = path.join(sdkDir, 'manifest.json');
+                const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
+                // platforms is an object keyed by platform name in the new SDK format
+                const platforms: string[] = Array.isArray(manifest.platforms)
+                    ? manifest.platforms
+                    : Object.keys(manifest.platforms ?? {});
 
-                // copy cli.js
-                const cliSrc = path.join(pkgDir, 'cli.js');
-                const cliDst = path.join(outDir, 'cli.js');
-                await fs.copyFile(cliSrc, cliDst);
-                console.log(`[build] Copied Claude CLI -> ${path.relative(process.cwd(), cliDst)}`);
+                let copied = 0;
+                for (const platform of platforms) {
+                    const pkgName = `@anthropic-ai/claude-agent-sdk-${platform}`;
+                    const pkgDir = path.resolve(process.cwd(), 'node_modules', pkgName);
 
-                // write package.json with "type": "module" so Node.js loads cli.js as ESM
-                // regardless of which Node version the project pins (e.g. via mise/nvm)
-                await fs.writeFile(path.join(outDir, 'package.json'), '{ "type": "module" }\n');
-                console.log('[build] Wrote resources/claude-code/package.json (type: module)');
+                    // Use binary name from manifest if available, otherwise infer from platform.
+                    const manifestEntry = !Array.isArray(manifest.platforms) ? manifest.platforms[platform] : null;
+                    const binaryName = manifestEntry?.binary ?? (platform.startsWith('win32') ? 'claude.exe' : 'claude');
+                    const src = path.join(pkgDir, binaryName);
 
-                // copy all .wasm files (resvg.wasm, tree-sitter.wasm, tree-sitter-bash.wasm, etc.)
-                const entries = await fs.readdir(pkgDir);
-                for (const entry of entries) {
-                    if (entry.endsWith('.wasm')) {
-                        await fs.copyFile(path.join(pkgDir, entry), path.join(outDir, entry));
-                        console.log(`[build] Copied ${entry}`);
+                    try {
+                        await fs.access(src);
+                    } catch {
+                        // Package not installed (expected – npm only installs the current platform's package)
+                        continue;
                     }
+
+                    const outDir = path.resolve(process.cwd(), 'resources/native-binaries', platform);
+                    await fs.mkdir(outDir, { recursive: true });
+                    const dst = path.join(outDir, binaryName);
+                    await fs.copyFile(src, dst);
+
+                    // Ensure the binary is executable on non-Windows.
+                    if (!platform.startsWith('win32')) {
+                        await fs.chmod(dst, 0o755);
+                    }
+
+                    console.log(`[build] Copied Claude binary (${platform}) -> ${path.relative(process.cwd(), dst)}`);
+                    copied++;
                 }
 
-                // copy vendor directory (platform-specific ripgrep binaries)
-                const vendorSrc = path.join(pkgDir, 'vendor');
-                try {
-                    const st = await fs.stat(vendorSrc);
-                    if (st.isDirectory()) {
-                        await copyDir(vendorSrc, path.join(outDir, 'vendor'));
-                        console.log('[build] Copied vendor/ directory');
-                    }
-                } catch {}
+                if (copied === 0) {
+                    console.warn('[build] copy-claude-cli: no platform binary packages found in node_modules');
+                }
             } catch (err: any) {
                 console.warn('[build] copy-claude-cli failed:', err?.message || err);
             }
@@ -81,19 +98,6 @@ const copyClaudeCliPlugin = {
     },
 };
 
-async function copyDir(src: string, dst: string) {
-    await fs.mkdir(dst, { recursive: true });
-    const entries = await fs.readdir(src, { withFileTypes: true });
-    for (const ent of entries) {
-        const s = path.join(src, ent.name);
-        const d = path.join(dst, ent.name);
-        if (ent.isDirectory()) {
-            await copyDir(s, d);
-        } else if (ent.isFile()) {
-            await fs.copyFile(s, d);
-        }
-    }
-}
 
 async function main() {
 	const ctx = await esbuild.context({

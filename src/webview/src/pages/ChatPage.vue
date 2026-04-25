@@ -46,7 +46,7 @@
               </template>
             <!-- </div> -->
             <div v-if="isBusy && !pendingPermission" class="spinnerRow">
-              <Spinner :size="18" :permission-mode="permissionMode" />
+              <Spinner :size="18" :permission-mode="permissionMode" :label="spinnerLabel" />
             </div>
             <div ref="endEl" />
           </template>
@@ -277,7 +277,17 @@
   });
 
   const isBusy = computed(() => session.value?.busy.value ?? false);
-  const outboundQueue = computed(() => session.value?.outboundQueue.value ?? []);
+  const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
+  const currentThinking = computed(() => session.value?.currentThinking.value);
+  const spinnerLabel = computed(() => {
+    if (isCompacting.value) return 'Compacting...';
+    if (currentThinking.value) return 'Thinking...';
+    return 'Working...';
+  });
+  // Slash commands (e.g. /compact) are SDK directives, not user messages — hide them from the queue display.
+  const outboundQueue = computed(() =>
+    (session.value?.outboundQueue.value ?? []).filter(m => !m.content.startsWith('/'))
+  );
   const permissionMode = computed(
     () => session.value?.permissionMode.value ?? 'default'
   );
@@ -328,8 +338,6 @@
 
   const attachments = ref<AttachmentItem[]>([]);
 
-  let prevCount = 0;
-
   // Scroll state management
   const showJumpToLatest = ref(false);
   const isUserScrolledUp = ref(false);
@@ -378,25 +386,15 @@
   }
 
   watch(session, async () => {
-    prevCount = 0;
     await nextTick();
     scrollToBottom(true); // Force scroll on session change
     chatInputRef.value?.focus();
   });
 
-  // moved above
-
-  watch(
-    () => messages.value.length,
-    async len => {
-      const increased = len > prevCount;
-      prevCount = len;
-      if (increased) {
-        await nextTick();
-        scrollToBottom(); // Only auto-scroll if near bottom
-      }
-    }
-  );
+  // Scroll to bottom on any messages change (new messages or content updates within
+  // existing messages) and when the spinner appears — but only if already at bottom.
+  watch(messages, () => { scrollToBottom(); }, { flush: 'post' });
+  watch(isBusy, (newVal) => { if (newVal) scrollToBottom(); }, { flush: 'post' });
 
   watch(
     () => outboundQueue.value.length,
@@ -426,7 +424,6 @@
   }
 
   onMounted(async () => {
-    prevCount = messages.value.length;
     await nextTick();
     scrollToBottom(true); // Force scroll on mount
     chatInputRef.value?.focus();
@@ -753,6 +750,9 @@
   }
   .spinnerRow {
     padding-left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .msg-list {
     display: flex;

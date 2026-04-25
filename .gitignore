@@ -5,6 +5,7 @@
 
 # Claude CLI bundled from SDK at build time - not committed to repo
 /resources/claude-code/
+/resources/native-binaries/
 
 # Dependencies
 /node_modules

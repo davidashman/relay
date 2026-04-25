@@ -157,7 +157,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
         //  CLI  TypeScript
         const cliPath = await this.getClaudeExecutablePath();
 
-        const env = await this.getMergedEnvironmentVariables();
+        const env = await this.getMergedEnvironmentVariables(modelParam);
 
         // Resolve Claude config dir (honours relay.configurationDirectory > CLAUDE_CONFIG_DIR > default)
         const relayDir = env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
@@ -480,7 +480,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
     /**
      *  (process.env + custom)
      */
-    private async getMergedEnvironmentVariables(): Promise<Record<string, string>> {
+    private async getMergedEnvironmentVariables(model?: string): Promise<Record<string, string>> {
         const customVars = await this.configService.getEnvironmentVariables();
         const configDir = await this.configService.getConfigurationDirectory();
 
@@ -507,7 +507,27 @@ export class ClaudeSdkService implements IClaudeSdkService {
             this.logService.info(`[ClaudeSdkService] CLAUDE_CONFIG_DIR not overridden (inheriting: ${env.CLAUDE_CONFIG_DIR ?? '(unset)'})`);
         }
 
-      return { ...env, ...customVars };
+      const merged = { ...env, ...customVars };
+
+      // The Anthropic API only enables 1M context when the request includes the
+      // context-1m-2025-08-07 beta header. The CLI sends it automatically only
+      // for models with "[1m]" in their name; for Sonnet 4.6 and Opus 4.x we
+      // inject it here via ANTHROPIC_BETAS so the CLI picks it up. We append
+      // rather than overwrite so any user-configured betas are preserved.
+      if (model && this.needs1MBeta(model)) {
+          const existing = merged.ANTHROPIC_BETAS ?? '';
+          const betas = new Set(existing.split(',').map(b => b.trim()).filter(Boolean));
+          betas.add('context-1m-2025-08-07');
+          merged.ANTHROPIC_BETAS = [...betas].join(',');
+          this.logService.info(`[ClaudeSdkService] Injected context-1m-2025-08-07 beta for model: ${model}`);
+      }
+
+      return merged;
+    }
+
+    private needs1MBeta(model: string): boolean {
+        const m = model.toLowerCase();
+        return m.includes('sonnet-4-6') || m.includes('opus-4-6') || m.includes('opus-4-7');
     }
 
     /**

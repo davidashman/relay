@@ -48,6 +48,25 @@ export function normalizeModelId(modelId?: string): string | undefined {
 }
 
 /**
+ * Return the context window size (in tokens) for the given model.
+ * Sonnet 4.6, Opus 4.6, Opus 4.7 return 1M because ClaudeSdkService injects
+ * the context-1m-2025-08-07 beta header for those models automatically.
+ * Everything else falls back to 200k.
+ */
+export function contextWindowForModel(modelId?: string): number {
+  const normalized = normalizeModelId(modelId);
+  if (!normalized) return 200_000;
+  if (
+    normalized.includes('sonnet-4-6') ||
+    normalized.includes('opus-4-6') ||
+    normalized.includes('opus-4-7')
+  ) {
+    return 1_000_000;
+  }
+  return 200_000;
+}
+
+/**
  * Whether the given model supports the `effortLevel` knob.
  * Supported: Opus 4.6, Opus 4.7, and Sonnet 4.6 (including the `opus`/`sonnet`
  * aliases and `default`, which normalizes to Sonnet 4.6). Earlier versions

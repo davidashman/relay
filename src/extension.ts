@@ -239,6 +239,20 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 
 		context.subscriptions.push(
+			vscode.commands.registerCommand('relay.compact', () => {
+				const targetId = lastFocusedWebviewId;
+				if (targetId) {
+					webViewService.postMessage({
+						type: 'request',
+						requestId: `compact-session-${Date.now()}`,
+						webviewId: targetId,
+						request: { type: 'compact_session' }
+					});
+				}
+			})
+		);
+
+		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.closeSession', () => {
 				const targetId = lastFocusedWebviewId;
 				if (!targetId) return;

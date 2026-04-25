@@ -44,9 +44,12 @@ export interface UseSessionReturn {
   modelSelection: Ref<string | undefined>;
   thinkingLevel: Ref<string>;
   effortLevel: Ref<string | undefined>;
+  currentThinking: Ref<string | undefined>;
+  hasActiveTool: Ref<boolean>;
   todos: Ref<any[]>;
   worktree: Ref<{ name: string; path: string } | undefined>;
   selection: Ref<SelectionRange | undefined>;
+  compactingMode: Ref<boolean>;
 
   usageData: Ref<{
     inputTokens: number;
@@ -113,10 +116,13 @@ export function useSession(session: Session): UseSessionReturn {
   const modelSelection = useSignal(session.modelSelection);
   const thinkingLevel = useSignal(session.thinkingLevel);
   const effortLevel = useSignal(session.effortLevel);
+  const currentThinking = useSignal(session.currentThinking);
+  const hasActiveTool = useSignal(session.hasActiveTool);
   const todos = useSignal(session.todos);
   const worktree = useSignal(session.worktree);
   const selection = useSignal(session.selection);
   const usageData = useSignal(session.usageData);
+  const compactingMode = useSignal(session.compactingMode);
 
   // useSignal alien computed-only setter
   const claudeConfig = useSignal(session.claudeConfig as any);
@@ -164,10 +170,13 @@ export function useSession(session: Session): UseSessionReturn {
     modelSelection,
     thinkingLevel,
     effortLevel,
+    currentThinking,
+    hasActiveTool,
     todos,
     worktree,
     selection,
     usageData,
+    compactingMode,
 
     claudeConfig,
     config,

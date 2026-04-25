@@ -152,6 +152,10 @@
       {
         "command": "relay.closeSession",
         "title": "Relay: Close Chat Panel"
+      },
+      {
+        "command": "relay.compact",
+        "title": "Relay: Compact Session"
       }
     ],
     "keybindings": [
@@ -171,6 +175,12 @@
         "key": "ctrl+w",
         "mac": "cmd+w",
         "command": "relay.closeSession",
+        "when": "relayFocused"
+      },
+      {
+        "key": "ctrl+shift+c",
+        "mac": "shift+cmd+c",
+        "command": "relay.compact",
         "when": "relayFocused"
       }
     ],
@@ -234,8 +244,8 @@
     "vue-vine": "^1.7.27"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.76",
-    "@anthropic-ai/sdk": "^0.71.2",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.119",
+    "@anthropic-ai/sdk": "^0.91.0",
     "@gn8/alien-signals-vue": "^0.1.1",
     "@mdi/font": "^7.4.47",
     "@modelcontextprotocol/sdk": "^1.25.1",
@@ -250,8 +260,7 @@
     "path-browserify-esm": "^1.0.6",
     "pinia": "^3.0.4",
     "reka-ui": "^2.8.0",
-    "vue": "^3.5.26",
-    "zod": "^3.25.76"
+    "vue": "^3.5.26"
   },
   "keywords": [
     "vscode",

@@ -6,7 +6,7 @@ import type { SessionSummary } from './types';
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
 import { processAndAttachMessage, findToolUseBlock /*, mergeConsecutiveReadMessages */ } from '../utils/messageUtils';
 import { parseMessageContent } from '../models/contentParsers';
-import { normalizeModelId } from '../utils/modelUtils';
+import { normalizeModelId, contextWindowForModel } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
 import type { Message } from '../models/Message';
 import { ContentBlockWrapper } from '../models/ContentBlockWrapper';
@@ -83,12 +83,16 @@ export class Session {
   // user message).  When compact_boundary arrives we restore from this
   // snapshot so that any assistant turns the model emitted while generating
   // the summary are stripped out and replaced by the single CompactionBlock.
-  private compactingMode = false;
+  readonly compactingMode = signal(false);
   private compactionBuffer: string[] = [];
   private compactionStartMessages: Message[] | undefined;
   // Holds the ContentBlockWrapper for the most-recently-created CompactionBlock
   // so the isSynthetic user message that follows can be attached to it.
   private pendingCompactionWrapper: ContentBlockWrapper | undefined;
+  // Set when compact_boundary has already settled the compact turn counter so
+  // that a subsequent `result` event from the SDK (which may or may not arrive)
+  // is absorbed without double-decrementing a subsequent user turn's counter.
+  private compactResultExpected = false;
 
   readonly connection = signal<BaseTransport | undefined>(undefined);
 
@@ -131,6 +135,8 @@ export class Session {
   // turn's `result` arrives, at which point the next queued entry is drained
   // into the SDK.
   readonly outboundQueue = signal<QueuedMessage[]>([]);
+  readonly currentThinking = signal<string | undefined>(undefined);
+  readonly hasActiveTool = signal(false);
 
   readonly claudeConfig = computed(() => {
     const conn = this.connection();
@@ -205,6 +211,16 @@ export class Session {
         const normalizedModel = normalizeModelId(configModel);
         console.log('[Session] Setting modelSelection to:', normalizedModel, '(normalized from:', configModel, ')');
         this.modelSelection(normalizedModel);
+      }
+    });
+
+    // Keep contextWindow in sync with the selected model
+    effect(() => {
+      const model = this.modelSelection();
+      const window = contextWindowForModel(model);
+      const current = this.usageData();
+      if (current.contextWindow !== window) {
+        this.usageData({ ...current, contextWindow: window });
       }
     });
 
@@ -393,7 +409,9 @@ export class Session {
     const userMessage = this.buildUserMessage(input, attachments, selectionPayload);
     const messageModel = MessageModel.fromRaw(userMessage);
 
-    if (messageModel) {
+    // Slash commands (e.g. /compact) are internal SDK directives — don't
+    // render them as visible user messages in the thread.
+    if (messageModel && !isSlash) {
       this.messages([...this.messages(), messageModel]);
     }
 
@@ -521,6 +539,7 @@ export class Session {
     // counter and drop any queued work now so the UI recovers immediately
     // rather than waiting on the stream to tear down.
     this.resetOutstandingTurns();
+    this.hasActiveTool(false);
     this.outboundQueue([]);
   }
 
@@ -659,6 +678,7 @@ export class Session {
       // Stream ended (cleanly or via error): any turns that never produced
       // a `result` are orphaned. Reset unconditionally so the UI recovers.
       this.resetOutstandingTurns();
+      this.hasActiveTool(false);
       // Don't drop the outbound queue here — if the stream ended because the
       // SDK naturally closed between turns, we still want the next queued
       // entry to drain when the channel comes back up. `interrupt()` is the
@@ -672,9 +692,20 @@ export class Session {
     // If we crash rendering a `result`, we still want the spinner to stop
     // and the queue to drain.
     if (event?.type === 'result') {
-      this.decrementOutstandingTurns();
-      if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
-        void this.drainOutboundQueue();
+      this.currentThinking(undefined);
+      this.hasActiveTool(false);
+      if (this.compactResultExpected) {
+        // compact_boundary already settled the compact turn — absorb this result
+        // without touching outstandingTurns so subsequent user turns aren't miscounted.
+        this.compactResultExpected = false;
+        if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
+          void this.drainOutboundQueue();
+        }
+      } else {
+        this.decrementOutstandingTurns();
+        if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
+          void this.drainOutboundQueue();
+        }
       }
     }
 
@@ -732,12 +763,12 @@ export class Session {
     // a future CLI version starts emitting it.
     if (event?.type === 'system' && event?.subtype === 'status') {
       if (event.status === 'compacting') {
-        this.compactingMode = true;
+        this.compactingMode(true);
         this.compactionBuffer = [];
         this.compactionStartMessages = [...this.messages()] as Message[];
-      } else if (this.compactingMode) {
+      } else if (this.compactingMode()) {
         // Status cleared without boundary (e.g. interrupted): drop buffer.
-        this.compactingMode = false;
+        this.compactingMode(false);
         this.compactionBuffer = [];
         this.compactionStartMessages = undefined;
       }
@@ -750,8 +781,8 @@ export class Session {
     // that compact_boundary can restore it, stripping any assistant turns the
     // model emitted while generating the summary.
     if (event?.type === 'user' && (event as any).isReplay === true) {
-      if (!this.compactingMode) {
-        this.compactingMode = true;
+      if (!this.compactingMode()) {
+        this.compactingMode(true);
         this.compactionStartMessages = [...this.messages()] as Message[];
       }
       if (Array.isArray(event.message?.content)) {
@@ -765,8 +796,14 @@ export class Session {
     }
 
     if (event?.type === 'system' && event?.subtype === 'compact_boundary') {
+      // Compaction creates a new session JSONL file. Update sessionId so that
+      // if the SDK stream restarts, launchClaude() resumes the correct session
+      // rather than the now-superseded pre-compact one.
+      if (event.session_id) {
+        this.sessionId(event.session_id);
+      }
       const summary = this.compactionBuffer.join('\n\n').trim();
-      this.compactingMode = false;
+      this.compactingMode(false);
       this.compactionBuffer = [];
       // Restore to the pre-compaction snapshot so that any assistant turns
       // the model emitted while generating the summary are discarded.
@@ -788,10 +825,24 @@ export class Session {
       );
       const next = [...baseMessages, msg] as Message[];
       this.messages(next);
+
+      // The /compact turn is consumed by the compaction itself — the SDK may
+      // not emit a `result` event for it.  Settle the outstanding-turn counter
+      // now so the thread doesn't get stuck in a permanent "busy" state.
+      // If a `result` does arrive later, compactResultExpected=true causes the
+      // result handler to absorb it without double-decrementing a subsequent
+      // user turn's counter.
+      if (this.outstandingTurns() > 0) {
+        this.decrementOutstandingTurns();
+        this.compactResultExpected = true;
+        if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
+          void this.drainOutboundQueue();
+        }
+      }
       return;
     }
     if (
-      this.compactingMode &&
+      this.compactingMode() &&
       (event?.type === 'assistant' || event?.type === 'user') &&
       Array.isArray(event.message?.content)
     ) {
@@ -807,7 +858,16 @@ export class Session {
     // the compacted-context message that opens a new post-compaction session.
     // Attach their text to the preceding CompactionBlock instead of rendering
     // them as a regular user message.
-    if (event?.type === 'user' && (event as any).isSynthetic === true) {
+    //
+    // The SDK sets `isSynthetic` when converting live-stream messages through
+    // its `case "user"` emitter.  However, compact-summary messages that are
+    // yielded *raw* (auto-compact / manual-compact fast path) only carry the
+    // original `isCompactSummary` flag, not `isSynthetic`.  Check both so the
+    // message is suppressed regardless of which code path produced it.
+    if (event?.type === 'user' && (
+      (event as any).isSynthetic === true ||
+      (event as any).isCompactSummary === true
+    )) {
       if (this.pendingCompactionWrapper) {
         const parts: string[] = [];
         if (Array.isArray(event.message?.content)) {
@@ -833,6 +893,10 @@ export class Session {
     // bleed into a future CompactionBlock.
     if (event?.type === 'user' && !(event as any).isReplay) {
       this.compactionBuffer = [];
+      if (Array.isArray(event.message?.content) &&
+          event.message.content.some((b: any) => b?.type === 'tool_result')) {
+        this.hasActiveTool(false);
+      }
     }
 
     // Claude EnterPlanMode UI
@@ -848,6 +912,17 @@ export class Session {
           void this.setPermissionMode('plan', false);
           break;
         }
+      }
+      // Track latest thinking text for the waiting indicator; clear it when a
+      // non-thinking message arrives so the hint disappears between thoughts.
+      const thinkingBlock = event.message.content.find(
+        (b: any) => b?.type === 'thinking' && typeof b.thinking === 'string' && b.thinking.trim()
+      );
+      this.currentThinking(thinkingBlock ? thinkingBlock.thinking.trim() : undefined);
+
+      const hasToolUse = event.message.content.some((b: any) => b?.type === 'tool_use');
+      if (hasToolUse) {
+        this.hasActiveTool(true);
       }
     }
 
