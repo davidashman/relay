@@ -12,7 +12,7 @@
                 <ClaudeWordmark class="emptyWordmarkSvg" />
               </div>
               <div class="loadingSpinnerRow">
-                <Spinner :size="20" :permission-mode="'default'" />
+                <Spinner :size="20" :permission-mode="'default'" label="Loading..." />
               </div>
             </div>
           </template>
