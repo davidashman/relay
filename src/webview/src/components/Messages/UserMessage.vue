@@ -252,7 +252,7 @@ onUnmounted(() => {
 .user-message {
   display: block;
   outline: none;
-  padding: 1px 12px 8px;
+  padding: 3px 12px 12px;
   background-color: var(--vscode-sideBar-background);
   opacity: 1;
 }
