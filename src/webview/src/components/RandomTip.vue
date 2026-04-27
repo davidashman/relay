@@ -47,7 +47,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 32px 16px;
+  padding: 16px;
 }
 
 .empty-mascot {
