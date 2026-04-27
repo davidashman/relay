@@ -8,11 +8,11 @@
         >
           <template v-if="sessionLoading">
             <div class="emptyState">
-              <div class="emptyWordmark">
+              <div class="emptyLoadingWordmark">
                 <ClaudeWordmark class="emptyWordmarkSvg" />
               </div>
               <div class="loadingSpinnerRow">
-                <Spinner :size="20" :permission-mode="'default'" label="Loading..." />
+                <Spinner :size="20" :permission-mode="'default'" label="Loading..." :showIcon="false" />
               </div>
             </div>
           </template>
@@ -823,6 +823,13 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
+  }
+
+  .emptyLoadingWordmark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
   }
 
   /* Jump to latest button */

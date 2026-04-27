@@ -1,6 +1,6 @@
 <template>
   <div class="spinner" :data-permission-mode="permissionMode">
-    <span class="icon" :style="{ fontSize: size + 'px', paddingBottom: ((size - 14) / 2) + 'px' }">
+    <span v-if="showIcon" class="icon" :style="{ fontSize: size + 'px', paddingBottom: ((size - 14) / 2) + 'px' }">
       {{ currentIcon }}
     </span>
     <span class="text">{{ displayText }}</span>
@@ -15,12 +15,14 @@
     size?: number;
     permissionMode?: PermissionMode;
     label?: string;
+    showIcon?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     size: 16,
     permissionMode: undefined,
     label: 'Working...',
+    showIcon: true,
   });
 
   const SPINNER_ICONS = ['·', '✢', '*', '✻', '✽'];
