@@ -8,7 +8,7 @@
         >
           <template v-if="sessionLoading">
             <div class="emptyState">
-              <div class="emptyLoadingWordmark">
+              <div class="emptyWordmark">
                 <ClaudeWordmark class="emptyWordmarkSvg" />
               </div>
               <div class="loadingSpinnerRow">
@@ -819,13 +819,6 @@
   }
 
   .emptyWordmark {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 24px;
-  }
-
-  .emptyLoadingWordmark {
     display: flex;
     align-items: center;
     justify-content: center;
