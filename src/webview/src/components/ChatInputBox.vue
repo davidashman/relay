@@ -192,7 +192,7 @@ interface Emits {
   (e: 'thinkingToggle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
-  (e: 'effortSelect', level: string): void
+  (e: 'effortSelect', level: string | undefined): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -219,7 +219,7 @@ const props = withDefaults(defineProps<Props>(), {
   conversationWorking: false,
   attachments: () => [],
   thinkingEnabled: true,
-  effortLevel: 'high',
+  effortLevel: undefined,
   permissionMode: 'default'
 })
 
@@ -1037,7 +1037,8 @@ defineExpose({
 
 /* */
 .full-input-box:focus-within {
-  border-color: var(--vscode-input-border) !important;
+  border-color: color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) !important;
+  background-color: color-mix(in srgb, var(--vscode-list-hoverBackground) 70%, transparent);
   outline: none !important;
 }
 

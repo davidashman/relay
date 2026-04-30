@@ -140,33 +140,7 @@
       </SettingsSubSection>
     </SettingsSection>
 
-    <!-- Section 2: Effort -->
-    <SettingsSection title="Effort">
-      <SettingsSubSection>
-        <SettingsItem
-          setting-key="effortLevel"
-          label="Effort Level"
-          :description="effortLevelDescription"
-          :divider="true"
-        >
-          <template #default="{ effectiveValue, update }">
-            <Dropdown
-              :model-value="effectiveValue ?? 'high'"
-              @update:model-value="effortEnabled ? update($event) : undefined"
-              :options="effortLevelOptions"
-              menu-align="right"
-              :class="{ 'dropdown-disabled': !effortEnabled }"
-            >
-              <template #trigger="{ selected }">
-                {{ selected?.label || effectiveValue || 'high' }}
-              </template>
-            </Dropdown>
-          </template>
-        </SettingsItem>
-      </SettingsSubSection>
-    </SettingsSection>
-
-    <!-- Section 3: Model Routing (Advanced Env Vars) -->
+    <!-- Section 2: Model Routing (Advanced Env Vars) -->
     <SettingsSection title="Model Routing">
       <SettingsSubSection caption="Override model selection via environment variables. Select from available models or leave unset. Values are written to the 'env' object in settings.json.">
         <SettingsCell
@@ -504,25 +478,6 @@ const filteredBuiltinModels = computed(() => {
   )
 })
 
-// ── Thinking & Effort ──
-
-const effortLevelOptions = [
-  { label: 'Low', value: 'low', description: 'Minimal thinking effort' },
-  { label: 'Medium', value: 'medium', description: 'Balanced thinking effort' },
-  { label: 'High', value: 'high', description: 'Maximum thinking effort' },
-]
-
-const effortEnabled = computed(() => {
-  const model = ((settings.value.model as string) || 'default').toLowerCase()
-  return model.includes('opus-4-6') || model.includes('opus-4-7')
-})
-
-const effortLevelDescription = computed(() => {
-  if (!effortEnabled.value) {
-    return 'Controls reasoning effort level. Only available for Opus 4.6+ — current model does not support effort level.'
-  }
-  return 'Controls reasoning effort level (low, medium, high)'
-})
 
 // ── Env Var Model Options (shared from model list) ──
 

@@ -238,7 +238,7 @@ export interface SetThinkingLevelResponse {
 export interface SetEffortLevelRequest {
     type: "set_effort_level";
     channelId: string;
-    effortLevel: string;  // "low" | "medium" | "high"
+    effortLevel: string | undefined;  // "low" | "medium" | "high" | undefined (default)
 }
 
 export interface SetEffortLevelResponse {

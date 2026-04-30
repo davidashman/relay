@@ -46,6 +46,7 @@ import type {
     PermissionUpdate,
     CanUseTool,
     PermissionMode,
+    ThinkingConfig,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // Handlers
@@ -342,8 +343,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
             this.effortLevel = effortLevel;
         }
 
-        //  maxThinkingTokens
-        const maxThinkingTokens = this.getMaxThinkingTokens(this.thinkingLevel);
+        const thinking = this.getThinkingConfig(this.thinkingLevel);
 
         this.logService.info('');
         this.logService.info('╔════════════════════════════════════════╗');
@@ -355,7 +355,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         this.logService.info(`  Model: ${model || 'null'}`);
         this.logService.info(`  Permission: ${permissionMode}`);
         this.logService.info(`  Thinking Level: ${this.thinkingLevel}`);
-        this.logService.info(`  Max Thinking Tokens: ${maxThinkingTokens}`);
+        this.logService.info(`  Thinking Config: ${JSON.stringify(thinking)}`);
         this.logService.info(`  Effort Level: ${this.effortLevel ?? 'null'}`);
         this.logService.info('');
 
@@ -394,7 +394,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 model,
                 cwd,
                 permissionMode,
-                maxThinkingTokens,
+                thinking,
                 this.effortLevel,
                 // onStderrError:  SDK stderr
                 (error) => {
@@ -541,7 +541,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         model: string | null,
         cwd: string,
         permissionMode: string,
-        maxThinkingTokens: number,
+        thinking: ThinkingConfig,
         effortLevel: string | null,
         onStderrError?: SdkQueryParams['onStderrError']
     ): Promise<Query> {
@@ -552,7 +552,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
             model,
             cwd,
             permissionMode,
-            maxThinkingTokens,
+            thinking,
             effortLevel,
             onStderrError
         });
@@ -894,11 +894,8 @@ export class ClaudeAgentService implements IClaudeAgentService {
         return this.workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
     }
 
-    /**
-     *  maxThinkingTokens thinking level
-     */
-    private getMaxThinkingTokens(level: string): number {
-        return level === 'off' ? 0 : 31999;
+    private getThinkingConfig(level: string): ThinkingConfig {
+        return level === 'off' ? { type: 'disabled' } : { type: 'adaptive' };
     }
 
     /**
@@ -907,12 +904,13 @@ export class ClaudeAgentService implements IClaudeAgentService {
     async setThinkingLevel(channelId: string, level: string): Promise<void> {
         this.thinkingLevel = level;
 
-        //  channel
         const channel = this.channels.get(channelId);
         if (channel?.query) {
-            const maxTokens = this.getMaxThinkingTokens(level);
+            // No setThinking() on Query yet — use deprecated setMaxThinkingTokens
+            // (0 = disabled, null = adaptive default).
+            const maxTokens = level === 'off' ? 0 : null;
             await channel.query.setMaxThinkingTokens(maxTokens);
-            this.logService.info(`[setThinkingLevel] Updated channel ${channelId} to ${level} (${maxTokens} tokens)`);
+            this.logService.info(`[setThinkingLevel] Updated channel ${channelId} to ${level}`);
         }
     }
 

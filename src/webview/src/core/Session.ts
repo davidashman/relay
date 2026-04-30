@@ -255,14 +255,6 @@ export class Session {
       }
     });
 
-    // Initialize effortLevel from config when it becomes available
-    effect(() => {
-      const configEffort = (this.config() as any)?.effortLevel;
-      const currentEffort = this.effortLevel();
-      if (configEffort && !currentEffort) {
-        this.effortLevel(configEffort);
-      }
-    });
 
     // Initialize permissionMode from config when it becomes available (one-shot)
     let modeInitialized = false;
@@ -557,9 +549,6 @@ export class Session {
       this.thinkingLevel(connection.config()?.thinkingLevel || 'default_on');
     }
 
-    if (!this.effortLevel()) {
-      this.effortLevel((connection.config() as any)?.effortLevel || 'high');
-    }
 
     const stream = connection.launchClaude(
       channelId,
@@ -676,7 +665,7 @@ export class Session {
     await connection.setThinkingLevel(channelId, level);
   }
 
-  async setEffortLevel(level: string): Promise<void> {
+  async setEffortLevel(level: string | undefined): Promise<void> {
     this.effortLevel(level);
 
     const channelId = this.claudeChannelId();

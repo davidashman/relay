@@ -127,7 +127,7 @@ interface Emits {
   (e: 'thinkingToggle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
-  (e: 'effortSelect', level: string): void
+  (e: 'effortSelect', level: string | undefined): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -143,7 +143,7 @@ const props = withDefaults(defineProps<Props>(), {
   outputTokens: 0,
   showTokenUsage: true,
   thinkingEnabled: true,
-  effortLevel: 'high',
+  effortLevel: undefined,
   permissionMode: 'default'
 })
 

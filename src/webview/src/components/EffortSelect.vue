@@ -22,10 +22,10 @@
         :item="{
           id: opt.id,
           label: opt.label,
-          checked: props.effortLevel === opt.id,
+          checked: (props.effortLevel ?? 'default') === opt.id,
           type: 'effort'
         }"
-        :is-selected="props.effortLevel === opt.id"
+        :is-selected="(props.effortLevel ?? 'default') === opt.id"
         :index="idx"
         @click="(item) => handleSelect(item, close)"
       />
@@ -44,17 +44,18 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'effortSelect', level: string): void
+  (e: 'effortSelect', level: string | undefined): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  effortLevel: 'high',
+  effortLevel: undefined,
   selectedModel: undefined,
 })
 
 const emit = defineEmits<Emits>()
 
 const LABELS: Record<string, string> = {
+  default: 'Default',
   low: 'Low',
   medium: 'Medium',
   high: 'High',
@@ -62,18 +63,20 @@ const LABELS: Record<string, string> = {
   max: 'Max',
 }
 
-const options = computed(() =>
-  getEffortLevels(props.selectedModel).map((id) => ({ id, label: LABELS[id] ?? id }))
-)
+const options = computed(() => [
+  { id: 'default', label: 'Default' },
+  ...getEffortLevels(props.selectedModel).map((id) => ({ id, label: LABELS[id] ?? id })),
+])
 
 const selectedLabel = computed(() => {
-  const found = options.value.find((o) => o.id === props.effortLevel)
-  return found?.label ?? LABELS[props.effortLevel] ?? 'High'
+  const level = props.effortLevel ?? 'default'
+  const found = options.value.find((o) => o.id === level)
+  return found?.label ?? LABELS[level] ?? 'Default'
 })
 
 function handleSelect(item: DropdownItemData, close: () => void) {
   close()
-  emit('effortSelect', item.id)
+  emit('effortSelect', item.id === 'default' ? undefined : item.id)
 }
 </script>
 

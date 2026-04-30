@@ -437,6 +437,10 @@
     }
   }
 
+  function handleEditCancelled() {
+    chatInputRef.value?.focus();
+  }
+
   onMounted(async () => {
     await nextTick();
     scrollToBottom(true); // Force scroll on mount
@@ -450,6 +454,7 @@
 
     window.addEventListener('focus', handleWindowFocus);
     document.addEventListener('keydown', handleDoubleEscape);
+    document.addEventListener('relay:edit-cancelled', handleEditCancelled);
   });
 
   onUnmounted(() => {
@@ -463,6 +468,7 @@
 
     window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('keydown', handleDoubleEscape);
+    document.removeEventListener('relay:edit-cancelled', handleEditCancelled);
   });
 
   // ChatInput
@@ -637,7 +643,7 @@
     await s.setModel({ value: modelId });
   }
 
-  async function handleEffortSelect(level: string) {
+  async function handleEffortSelect(level: string | undefined) {
     const s = session.value;
     if (!s) return;
 

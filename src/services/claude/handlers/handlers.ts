@@ -93,9 +93,6 @@ export async function handleInit(
     //  CLI settings.json  'model'  Settings  Model Manage
     const modelSetting = (await configService.getSetting<string>('model')) || 'default';
 
-    //  CLI settings.json  effortLevelOpus 4.6+ adaptive reasoning
-    const effortLevel = (await configService.getSetting<string>('effortLevel')) || 'high';
-
     const defaultCwd = workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
 
     // TODO:  openNewInTab
@@ -122,7 +119,6 @@ export async function handleInit(
             modelSetting,
             platform: process.platform,
             thinkingLevel,
-            effortLevel,
             permissionMode,
             expandToolOutput,
             showThinking,

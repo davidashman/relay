@@ -27,6 +27,7 @@ import type {
     PermissionMode,
     SDKUserMessage,
     HookCallbackMatcher,
+    ThinkingConfig,
 } from '@anthropic-ai/claude-agent-sdk';
 
 export const IClaudeSdkService = createDecorator<IClaudeSdkService>('claudeSdkService');
@@ -51,7 +52,7 @@ export interface SdkQueryParams {
     model: string | null;  // ←  null
     cwd: string;
     permissionMode: PermissionMode | string;  // ←
-    maxThinkingTokens?: number;  // ← Thinking tokens
+    thinking?: ThinkingConfig;
     effortLevel?: string | null; // ← Opus 4.6+ adaptive reasoning effort (low | medium | high)
     /**  stderr  */
     onStderrError?: (error: LLMRequestError) => void;
@@ -132,7 +133,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
      *  Claude SDK
      */
     async query(params: SdkQueryParams): Promise<Query> {
-        const { inputStream, resume, canUseTool, model, cwd, permissionMode, maxThinkingTokens, effortLevel, onStderrError } = params;
+        const { inputStream, resume, canUseTool, model, cwd, permissionMode, thinking, effortLevel, onStderrError } = params;
 
         this.logService.info('========================================');
         this.logService.info('ClaudeSdkService.query() ');
@@ -142,7 +143,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
         this.logService.info(`  - cwd: ${cwd}`);
         this.logService.info(`  - permissionMode: ${permissionMode}`);
         this.logService.info(`  - resume: ${resume}`);
-        this.logService.info(`  - maxThinkingTokens: ${maxThinkingTokens ?? 'undefined'}`);
+        this.logService.info(`  - thinking: ${thinking ? JSON.stringify(thinking) : 'undefined'}`);
         this.logService.info(`  - effortLevel: ${effortLevel ?? 'undefined'}`);
 
         const modelParam = model === null ? "default" : model;
@@ -206,7 +207,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
             resume: resume || undefined,
             model: modelParam,
             permissionMode: permissionModeParam,
-            maxThinkingTokens: maxThinkingTokens,
+            thinking,
 
             // CanUseTool
             canUseTool,
