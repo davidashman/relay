@@ -93,13 +93,17 @@ export function supportsEffort(modelId?: string): boolean {
  * - Others: [] (unsupported)
  */
 export function getEffortLevels(modelId?: string): string[] {
-  const normalized = normalizeModelId(modelId);
-  if (!normalized) return [];
-  if (normalized.includes('opus-4-7')) {
+  const {model, version} = parseModelInfo(modelId);
+  if (!model) return [];
+
+  if (model === 'opus' && version === '4.7') {
     return ['low', 'medium', 'high', 'xhigh', 'max'];
   }
-  if (normalized.includes('opus-4-6') || normalized.includes('sonnet-4-6')) {
+  if (model === 'opus' && version === '4.6') {
     return ['low', 'medium', 'high', 'max'];
+  }
+  if ((model === 'opus' && version === '4.5') || (model === 'sonnet' && version === '4.6')) {
+    return ['low', 'medium', 'high'];
   }
   return [];
 }

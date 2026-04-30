@@ -69,10 +69,13 @@ export interface SessionContext {
 }
 
 export class Session {
+  static readonly ROAMING_TOOL_CALL_THRESHOLD = 15;
+
   private readonly claudeChannelId = signal<string | undefined>(undefined);
   private currentConnectionPromise?: Promise<BaseTransport>;
   private lastSentSelection?: SelectionRange;
   private effectCleanup?: () => void;
+  private autoInterruptTriggered = false;
 
   // Context-compaction interception state. When the SDK streams a compacting
   // window, we buffer the summary assistant output here and surface it as a
@@ -146,6 +149,14 @@ export class Session {
   readonly currentThinking = signal<string | undefined>(undefined);
   readonly hasActiveTool = signal(false);
   readonly streamingText = signal<string | undefined>(undefined);
+  readonly currentTurnToolCallCount = signal(0);
+  readonly roamingWarningDismissed = signal(false);
+  readonly roamingWarning = computed(
+    () =>
+      this.currentTurnToolCallCount() > Session.ROAMING_TOOL_CALL_THRESHOLD &&
+      this.busy() &&
+      !this.roamingWarningDismissed()
+  );
 
   readonly claudeConfig = computed(() => {
     const conn = this.connection();
@@ -178,9 +189,20 @@ export class Session {
     );
   }
 
+  isSessionRoaming(): boolean {
+    return this.currentTurnToolCallCount() > Session.ROAMING_TOOL_CALL_THRESHOLD;
+  }
+
+  dismissRoamingWarning(): void {
+    this.roamingWarningDismissed(true);
+  }
+
   /** Mark a new user turn as in-flight. */
   private incrementOutstandingTurns(): void {
     this.outstandingTurns(this.outstandingTurns() + 1);
+    this.currentTurnToolCallCount(0);
+    this.roamingWarningDismissed(false);
+    this.autoInterruptTriggered = false;
   }
 
   /** Mark a turn as finished. Floors at 0 and warns on underflow. */
@@ -568,6 +590,9 @@ export class Session {
     this.hasActiveTool(false);
     this.streamingText(undefined);
     this.outboundQueue([]);
+    this.currentTurnToolCallCount(0);
+    this.roamingWarningDismissed(false);
+    this.autoInterruptTriggered = false;
   }
 
   async restartClaude(): Promise<void> {
@@ -983,6 +1008,9 @@ export class Session {
       const hasToolUse = event.message.content.some((b: any) => b?.type === 'tool_use');
       if (hasToolUse) {
         this.hasActiveTool(true);
+        const toolUseCount = event.message.content.filter((b: any) => b?.type === 'tool_use').length;
+        this.currentTurnToolCallCount(this.currentTurnToolCallCount() + toolUseCount);
+        this.checkRoaming();
       }
     }
 
@@ -1049,6 +1077,15 @@ export class Session {
           }
         }
       }
+    }
+  }
+
+  private checkRoaming(): void {
+    if (!this.isSessionRoaming() || this.autoInterruptTriggered) return;
+    const autoInterrupt = (this.config() as any)?.autoInterruptOnRoaming ?? false;
+    if (autoInterrupt) {
+      this.autoInterruptTriggered = true;
+      void this.interrupt();
     }
   }
 

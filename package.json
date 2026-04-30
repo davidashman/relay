@@ -71,6 +71,12 @@
           "description": "Show the token usage count in the input box, to the left of the context window meter.",
           "order": 9
         },
+        "relay.autoInterruptOnRoaming": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically interrupt Claude if it makes more than 15 tool calls in a single turn. When disabled, a warning banner is shown instead so you can interrupt manually.",
+          "order": 10
+        },
         "relay.configurationDirectory": {
           "type": "string",
           "default": "",

@@ -141,6 +141,7 @@ export interface InitResponse {
         expandToolOutput?: boolean;    // Expand tool output by default
         showThinking?: boolean;        // Show thinking blocks in chat
         showTokenUsage?: boolean;      // Show token usage count in input box
+        autoInterruptOnRoaming?: boolean; // Auto-interrupt when tool call count exceeds threshold
     };
 }
 

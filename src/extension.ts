@@ -171,13 +171,15 @@ export function activate(context: vscode.ExtensionContext) {
 			    e.affectsConfiguration('relay.defaultThinkingLevel') ||
 			    e.affectsConfiguration('relay.expandToolOutput') ||
 			    e.affectsConfiguration('relay.showThinking') ||
-			    e.affectsConfiguration('relay.showTokenUsage')) {
+			    e.affectsConfiguration('relay.showTokenUsage') ||
+			    e.affectsConfiguration('relay.autoInterruptOnRoaming')) {
 				const config = vscode.workspace.getConfiguration('relay');
 				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
 				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
 				const expandToolOutput = config.get<boolean>('expandToolOutput') ?? true;
 				const showThinking = config.get<boolean>('showThinking') ?? false;
 				const showTokenUsage = config.get<boolean>('showTokenUsage') ?? true;
+				const autoInterruptOnRoaming = config.get<boolean>('autoInterruptOnRoaming') ?? false;
 
 				// Send update_state message to webview
 				webViewService.postMessage({
@@ -190,12 +192,13 @@ export function activate(context: vscode.ExtensionContext) {
 							thinkingLevel,
 							expandToolOutput,
 							showThinking,
-							showTokenUsage
+							showTokenUsage,
+							autoInterruptOnRoaming
 						}
 					}
 				});
 
-				logService.info(`VSCode configuration updated: permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}, showTokenUsage=${showTokenUsage}`);
+				logService.info(`VSCode configuration updated: permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}, showTokenUsage=${showTokenUsage}, autoInterruptOnRoaming=${autoInterruptOnRoaming}`);
 			}
 		});
 

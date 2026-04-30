@@ -173,4 +173,9 @@ export class AppContext {
     const connection = this.connectionManager.connection();
     return connection?.config()?.showTokenUsage ?? true;
   }
+
+  get autoInterruptOnRoaming(): boolean {
+    const connection = this.connectionManager.connection();
+    return connection?.config()?.autoInterruptOnRoaming ?? false;
+  }
 }

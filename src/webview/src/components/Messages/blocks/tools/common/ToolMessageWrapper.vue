@@ -226,7 +226,7 @@ function toggleExpand() {
   flex-shrink: 0;
   padding: 0 6px;
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-badge-foreground);
   background-color: color-mix(in srgb, var(--vscode-badge-background) 60%, transparent);
   border-radius: 10px;
   line-height: 18px;

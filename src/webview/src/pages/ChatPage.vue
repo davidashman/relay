@@ -84,6 +84,14 @@
             @remove="handleQueueRemove"
             @send-now="handleQueueSendNow"
           />
+          <Transition name="roaming-warning">
+            <div v-if="roamingWarning" class="roaming-warning">
+              <span class="codicon codicon-warning roaming-warning-icon"></span>
+              <span class="roaming-warning-text">{{ currentTurnToolCallCount }} tool calls this turn — Claude may be stuck in a loop.</span>
+              <button class="roaming-btn roaming-btn-interrupt" @click="handleStop">Interrupt</button>
+              <button class="roaming-btn roaming-btn-dismiss" @click="handleDismissRoaming">Dismiss</button>
+            </div>
+          </Transition>
           <ChatInputBox
             ref="chatInputRef"
             :show-progress="true"
@@ -278,6 +286,8 @@
   });
 
   const isBusy = computed(() => session.value?.busy.value ?? false);
+  const roamingWarning = computed(() => session.value?.roamingWarning.value ?? false);
+  const currentTurnToolCallCount = computed(() => session.value?.currentTurnToolCallCount.value ?? 0);
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
   const currentThinking = computed(() => session.value?.currentThinking.value);
   const streamingText = computed(() => session.value?.streamingText.value);
@@ -641,6 +651,10 @@
     }
   }
 
+  function handleDismissRoaming() {
+    session.value?.dismissRoamingWarning();
+  }
+
   // Esc-Esc interrupts the current turn, matching the stop button. Any Esc
   // already handled (history-nav exit, dropdown/modal close, etc.) is
   // ignored via defaultPrevented so it doesn't count toward the pair.
@@ -792,6 +806,68 @@
   }
 
   /* */
+
+  .roaming-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--vscode-editorWarning-foreground) 12%, var(--vscode-editor-background));
+    border: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground) 40%, transparent);
+    font-size: 12px;
+    color: var(--vscode-editor-foreground);
+  }
+
+  .roaming-warning-icon {
+    color: var(--vscode-editorWarning-foreground);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .roaming-warning-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .roaming-btn {
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--vscode-button-border, transparent);
+  }
+
+  .roaming-btn-interrupt {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+
+  .roaming-btn-interrupt:hover {
+    background: var(--vscode-button-hoverBackground);
+  }
+
+  .roaming-btn-dismiss {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+  }
+
+  .roaming-btn-dismiss:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+  }
+
+  .roaming-warning-enter-active,
+  .roaming-warning-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .roaming-warning-enter-from,
+  .roaming-warning-leave-to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 
   /* */
   .inputContainer {
