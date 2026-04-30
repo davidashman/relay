@@ -6,7 +6,7 @@
           ref="containerEl"
           :class="['messagesContainer', 'custom-scroll-container']"
         >
-          <template v-if="sessionLoading">
+          <template v-if="sessionLoading || isSessionLoading">
             <div class="emptyState">
               <div class="emptyWordmark">
                 <ClaudeWordmark class="emptyWordmarkSvg" />
@@ -286,6 +286,7 @@
   });
 
   const isBusy = computed(() => session.value?.busy.value ?? false);
+  const isSessionLoading = computed(() => session.value?.isLoading.value ?? false);
   const roamingWarning = computed(() => session.value?.roamingWarning.value ?? false);
   const currentTurnToolCallCount = computed(() => session.value?.currentTurnToolCallCount.value ?? 0);
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
