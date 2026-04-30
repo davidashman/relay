@@ -23,8 +23,26 @@
         <span>Replace all</span>
       </div>
 
+      <!-- Markdown before/after -->
+      <div v-if="markdownPanes" class="markdown-diff-view">
+        <div v-if="filePath" class="diff-file-header">
+          <FileIcon :file-name="filePath" :size="16" class="file-icon" />
+          <span class="file-name">{{ fileName }}</span>
+        </div>
+        <div class="markdown-panes">
+          <div class="markdown-pane markdown-pane-before">
+            <div class="pane-label">Before</div>
+            <div class="markdown-content" v-html="markdownPanes.before" />
+          </div>
+          <div class="markdown-pane markdown-pane-after">
+            <div class="pane-label">After</div>
+            <div class="markdown-content" v-html="markdownPanes.after" />
+          </div>
+        </div>
+      </div>
+
       <!-- Diff  -->
-      <div v-if="structuredPatch && structuredPatch.length > 0" class="diff-view">
+      <div v-else-if="structuredPatch && structuredPatch.length > 0" class="diff-view">
         <div v-if="filePath" class="diff-file-header">
           <FileIcon :file-name="filePath" :size="16" class="file-icon" />
           <span class="file-name">{{ fileName }}</span>
@@ -76,6 +94,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import path from 'path-browserify-esm';
+import { marked } from 'marked';
 import type { ToolContext } from '@/types/tool';
 import ToolMessageWrapper from './common/ToolMessageWrapper.vue';
 import ToolError from './common/ToolError.vue';
@@ -103,6 +122,8 @@ const fileName = computed(() => {
 const replaceAll = computed(() => {
   return props.toolUse?.input?.replace_all;
 });
+
+const isMarkdown = computed(() => /\.(md|mdx)$/i.test(filePath.value));
 
 // ref structuredPatch watch
 const structuredPatch = ref<any>(null);
@@ -135,6 +156,34 @@ watch(
 
 const hasDiffView = computed(() => {
   return structuredPatch.value && structuredPatch.value.length > 0;
+});
+
+// Reconstruct before/after text from structuredPatch for markdown rendering.
+// Context lines (prefix ' ') appear in both; '-' lines only in before; '+' only in after.
+const markdownPanes = computed(() => {
+  if (!isMarkdown.value || !structuredPatch.value?.length) return null;
+
+  const beforeLines: string[] = [];
+  const afterLines: string[] = [];
+
+  for (const patch of structuredPatch.value) {
+    for (const line of patch.lines) {
+      const content = line.slice(1);
+      if (line.startsWith(' ')) {
+        beforeLines.push(content);
+        afterLines.push(content);
+      } else if (line.startsWith('-')) {
+        beforeLines.push(content);
+      } else if (line.startsWith('+')) {
+        afterLines.push(content);
+      }
+    }
+  }
+
+  return {
+    before: marked.parse(beforeLines.join('\n')) as string,
+    after: marked.parse(afterLines.join('\n')) as string,
+  };
 });
 
 // ( diff from input)
@@ -293,6 +342,102 @@ function getLineNumber(patch: any, lineIndex: number): string {
 .stat-remove {
   color: var(--vscode-gitDecoration-deletedResourceForeground);
 }
+
+.markdown-diff-view {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85em;
+  border: .5px solid var(--vscode-widget-border);
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.markdown-panes {
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: var(--vscode-editor-background);
+}
+
+.markdown-pane {
+  padding: 10px 14px;
+}
+
+.markdown-pane + .markdown-pane {
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.pane-label {
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.markdown-pane-before {
+  background-color: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 8%, var(--vscode-editor-background));
+}
+
+.markdown-pane-before .pane-label {
+  color: var(--vscode-gitDecoration-deletedResourceForeground);
+}
+
+.markdown-pane-after {
+  background-color: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 8%, var(--vscode-editor-background));
+}
+
+.markdown-pane-after .pane-label {
+  color: var(--vscode-gitDecoration-addedResourceForeground);
+}
+
+.markdown-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--vscode-editor-foreground);
+  word-wrap: break-word;
+}
+
+.markdown-content :deep(p) { margin: 6px 0; }
+.markdown-content :deep(h1) { font-size: 18px; font-weight: 600; margin: 12px 0 6px; }
+.markdown-content :deep(h2) { font-size: 16px; font-weight: 600; margin: 12px 0 6px; }
+.markdown-content :deep(h3) { font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+.markdown-content :deep(h4),
+.markdown-content :deep(h5),
+.markdown-content :deep(h6) { font-weight: 600; margin: 8px 0 4px; }
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) { margin: 4px 0 4px 20px; padding: 0; }
+.markdown-content :deep(li) { padding: 2px 0; }
+.markdown-content :deep(code) {
+  font-family: var(--vscode-editor-font-family);
+  background-color: color-mix(in srgb, var(--vscode-editor-background) 50%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.markdown-content :deep(pre) {
+  background-color: color-mix(in srgb, var(--vscode-editor-background) 50%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 10px;
+  margin: 6px 0;
+  overflow-x: auto;
+}
+.markdown-content :deep(pre code) { background: none; border: none; padding: 0; }
+.markdown-content :deep(blockquote) {
+  border-left: 4px solid var(--vscode-textBlockQuote-border);
+  background-color: var(--vscode-textBlockQuote-background);
+  margin: 6px 0;
+  padding: 6px 14px;
+}
+.markdown-content :deep(table) { border-collapse: collapse; margin: 10px 0; width: 100%; }
+.markdown-content :deep(th),
+.markdown-content :deep(td) { border: 1px solid var(--vscode-panel-border); padding: 5px 10px; }
+.markdown-content :deep(th) { font-weight: 600; }
+.markdown-content :deep(a) { color: var(--vscode-textLink-foreground); }
+.markdown-content :deep(hr) { border: none; border-top: 1px solid var(--vscode-panel-border); margin: 10px 0; }
 
 .replace-option {
   display: flex;

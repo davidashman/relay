@@ -21,7 +21,11 @@
           <span class="file-name">{{ fileName }}</span>
         </div>
 
-        <div class="write-scroll-container">
+        <div v-if="isMarkdown" class="markdown-preview">
+          <div class="markdown-content" v-html="renderedContent" />
+        </div>
+
+        <div v-else class="write-scroll-container">
           <div ref="lineNumbersRef" class="write-line-numbers">
             <div
               v-for="n in lineCount"
@@ -46,6 +50,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import path from 'path-browserify-esm';
+import { marked } from 'marked';
 import type { ToolContext } from '@/types/tool';
 import ToolMessageWrapper from './common/ToolMessageWrapper.vue';
 import ToolError from './common/ToolError.vue';
@@ -88,6 +93,13 @@ const contentStats = computed(() => {
 const lineCount = computed(() => {
   if (!content.value) return 0;
   return content.value.split('\n').length;
+});
+
+const isMarkdown = computed(() => /\.(md|mdx)$/i.test(filePath.value));
+
+const renderedContent = computed(() => {
+  if (!isMarkdown.value || !content.value) return '';
+  return marked.parse(content.value) as string;
 });
 
 const hasContentView = computed(() => {
@@ -174,6 +186,59 @@ function handleContentScroll() {
   color: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family);
 }
+
+.markdown-preview {
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: var(--vscode-editor-background);
+  padding: 12px 16px;
+}
+
+.markdown-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--vscode-editor-foreground);
+  word-wrap: break-word;
+}
+
+.markdown-content :deep(p) { margin: 8px 0; }
+.markdown-content :deep(h1) { font-size: 18px; font-weight: 600; margin: 16px 0 8px; }
+.markdown-content :deep(h2) { font-size: 16px; font-weight: 600; margin: 16px 0 8px; }
+.markdown-content :deep(h3) { font-size: 14px; font-weight: 600; margin: 16px 0 8px; }
+.markdown-content :deep(h4),
+.markdown-content :deep(h5),
+.markdown-content :deep(h6) { font-weight: 600; margin: 12px 0 6px; }
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) { margin: 4px 0 4px 20px; padding: 0; }
+.markdown-content :deep(li) { padding: 2px 0; }
+.markdown-content :deep(code) {
+  font-family: var(--vscode-editor-font-family);
+  background-color: color-mix(in srgb, var(--vscode-editor-background) 50%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.markdown-content :deep(pre) {
+  background-color: color-mix(in srgb, var(--vscode-editor-background) 50%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+.markdown-content :deep(pre code) { background: none; border: none; padding: 0; }
+.markdown-content :deep(blockquote) {
+  border-left: 4px solid var(--vscode-textBlockQuote-border);
+  background-color: var(--vscode-textBlockQuote-background);
+  margin: 8px 0;
+  padding: 8px 16px;
+}
+.markdown-content :deep(table) { border-collapse: collapse; margin: 12px 0; width: 100%; }
+.markdown-content :deep(th),
+.markdown-content :deep(td) { border: 1px solid var(--vscode-panel-border); padding: 6px 10px; }
+.markdown-content :deep(th) { font-weight: 600; background-color: color-mix(in srgb, var(--vscode-editor-background) 30%, transparent); }
+.markdown-content :deep(a) { color: var(--vscode-textLink-foreground); }
+.markdown-content :deep(hr) { border: none; border-top: 1px solid var(--vscode-panel-border); margin: 12px 0; }
 
 .write-scroll-container {
   display: flex;
