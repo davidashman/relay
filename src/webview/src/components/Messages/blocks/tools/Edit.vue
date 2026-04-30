@@ -23,21 +23,20 @@
         <span>Replace all</span>
       </div>
 
-      <!-- Markdown before/after -->
-      <div v-if="markdownPanes" class="markdown-diff-view">
+      <!-- Markdown inline diff -->
+      <div v-if="markdownSegments" class="markdown-diff-view">
         <div v-if="filePath" class="diff-file-header">
           <FileIcon :file-name="filePath" :size="16" class="file-icon" />
           <span class="file-name">{{ fileName }}</span>
         </div>
-        <div class="markdown-panes">
-          <div class="markdown-pane markdown-pane-before">
-            <div class="pane-label">Before</div>
-            <div class="markdown-content" v-html="markdownPanes.before" />
-          </div>
-          <div class="markdown-pane markdown-pane-after">
-            <div class="pane-label">After</div>
-            <div class="markdown-content" v-html="markdownPanes.after" />
-          </div>
+        <div class="markdown-segments">
+          <div
+            v-for="(seg, i) in markdownSegments"
+            :key="i"
+            class="markdown-content"
+            :class="`md-segment-${seg.type}`"
+            v-html="seg.html"
+          />
         </div>
       </div>
 
@@ -158,32 +157,37 @@ const hasDiffView = computed(() => {
   return structuredPatch.value && structuredPatch.value.length > 0;
 });
 
-// Reconstruct before/after text from structuredPatch for markdown rendering.
-// Context lines (prefix ' ') appear in both; '-' lines only in before; '+' only in after.
-const markdownPanes = computed(() => {
+const markdownSegments = computed(() => {
   if (!isMarkdown.value || !structuredPatch.value?.length) return null;
 
-  const beforeLines: string[] = [];
-  const afterLines: string[] = [];
+  type SegType = 'context' | 'removed' | 'added';
+  const segments: Array<{ type: SegType; html: string }> = [];
+  let currentType: SegType | null = null;
+  let currentLines: string[] = [];
+
+  function flush() {
+    if (!currentLines.length || !currentType) return;
+    segments.push({ type: currentType, html: marked.parse(currentLines.join('\n')) as string });
+    currentLines = [];
+  }
 
   for (const patch of structuredPatch.value) {
     for (const line of patch.lines) {
       const content = line.slice(1);
       if (line.startsWith(' ')) {
-        beforeLines.push(content);
-        afterLines.push(content);
+        if (currentType !== 'context') { flush(); currentType = 'context'; }
+        currentLines.push(content);
       } else if (line.startsWith('-')) {
-        beforeLines.push(content);
+        if (currentType !== 'removed') { flush(); currentType = 'removed'; }
+        currentLines.push(content);
       } else if (line.startsWith('+')) {
-        afterLines.push(content);
+        if (currentType !== 'added') { flush(); currentType = 'added'; }
+        currentLines.push(content);
       }
     }
   }
-
-  return {
-    before: marked.parse(beforeLines.join('\n')) as string,
-    after: marked.parse(afterLines.join('\n')) as string,
-  };
+  flush();
+  return segments;
 });
 
 // ( diff from input)
@@ -354,43 +358,29 @@ function getLineNumber(patch: any, lineIndex: number): string {
   margin-top: 2px;
 }
 
-.markdown-panes {
+.markdown-segments {
   display: flex;
   flex-direction: column;
   max-height: 400px;
   overflow-y: auto;
   background-color: var(--vscode-editor-background);
+  padding: 0px 0;
 }
 
-.markdown-pane {
-  padding: 10px 14px;
+.md-segment-context {
+  padding: 0px 14px 0px 16px;
 }
 
-.markdown-pane + .markdown-pane {
-  border-top: 1px solid var(--vscode-panel-border);
+.md-segment-removed {
+  padding: 0px 14px;
+  background-color: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 15%, transparent);
+  border-left: 2px solid var(--vscode-gitDecoration-deletedResourceForeground);
 }
 
-.pane-label {
-  font-size: 0.85em;
-  font-weight: 600;
-  margin-bottom: 6px;
-  font-family: var(--vscode-editor-font-family);
-}
-
-.markdown-pane-before {
-  background-color: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground) 8%, var(--vscode-editor-background));
-}
-
-.markdown-pane-before .pane-label {
-  color: var(--vscode-gitDecoration-deletedResourceForeground);
-}
-
-.markdown-pane-after {
-  background-color: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 8%, var(--vscode-editor-background));
-}
-
-.markdown-pane-after .pane-label {
-  color: var(--vscode-gitDecoration-addedResourceForeground);
+.md-segment-added {
+  padding: 0px 14px;
+  background-color: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground) 15%, transparent);
+  border-left: 2px solid var(--vscode-gitDecoration-addedResourceForeground);
 }
 
 .markdown-content {
