@@ -1038,7 +1038,7 @@ defineExpose({
 /* */
 .full-input-box:focus-within {
   border-color: color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) !important;
-  background-color: color-mix(in srgb, var(--vscode-list-hoverBackground) 70%, transparent);
+  background: color-mix(in srgb, var(--vscode-input-background) 70%, transparent);
   outline: none !important;
 }
 

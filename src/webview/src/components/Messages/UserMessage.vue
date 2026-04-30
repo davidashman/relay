@@ -254,7 +254,6 @@ onUnmounted(() => {
   display: block;
   outline: none;
   padding: 3px 12px 12px;
-  background-color: var(--vscode-sideBar-background);
   opacity: 1;
 }
 
@@ -268,9 +267,9 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  background-color: color-mix(in srgb, var(--vscode-sideBar-background) 60%, transparent);
+  background-color: color-mix(in srgb, var(--vscode-sideBar-background) 50%, transparent);
   outline: none;
-  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
   border-radius: 6px;
   position: relative;
   transition: all 0.2s ease;
@@ -278,8 +277,6 @@ onUnmounted(() => {
 
 .message-content.editing {
   z-index: 200;
-  border: none;
-  background-color: transparent;
 }
 
 /* */
@@ -370,7 +367,7 @@ onUnmounted(() => {
   cursor: pointer;
   background-color: color-mix(
     in srgb,
-    var(--vscode-input-background) 60%,
+    var(--vscode-input-background) 50%,
     transparent
   );
   outline: none;
@@ -453,7 +450,7 @@ onUnmounted(() => {
 
 /* */
 .edit-mode :deep(.full-input-box) {
-  background: var(--vscode-input-background);
+  background: color-mix(in srgb, var(--vscode-input-background) 70%, transparent);
 }
 
 .edit-mode :deep(.full-input-box:focus-within) {
