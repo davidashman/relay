@@ -273,7 +273,6 @@ function handleKeyDown(e: KeyboardEvent) {
 
 .option-selected {
   background: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 20%, transparent);
-  border-color: var(--vscode-focusBorder);
 }
 
 .option-item input[type="radio"],

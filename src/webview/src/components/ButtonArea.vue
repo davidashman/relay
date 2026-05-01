@@ -26,12 +26,6 @@
 
       <!-- Right Section: Token Indicator + Action Buttons -->
       <div class="actions-section">
-        <!-- Token Usage Count -->
-        <span
-          v-if="showProgress && showTokenUsage"
-          class="token-count-label"
-        >{{ formattedTokens }}</span>
-
         <!-- Token Indicator -->
         <TokenIndicator
           v-if="showProgress"
@@ -110,9 +104,6 @@ interface Props {
   showProgress?: boolean
   progressPercentage?: number
   contextTooltip?: string
-  inputTokens?: number
-  outputTokens?: number
-  showTokenUsage?: boolean
   thinkingEnabled?: boolean
   effortLevel?: string
   permissionMode?: PermissionMode

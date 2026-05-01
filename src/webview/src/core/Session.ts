@@ -23,10 +23,7 @@ export interface SelectionRange {
 }
 
 export interface UsageData {
-  inputTokens: number;   // cumulative session total (all turns × full context re-send)
-  outputTokens: number;  // cumulative session total
-  contextTokens: number; // latest turn's input only — used for context window meter
-  totalCost: number;
+  contextTokens: number; // latest turn's input — used for context window meter
   contextWindow: number;
 }
 
@@ -139,10 +136,7 @@ export class Session {
   readonly worktree = signal<{ name: string; path: string } | undefined>(undefined);
   readonly selection = signal<SelectionRange | undefined>(undefined);
   readonly usageData = signal<UsageData>({
-    inputTokens: 0,
-    outputTokens: 0,
     contextTokens: 0,
-    totalCost: 0,
     contextWindow: 200000
   });
 
@@ -1088,11 +1082,6 @@ export class Session {
         }
       }
 
-      // Include subagent token usage in session totals, but don't update
-      // contextTokens — subagents have their own independent context windows.
-      if (event.message.usage) {
-        this.updateUsage(event.message.usage, false);
-      }
     } else if (event.type === 'user' && Array.isArray(event.message?.content)) {
       for (const block of event.message.content) {
         if (block?.type === 'tool_result') {
@@ -1118,7 +1107,7 @@ export class Session {
   }
 
   /**
-   * TodoWrite, usage
+   * TodoWrite, context window meter
    */
   private processMessage(event: any): void {
     if (
@@ -1139,45 +1128,21 @@ export class Session {
         }
       }
 
-      // usage
       if (event.message.usage) {
-        this.updateUsage(event.message.usage);
+        this.updateContextUsage(event.message.usage);
       }
     }
   }
 
-  /**
-   * token
-   * updateContextTokens: set false for subagent turns whose context window is
-   * independent of the main session — accumulate totals but don't update the
-   * context-window-fill meter.
-   */
-  private updateUsage(usage: any, updateContextTokens = true): void {
-    // Apply pricing multipliers so inputTokens reflects cost-equivalent tokens:
-    //   cache writes: 1.25× (5-min TTL) or 2.0× (1-hour TTL)
-    //   cache reads:  0.1×
-    //   regular input: 1.0×
-    const cacheCreation = usage.cache_creation
-      ? (usage.cache_creation.ephemeral_5m_input_tokens ?? 0) * 1.25
-        + (usage.cache_creation.ephemeral_1h_input_tokens ?? 0) * 2.0
-      : (usage.cache_creation_input_tokens ?? 0) * 1.25;
-    const turnInput =
-      (usage.input_tokens ?? 0)
-      + cacheCreation
-      + (usage.cache_read_input_tokens ?? 0) * 0.1;
-    // Raw context size (unweighted) for the context-window-fill meter.
-    const turnContext =
+  private updateContextUsage(usage: any): void {
+    const contextTokens =
       (usage.input_tokens ?? 0)
       + (usage.cache_creation_input_tokens ?? 0)
       + (usage.cache_read_input_tokens ?? 0);
-    const turnOutput = usage.output_tokens ?? 0;
 
     const current = this.usageData();
     this.usageData({
-      inputTokens: current.inputTokens + turnInput,
-      outputTokens: current.outputTokens + turnOutput,
-      contextTokens: updateContextTokens ? turnContext : current.contextTokens,
-      totalCost: current.totalCost,
+      contextTokens,
       contextWindow: current.contextWindow
     });
   }

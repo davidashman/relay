@@ -109,10 +109,7 @@
             :show-progress="true"
             :progress-percentage="progressPercentage"
             :context-tooltip="contextTooltip"
-            :input-tokens="inputTokens"
-            :output-tokens="outputTokens"
-            :show-token-usage="showTokenUsage"
-            :conversation-working="isBusy"
+:conversation-working="isBusy"
             :attachments="attachments"
             :thinking-enabled="session?.thinkingLevel.value !== 'off'"
             :effort-level="session?.effortLevel.value"
@@ -326,26 +323,20 @@
 
   // permissionMode.toggle
 
-  // Token usageData
   const usageComputed = computed(() => {
     const s = session.value;
-    if (!s) return { percentage: 0, inputTokens: 0, outputTokens: 0, contextTokens: 0, contextWindow: 200000 };
+    if (!s) return { percentage: 0, contextTokens: 0, contextWindow: 200000 };
 
     const usage = s.usageData.value;
     const windowSize = usage.contextWindow || 200000;
-    // contextTokens is the latest turn's input — the true measure of how full
-    // the context window is right now (not the cumulative session total).
     const percentage = (usage.contextTokens > 0)
       ? Math.max(0, Math.min(100, (usage.contextTokens / windowSize) * 100))
       : 0;
 
-    return { percentage, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, contextTokens: usage.contextTokens, contextWindow: windowSize };
+    return { percentage, contextTokens: usage.contextTokens, contextWindow: windowSize };
   });
 
   const progressPercentage = computed(() => usageComputed.value.percentage);
-  const inputTokens = computed(() => usageComputed.value.inputTokens);
-  const outputTokens = computed(() => usageComputed.value.outputTokens);
-  const showTokenUsage = computed(() => runtime.appContext.showTokenUsage);
 
   const contextTooltip = computed(() => {
     const { contextTokens, contextWindow } = usageComputed.value;
