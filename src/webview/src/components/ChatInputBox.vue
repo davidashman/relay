@@ -243,11 +243,11 @@ const isSubmitDisabled = computed(() => {
 const modeBorderColor = computed(() => {
   switch (props.permissionMode) {
     case 'acceptEdits':
-      return 'color-mix(in srgb, #a855f7 55%, transparent)'
+      return 'color-mix(in srgb, #a855f7 35%, transparent)'
     case 'plan':
-      return 'color-mix(in srgb, #3b82f6 55%, transparent)'
+      return 'color-mix(in srgb, #3b82f6 35%, transparent)'
     default:
-      return 'color-mix(in srgb, var(--vscode-foreground) 55%, transparent)'
+      return 'color-mix(in srgb, var(--vscode-foreground) 15%, transparent)'
   }
 })
 
