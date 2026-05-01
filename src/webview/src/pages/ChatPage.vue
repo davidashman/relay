@@ -16,6 +16,18 @@
               </div>
             </div>
           </template>
+          <template v-else-if="sessionError && messages.length === 0">
+            <div class="emptyState">
+              <div class="emptyWordmark">
+                <ClaudeWordmark class="emptyWordmarkSvg" />
+              </div>
+              <div class="errorBox">
+                <span class="codicon codicon-error errorBoxIcon"></span>
+                <div class="errorBoxText">{{ sessionError }}</div>
+              </div>
+              <button class="retryBtn" @click="handleRetry">Retry</button>
+            </div>
+          </template>
           <template v-else-if="messages.length === 0">
             <div v-if="isBusy" class="emptyState">
               <div class="emptyWordmark">
@@ -287,6 +299,7 @@
 
   const isBusy = computed(() => session.value?.busy.value ?? false);
   const isSessionLoading = computed(() => session.value?.isLoading.value ?? false);
+  const sessionError = computed(() => session.value?.error.value ?? null);
   const roamingWarning = computed(() => session.value?.roamingWarning.value ?? false);
   const currentTurnToolCallCount = computed(() => session.value?.currentTurnToolCallCount.value ?? 0);
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
@@ -541,6 +554,10 @@
     } catch (e) {
       console.error('[ChatPage] send failed', e);
     }
+  }
+
+  async function handleRetry() {
+    await session.value?.restartClaude();
   }
 
   // "Interrupt then send" path — triggered by Cmd/Ctrl+Enter.
@@ -906,6 +923,46 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
+  }
+
+  .errorBox {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 60%, transparent);
+    border: 1px solid var(--vscode-inputValidation-errorBorder);
+    border-radius: 6px;
+    padding: 10px 14px;
+    max-width: 420px;
+    margin-bottom: 12px;
+  }
+
+  .errorBoxIcon {
+    color: var(--vscode-inputValidation-errorForeground, #f48771);
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .errorBoxText {
+    color: var(--vscode-inputValidation-errorForeground, var(--vscode-foreground));
+    font-size: 12px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .retryBtn {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .retryBtn:hover {
+    background: var(--vscode-button-hoverBackground);
   }
 
   /* Jump to latest button */

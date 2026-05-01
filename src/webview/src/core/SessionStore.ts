@@ -59,9 +59,12 @@ export class SessionStore {
 
         this.hadActiveSession = true;
 
+        console.log(`[SessionStore] activeSession changed to ${session.sessionId()}, isOffline=${session.isOffline()}`);
         if (session.isOffline()) {
+          console.log(`[SessionStore] calling loadFromServer for ${session.sessionId()}`);
           session.loadFromServer();
         } else {
+          console.log(`[SessionStore] calling preloadConnection for ${session.sessionId()} (has connection=${!!session.connection?.()}, messages=${session.messages?.()?.length ?? '?'})`);
           session.preloadConnection();
         }
 
@@ -140,13 +143,18 @@ export class SessionStore {
 
   async listSessions(): Promise<void> {
     if (this.currentConnectionPromise) {
+      console.log('[SessionStore.listSessions] deduplicated — returning in-flight promise');
       return this.currentConnectionPromise;
     }
 
+    console.log('[SessionStore.listSessions] starting RPC');
     this.currentConnectionPromise = (async () => {
       try {
         const connection = await this.getConnection();
         const response = await connection.listSessions();
+
+        const rawIds = (response.sessions ?? []).map((s: any) => s.id);
+        console.log(`[SessionStore.listSessions] RPC returned ${rawIds.length} sessions: [${rawIds.join(', ')}]`);
 
         const existing = new Map(
           this.sessions()
@@ -156,6 +164,7 @@ export class SessionStore {
 
         for (const summary of response.sessions ?? []) {
           if (!summary.isCurrentWorkspace) {
+            console.log(`[SessionStore.listSessions] skipping non-workspace session ${summary.id}`);
             continue;
           }
 
@@ -181,6 +190,10 @@ export class SessionStore {
         this.sessions(
           [...this.sessions()].sort((a, b) => b.lastModifiedTime() - a.lastModifiedTime())
         );
+        console.log(`[SessionStore.listSessions] done, store now has ${this.sessions().length} sessions`);
+      } catch (e) {
+        console.error('[SessionStore.listSessions] error:', e);
+        throw e;
       } finally {
         this.currentConnectionPromise = undefined;
       }
@@ -191,6 +204,15 @@ export class SessionStore {
 
   setActiveSession(session: Session | undefined): void {
     this.activeSession(session);
+  }
+
+  /**
+   * Wait for the session list to load, then return the session with the given
+   * ID, or null if it doesn't exist or isn't part of the current workspace.
+   */
+  async loadSessionById(sessionId: string): Promise<Session | null> {
+    await this.listSessions();
+    return this.sessions().find(s => s.sessionId() === sessionId) ?? null;
   }
 
   dispose(): void {

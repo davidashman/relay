@@ -269,7 +269,7 @@ onUnmounted(() => {
   width: 100%;
   background-color: color-mix(in srgb, var(--vscode-sideBar-background) 50%, transparent);
   outline: none;
-  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+  border: 1px solid var(--vscode-editorWidget-border);
   border-radius: 6px;
   position: relative;
   transition: all 0.2s ease;

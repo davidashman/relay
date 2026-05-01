@@ -441,22 +441,40 @@ export class ClaudeSessionService implements IClaudeSessionService {
 
             const transcripts = getTranscripts(data);
 
-            const sessions = transcripts.map(transcript => {
-                const lastMessage = transcript[transcript.length - 1];
-                const firstMessage = transcript[0];
-                const summary = generateSummary(transcript);
+            const projectDir = getProjectHistoryDir(cwd, configDir);
+            this.logService.info(`[ClaudeSessionService] projectDir=${projectDir}, raw transcripts=${transcripts.length}`);
 
-                return {
-                    lastModified: new Date(lastMessage.timestamp).getTime(),
-                    messageCount: transcript.length,
-                    isSidechain: firstMessage.isSidechain,
-                    id: lastMessage.sessionId,
-                    summary: data.summaries.get(lastMessage.uuid) || summary,
-                    isCurrentWorkspace: true
-                };
-            });
+            const allSessions = transcripts
+                .filter(transcript => transcript.length > 0)
+                .map(transcript => {
+                    const lastMessage = transcript[transcript.length - 1];
+                    const firstMessage = transcript[0];
+                    const summary = generateSummary(transcript);
 
-            this.logService.info(`[ClaudeSessionService] Found ${sessions.length} sessions`);
+                    return {
+                        lastModified: new Date(lastMessage.timestamp).getTime(),
+                        messageCount: transcript.length,
+                        isSidechain: firstMessage.isSidechain,
+                        id: lastMessage.sessionId,
+                        summary: data.summaries.get(lastMessage.uuid) || summary,
+                        isCurrentWorkspace: true
+                    };
+                })
+                .filter(s => !!s.id);
+
+            // A single JSONL file can produce many transcripts (one per conversation branch /
+            // leaf message). Deduplicate by sessionId, keeping the branch with the most recent
+            // lastModified so the displayed summary and timestamp reflect the latest state.
+            const deduped = new Map<string, typeof allSessions[0]>();
+            for (const session of allSessions) {
+                const existing = deduped.get(session.id);
+                if (!existing || session.lastModified > existing.lastModified) {
+                    deduped.set(session.id, session);
+                }
+            }
+            const sessions = [...deduped.values()];
+
+            this.logService.info(`[ClaudeSessionService] Found ${sessions.length} unique sessions (from ${transcripts.length} transcripts): [${sessions.map(s => s.id).join(', ')}]`);
             return sessions;
         } catch (error) {
             this.logService.error(`[ClaudeSessionService] Failed to load session list:`, error);
@@ -468,7 +486,7 @@ export class ClaudeSessionService implements IClaudeSessionService {
      */
     async getSession(sessionIdOrPath: string, cwd: string): Promise<any[]> {
         try {
-            this.logService.info(`[ClaudeSessionService] Getting session messages: ${sessionIdOrPath}`);
+            this.logService.info(`[ClaudeSessionService] Getting session messages: ${sessionIdOrPath}, cwd=${cwd}`);
 
             if (sessionIdOrPath.endsWith(".jsonl")) {
                 const messages: any[] = [];
@@ -482,6 +500,7 @@ export class ClaudeSessionService implements IClaudeSessionService {
             const data = await loadProjectData(cwd, configDir);
 
             const messageUuids = data.sessionMessages.get(sessionIdOrPath);
+            this.logService.info(`[ClaudeSessionService.getSession] lookup sessionId=${sessionIdOrPath}, found=${!!messageUuids}, fileKeys=[${[...data.sessionMessages.keys()].join(', ')}]`);
             if (!messageUuids) {
                 return [];
             }

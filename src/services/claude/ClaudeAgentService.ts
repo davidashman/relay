@@ -269,11 +269,13 @@ export class ClaudeAgentService implements IClaudeAgentService {
     /**
      */
     private async readFromClient(): Promise<void> {
+        this.logService.info('[ClaudeAgentService] readFromClient loop started');
         try {
             for await (const message of this.fromClientStream) {
                 switch (message.type) {
                     case "launch_claude":
-                        await this.launchClaude(
+                        this.logService.info(`[ClaudeAgentService] launch_claude received: channel=${message.channelId} resume=${message.resume ?? 'null'}`);
+                        void this.launchClaude(
                             message.channelId,
                             message.resume || null,
                             message.cwd || this.getCwd(),
@@ -281,7 +283,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
                             message.permissionMode || "default",
                             message.thinkingLevel || null,
                             message.effortLevel || null
-                        );
+                        ).catch(error => {
+                            this.logService.error(`[ClaudeAgentService] launch_claude error for channel ${message.channelId}: ${error}`);
+                        });
                         break;
 
                     case "close_channel":
@@ -317,8 +321,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 }
             }
         } catch (error) {
-            this.logService.error(`[ClaudeAgentService] Error in readFromClient: ${error}`);
+            this.logService.error(`[ClaudeAgentService] readFromClient loop TERMINATED unexpectedly: ${error}`);
         }
+        this.logService.warn('[ClaudeAgentService] readFromClient loop ended — no more messages will be processed');
     }
 
     /**
@@ -470,7 +475,6 @@ export class ClaudeAgentService implements IClaudeAgentService {
             this.logService.error('');
 
             this.closeChannel(channelId, true, String(error));
-            throw error;
         }
     }
 

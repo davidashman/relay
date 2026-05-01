@@ -7,6 +7,8 @@ import { InstantiationServiceBuilder } from './di/instantiationServiceBuilder';
 import { registerServices, ILogService, IClaudeAgentService, IWebViewService } from './services/serviceRegistry';
 import { VSCodeTransport } from './services/claude/transport/VSCodeTransport';
 
+let _webViewService: IWebViewService | undefined;
+
 /**
  * Extension Activation
  */
@@ -34,6 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 	instantiationService.invokeFunction(accessor => {
 		const logService = accessor.get(ILogService);
 		const webViewService = accessor.get(IWebViewService);
+		_webViewService = webViewService;
 		const claudeAgentService = accessor.get(IClaudeAgentService);
 		const subscriptions = context.subscriptions;
 
@@ -120,6 +123,9 @@ export function activate(context: vscode.ExtensionContext) {
 				if (req.type === 'update_panel_session') {
 					const webviewId: string | undefined = message.webviewId;
 					if (webviewId && webviewId.startsWith('panel:chat:')) {
+						if (!req.sessionId) {
+							logService.warn(`[extension] update_panel_session called with null sessionId for webviewId=${webviewId} — restore failure likely caused a new session to replace an existing one`);
+						}
 						webViewService.updateChatPanelSession(webviewId, req.sessionId ?? null);
 					}
 					webViewService.postMessage({
@@ -318,5 +324,5 @@ export function activate(context: vscode.ExtensionContext) {
  * Extension Deactivation
  */
 export function deactivate() {
-	// Clean up resources
+	_webViewService?.beginDeactivation();
 }

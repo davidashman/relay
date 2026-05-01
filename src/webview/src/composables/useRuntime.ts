@@ -27,9 +27,11 @@ export function useRuntime(): RuntimeInstance {
   // The initial title for this panel (from bootstrap, set before sessions load)
   const panelTitle = isPanelMode ? (bootstrap?.title ?? '') : '';
 
-  // True while the panel is loading an existing session (before activeSession is set)
-  const isLoadingExistingSession = isPanelMode && !!panelSessionId;
-  const sessionLoadingSignal = signal(isLoadingExistingSession);
+  // sessionLoading is true while:
+  //   (a) this panel has a panelSessionId but no activeSession yet (finding the session), OR
+  //   (b) the active session's isLoading signal is true (loading messages from the server)
+  // It starts as true for panels restoring an existing session, and is kept reactive thereafter.
+  const sessionLoadingSignal = signal(isPanelMode && !!panelSessionId);
 
   // Transport Webview
   const connectionManager = new ConnectionManager(() => transport);
@@ -93,6 +95,17 @@ export function useRuntime(): RuntimeInstance {
   });
 
   const tabs = useTabs(sessionStore);
+
+  // Keep sessionLoadingSignal reactive: true while waiting for session to appear
+  // (panelSessionId set but no activeSession yet) or while session.isLoading is true.
+  effect(() => {
+    const active = sessionStore.activeSession();
+    if (!active) {
+      sessionLoadingSignal(isPanelMode && !!panelSessionId);
+    } else {
+      sessionLoadingSignal(active.isLoading());
+    }
+  });
 
   // --- Notification wiring ---
   function tabTitle(session: Session): string {
@@ -295,23 +308,32 @@ export function useRuntime(): RuntimeInstance {
         if (!disposed) appContext.assetUris(assets.assetUris);
       } catch (e) { console.warn('[runtime] assets fetch failed', e); }
 
-      await sessionStore.listSessions();
+      console.log(`[restore] panelSessionId=${JSON.stringify(panelSessionId)} isPanelMode=${isPanelMode}`);
       if (!disposed && !sessionStore.activeSession()) {
         if (isPanelMode) {
-          // Panel mode: pre-select the session from bootstrap.sessionId, or create new
-          const isNewSession = !panelSessionId;
-          if (!isNewSession) {
-            // Find the session with matching ID in the loaded sessions
-            const targetSession = sessionStore.sessions().find(
-              s => s.sessionId() === panelSessionId
-            );
-            if (targetSession) {
-              tabs.addTab(targetSession);
-            } else {
-              // Session not found (maybe from another workspace), create new
-              await tabs.createNewTab({ isExplicit: false });
+          if (panelSessionId) {
+            // Load the specific session directly rather than searching through
+            // the full list — avoids the race where "not found" creates a new
+            // tab that fires updatePanelSession(null) and wipes persisted history.
+            const targetSession = await sessionStore.loadSessionById(panelSessionId);
+            if (!disposed) {
+              if (targetSession) {
+                console.log(`[restore] found target session ${panelSessionId}, calling addTab`);
+                tabs.addTab(targetSession);
+              } else {
+                console.error(`[restore] session ${panelSessionId} NOT FOUND — showing error`);
+                // Stop the loading spinner (the reactive effect keeps it true while
+                // panelSessionId is set and no activeSession exists; set it false
+                // explicitly since we are not creating a session).
+                sessionLoadingSignal(false);
+                void appContext.showNotification(
+                  `Could not restore session. The session may have been deleted or is no longer accessible.`,
+                  'error'
+                );
+              }
             }
           } else {
+            console.log(`[restore] no panelSessionId, creating new tab`);
             await tabs.createNewTab({ isExplicit: false });
           }
         } else if (bootstrap?.host !== 'sidebar') {
@@ -319,8 +341,7 @@ export function useRuntime(): RuntimeInstance {
         }
         // Sidebar mode: no tab creation needed — sidebar just shows session list
       }
-      // Clear loading state once sessions are resolved
-      sessionLoadingSignal(false);
+      console.log(`[restore] done, activeSession=${sessionStore.activeSession()?.sessionId()}`);
     })();
 
     onUnmounted(() => {

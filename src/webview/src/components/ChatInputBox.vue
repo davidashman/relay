@@ -1,7 +1,7 @@
 <template>
   <div
     class="full-input-box"
-    style="position: relative;"
+    :style="{ position: 'relative', '--mode-border-color': modeBorderColor }"
   >
     <div v-if="attachments && attachments.length > 0" class="attachments-list">
       <div
@@ -238,6 +238,17 @@ const draftContent = ref('')  // saved draft when entering history mode
 
 const isSubmitDisabled = computed(() => {
   return !content.value.trim() || isLoading.value
+})
+
+const modeBorderColor = computed(() => {
+  switch (props.permissionMode) {
+    case 'acceptEdits':
+      return 'color-mix(in srgb, #a855f7 55%, transparent)'
+    case 'plan':
+      return 'color-mix(in srgb, #3b82f6 55%, transparent)'
+    default:
+      return 'color-mix(in srgb, var(--vscode-foreground) 55%, transparent)'
+  }
 })
 
 // === Completion Dropdown Composable ===
@@ -1037,7 +1048,7 @@ defineExpose({
 
 /* */
 .full-input-box:focus-within {
-  border-color: color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent) !important;
+  border-color: var(--mode-border-color) !important;
   background: color-mix(in srgb, var(--vscode-input-background) 70%, transparent);
   outline: none !important;
 }

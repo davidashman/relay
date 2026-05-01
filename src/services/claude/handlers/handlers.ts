@@ -577,6 +577,7 @@ export async function handleListSessions(
             isCurrentWorkspace: true
         }));
 
+        logService.info(`[handleListSessions] returning ${sessionsWithMeta.length} sessions: [${sessionsWithMeta.map(s => s.id).join(', ')}]`);
         return {
             type: "list_sessions_response",
             sessions: sessionsWithMeta
@@ -602,6 +603,7 @@ export async function handleGetSession(
         const cwd = workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
         const messages = await sessionService.getSession(request.sessionId, cwd);
 
+        logService.info(`[handleGetSession] returning ${messages.length} messages for sessionId=${request.sessionId}`);
         return {
             type: "get_session_response",
             messages

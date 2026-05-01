@@ -87,6 +87,22 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * Should be called once during extension activation.
 	 */
 	restoreOpenSessions(): void;
+
+	/**
+	 * Must be called from extension deactivate() so panel state is saved before
+	 * VSCode disposes all panels (which would otherwise wipe the persisted list).
+	 */
+	beginDeactivation(): void;
+}
+
+/** All state for a single open chat panel. */
+interface PanelModel {
+	readonly key: string;       // stable UUID for this panel's lifetime
+	readonly webviewId: string; // "panel:chat:{key}"
+	readonly panel: vscode.WebviewPanel;
+	sessionId: string | null;   // null = no real session yet (new session loading)
+	title: string;              // current base title (without the pending '●' prefix)
+	iconState: 'default' | 'done' | 'pending';
 }
 
 /**
@@ -96,32 +112,30 @@ export class WebViewService implements IWebViewService {
 	readonly _serviceBrand: undefined;
 
 	private static readonly OPEN_SESSIONS_KEY = 'relay.openSessions';
+	private static readonly PENDING_PREFIX = '● ';
 
 	private readonly webviews = new Set<vscode.Webview>();
 	private readonly webviewConfigs = new Map<vscode.Webview, WebviewBootstrapConfig>();
 	private readonly webviewIdMap = new Map<string, vscode.Webview>();
 	private messageHandler?: (message: any) => void;
 	private readonly editorPanels = new Map<string, vscode.WebviewPanel>();
-	/** Map from stable panelKey to chat panel (panelKey is independent of the session in the panel) */
-	private readonly chatPanels = new Map<string, vscode.WebviewPanel>();
-	/** Map from webviewId (e.g. 'panel:chat:key') to panel key, for title updates */
-	private readonly chatPanelWebviewIds = new Map<string, string>();
-	/** Tracks session IDs of currently-open chat panels for persistence (sessionId → title) */
-	private readonly openSessionIds = new Map<string, string>();
-	/** Tracks the current real sessionId for each panelKey (absent entry means no real session yet) */
-	private readonly panelKeyToSessionId = new Map<string, string>();
-	/** Reverse lookup: sessionId → panelKey, for fast "is this session already open?" checks */
-	private readonly sessionIdToPanelKey = new Map<string, string>();
-	/** Base (unprefixed) title for each chat panel, so we can re-derive the displayed title when the pending state toggles */
-	private readonly panelKeyToBaseTitle = new Map<string, string>();
-	/** Icon state for each chat panel: 'default' (orange), 'done' (green), 'pending' (blue) */
-	private readonly panelKeyToIconState = new Map<string, 'default' | 'done' | 'pending'>();
-	private static readonly PENDING_PREFIX = '● ';
+
+	/** All open chat panels, keyed by stable panel key. */
+	private readonly panels = new Map<string, PanelModel>();
+
+	private isDeactivating = false;
 
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		@ILogService private readonly logService: ILogService
 	) {}
+
+	beginDeactivation(): void {
+		this.isDeactivating = true;
+		// Save current panel state before VSCode disposes all panels (which would otherwise clear it)
+		this.persistOpenSessions();
+		this.logService.info('[WebViewService] beginDeactivation: saved session state before shutdown');
+	}
 
 	/**
 	 *  WebviewViewProvider.resolveWebviewView
@@ -275,36 +289,28 @@ export class WebViewService implements IWebViewService {
 	 */
 	openChatPanel(sessionId: string | null, title: string): void {
 		// If this session is already open in a panel, just reveal that panel.
-		// Using the sessionIdToPanelKey reverse lookup means we never confuse
-		// a cleared panel (whose key is now decoupled from the old sessionId)
-		// with a panel that is genuinely showing the requested session.
 		if (sessionId) {
-			const existingKey = this.sessionIdToPanelKey.get(sessionId);
-			if (existingKey) {
-				const existingPanel = this.chatPanels.get(existingKey);
-				if (existingPanel) {
-					try {
-						existingPanel.reveal(vscode.ViewColumn.Active);
-						this.logService.info(`[WebViewService] : sessionId=${sessionId}`);
-						return;
-					} catch (error) {
-						this.logService.warn(
-							`[WebViewService] : sessionId=${sessionId}`,
-							error as Error
-						);
-						// Panel is dead — clean up the stale entries and fall through to create a new one.
-						this.chatPanels.delete(existingKey);
-						this.sessionIdToPanelKey.delete(sessionId);
-					}
-				} else {
-					// Reverse lookup pointed at a key with no panel — clean up.
-					this.sessionIdToPanelKey.delete(sessionId);
+			const existingModel = this.findModelBySessionId(sessionId);
+			if (existingModel) {
+				try {
+					existingModel.panel.reveal(vscode.ViewColumn.Active);
+					this.logService.info(`[WebViewService] : sessionId=${sessionId}`);
+					return;
+				} catch (error) {
+					this.logService.warn(
+						`[WebViewService] : sessionId=${sessionId}`,
+						error as Error
+					);
+					// Panel is dead — clean up and fall through to create a new one.
+					this.panels.delete(existingModel.key);
 				}
 			}
 		}
 
 		// Each panel gets a stable key that is independent of which session it currently shows.
 		const key = `panel-${crypto.randomUUID()}`;
+		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, sessionId: sessionId || '', title };
+		const webviewId = this.getWebviewId(bootstrap);
 
 		this.logService.info(`[WebViewService] : sessionId=${sessionId}, title=${title}`);
 
@@ -322,141 +328,103 @@ export class WebViewService implements IWebViewService {
 			}
 		);
 
-		// Track base title and initial icon state, then apply icon + title
-		this.panelKeyToBaseTitle.set(key, title);
-		this.panelKeyToIconState.set(key, 'default');
-		this.applyPanelPresentation(key);
+		const model: PanelModel = {
+			key,
+			webviewId,
+			panel,
+			sessionId,
+			title,
+			iconState: 'default',
+		};
+
+		this.panels.set(key, model);
+		if (sessionId) {
+			this.persistOpenSessions();
+		}
+
+		this.applyPanelPresentation(model);
 
 		const panelWebview = panel.webview;
-
-		// The panel key (id) uniquely identifies this panel for the webviewId.
-		// The sessionId field tells the webview which session to preload — it is
-		// separate so that it can change (e.g. after /clear) without affecting the key.
-		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, sessionId: sessionId || '', title };
 		this.registerWebview(panelWebview, bootstrap);
-
-		// Track webviewId → panelKey for title/badge updates
-		const webviewId = this.getWebviewId(bootstrap);
-		this.chatPanelWebviewIds.set(webviewId, key);
 
 		panel.onDidDispose(
 			() => {
 				this.removeWebview(panelWebview);
-				this.chatPanels.delete(key);
-				this.chatPanelWebviewIds.delete(webviewId);
-				this.panelKeyToBaseTitle.delete(key);
-				this.panelKeyToIconState.delete(key);
-				const currentSessionId = this.panelKeyToSessionId.get(key);
-				this.panelKeyToSessionId.delete(key);
-				if (currentSessionId) {
-					this.sessionIdToPanelKey.delete(currentSessionId);
-					this.openSessionIds.delete(currentSessionId);
+				this.panels.delete(key);
+				// Only update persistence if the user explicitly closed the panel.
+				// During shutdown, VSCode disposes all panels — we must NOT overwrite the
+				// state we saved in beginDeactivation() with a progressively-emptier list.
+				if (!this.isDeactivating) {
 					this.persistOpenSessions();
 				}
-				this.logService.info(`[WebViewService] : sessionId=${currentSessionId}`);
+				this.logService.info(`[WebViewService] : sessionId=${model.sessionId}`);
 			},
 			undefined,
 			this.context.subscriptions
 		);
-
-		if (sessionId) {
-			this.panelKeyToSessionId.set(key, sessionId);
-			this.sessionIdToPanelKey.set(sessionId, key);
-			this.openSessionIds.set(sessionId, title);
-			this.persistOpenSessions();
-		}
-
-		this.chatPanels.set(key, panel);
 	}
 
 	/**
 	 * @param webviewId  webviewId  'panel:chat:<key>' extension.ts
 	 */
 	updateChatPanelTitle(webviewId: string, title: string): void {
-		const panelKey = this.chatPanelWebviewIds.get(webviewId);
-		if (!panelKey) return;
-		const panel = this.chatPanels.get(panelKey);
-		if (panel) {
-			this.panelKeyToBaseTitle.set(panelKey, title);
-			this.applyPanelPresentation(panelKey);
-			const currentSessionId = this.panelKeyToSessionId.get(panelKey);
-			if (currentSessionId) {
-				this.openSessionIds.set(currentSessionId, title);
-				this.persistOpenSessions();
-			}
-			this.logService.info(`[WebViewService] : webviewId=${webviewId}, title=${title}`);
-		}
+		const model = this.findModelByWebviewId(webviewId);
+		if (!model) return;
+		model.title = title;
+		this.applyPanelPresentation(model);
+		this.logService.info(`[WebViewService] : webviewId=${webviewId}, title=${title}`);
 	}
 
 	/**
-	 * Apply the current base title + icon state to the panel's `title` and `iconPath`.
+	 * Apply the current title + icon state to the panel's `title` and `iconPath`.
 	 * - pending: '● ' prefix + blue Claude logo (permission waiting)
 	 * - done:    green Claude logo (turn completed)
 	 * - default: orange Claude logo (idle or working)
 	 */
-	private applyPanelPresentation(panelKey: string): void {
-		const panel = this.chatPanels.get(panelKey);
-		if (!panel) return;
-		const base = this.panelKeyToBaseTitle.get(panelKey) ?? panel.title;
-		const state = this.panelKeyToIconState.get(panelKey) ?? 'default';
-		const pending = state === 'pending';
-		panel.title = pending ? WebViewService.PENDING_PREFIX + base : base;
-		const iconFile = state === 'pending' ? 'claude-logo-pending.svg'
-		               : state === 'done'    ? 'claude-logo-done.svg'
-		               :                       'claude-logo.svg';
+	private applyPanelPresentation(model: PanelModel): void {
+		const pending = model.iconState === 'pending';
+		model.panel.title = pending ? WebViewService.PENDING_PREFIX + model.title : model.title;
+		const iconFile = model.iconState === 'pending' ? 'claude-logo-pending.svg'
+		               : model.iconState === 'done'    ? 'claude-logo-done.svg'
+		               :                                 'claude-logo.svg';
 		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', iconFile));
-		panel.iconPath = { light: iconUri, dark: iconUri };
+		model.panel.iconPath = { light: iconUri, dark: iconUri };
 	}
 
 	updateChatPanelSession(webviewId: string, sessionId: string | null): void {
-		const panelKey = this.chatPanelWebviewIds.get(webviewId);
-		if (!panelKey) return;
-		const panel = this.chatPanels.get(panelKey);
-		if (!panel) return;
+		const model = this.findModelByWebviewId(webviewId);
+		if (!model) return;
 
-		const previousSessionId = this.panelKeyToSessionId.get(panelKey);
-		if (previousSessionId === sessionId) return;
-		if (!previousSessionId && !sessionId) return;
+		const prev = model.sessionId;
+		if (prev === sessionId) return;
+		if (!prev && !sessionId) return;
 
-		// Use the current persisted title if we had one, else fall back to the panel's base title
-		// (prefer the unprefixed base title over panel.title, which may include the '●' pending prefix)
-		const title = (previousSessionId && this.openSessionIds.get(previousSessionId))
-			|| this.panelKeyToBaseTitle.get(panelKey)
-			|| panel.title;
-
-		if (previousSessionId) {
-			this.openSessionIds.delete(previousSessionId);
-			this.sessionIdToPanelKey.delete(previousSessionId);
-		}
-
+		model.sessionId = sessionId;
 		if (sessionId) {
-			this.panelKeyToSessionId.set(panelKey, sessionId);
-			this.sessionIdToPanelKey.set(sessionId, panelKey);
-			this.openSessionIds.set(sessionId, title);
-		} else {
-			this.panelKeyToSessionId.delete(panelKey);
+			// Only persist when a real session is assigned. When sessionId is null it
+			// means a new session is being created and its ID isn't known yet — don't
+			// overwrite the persisted list until the real ID arrives.
+			this.persistOpenSessions();
 		}
 
-		this.persistOpenSessions();
-		this.logService.info(
-			`[WebViewService] : webviewId=${webviewId}, previousSessionId=${previousSessionId}, sessionId=${sessionId}`
-		);
+		if (!sessionId && prev) {
+			this.logService.warn(`[WebViewService] updateChatPanelSession: CLEARED sessionId=${prev} → null for webviewId=${webviewId}`);
+		} else {
+			this.logService.info(`[WebViewService] updateChatPanelSession: webviewId=${webviewId} prev=${prev ?? 'none'} → new=${sessionId ?? 'null'}`);
+		}
 	}
 
 	closeChatPanel(webviewId: string): void {
-		const panelKey = this.chatPanelWebviewIds.get(webviewId);
-		if (!panelKey) return;
-		const panel = this.chatPanels.get(panelKey);
-		if (panel) {
-			panel.dispose();
+		const model = this.findModelByWebviewId(webviewId);
+		if (model) {
+			model.panel.dispose();
 			this.logService.info(`[WebViewService] : webviewId=${webviewId}`);
 		}
 	}
 
 	updateChatPanelBadge(webviewId: string, count: number, iconState?: string): void {
-		const panelKey = this.chatPanelWebviewIds.get(webviewId);
-		if (!panelKey) return;
-		if (!this.chatPanels.has(panelKey)) return;
+		const model = this.findModelByWebviewId(webviewId);
+		if (!model) return;
 		// Note: vscode.WebviewPanel has no `badge` property (that exists only on WebviewView/TreeView),
 		// so we signal state by toggling a '●' title prefix and swapping the tab icon.
 		const newState: 'default' | 'done' | 'pending' =
@@ -465,9 +433,9 @@ export class WebViewService implements IWebViewService {
 			iconState === 'default' ? 'default' :
 			// Legacy fallback: derive from count if iconState not provided
 			count > 0               ? 'pending' : 'default';
-		if (this.panelKeyToIconState.get(panelKey) !== newState) {
-			this.panelKeyToIconState.set(panelKey, newState);
-			this.applyPanelPresentation(panelKey);
+		if (model.iconState !== newState) {
+			model.iconState = newState;
+			this.applyPanelPresentation(model);
 		}
 	}
 
@@ -475,15 +443,29 @@ export class WebViewService implements IWebViewService {
 		const sessions = this.context.workspaceState.get<Array<{ sessionId: string; title: string }>>(
 			WebViewService.OPEN_SESSIONS_KEY, []
 		);
+		this.logService.info(`[WebViewService] Restoring ${sessions.length} session panel(s) from workspace state: [${sessions.map(s => s.sessionId).join(', ')}]`);
 		for (const { sessionId, title } of sessions) {
 			this.openChatPanel(sessionId, title);
 		}
-		this.logService.info(`[WebViewService] Restored ${sessions.length} session panel(s) from workspace state`);
 	}
 
 	private persistOpenSessions(): void {
-		const sessions = Array.from(this.openSessionIds.entries()).map(([sessionId, title]) => ({ sessionId, title }));
+		const sessions: Array<{ sessionId: string; title: string }> = [];
+		for (const model of this.panels.values()) {
+			if (model.sessionId) {
+				sessions.push({ sessionId: model.sessionId, title: model.title });
+			}
+		}
+		this.logService.info(`[WebViewService] persistOpenSessions: saving ${sessions.length} sessions: [${sessions.map(s => s.sessionId).join(', ')}]`);
 		this.context.workspaceState.update(WebViewService.OPEN_SESSIONS_KEY, sessions);
+	}
+
+	private findModelByWebviewId(webviewId: string): PanelModel | undefined {
+		return [...this.panels.values()].find(m => m.webviewId === webviewId);
+	}
+
+	private findModelBySessionId(sessionId: string): PanelModel | undefined {
+		return [...this.panels.values()].find(m => m.sessionId === sessionId);
 	}
 
 	/**

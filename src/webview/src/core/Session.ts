@@ -69,13 +69,19 @@ export interface SessionContext {
 }
 
 export class Session {
-  static readonly ROAMING_TOOL_CALL_THRESHOLD = 15;
+  static readonly ROAMING_TOOL_CALL_THRESHOLD = 30;
 
   private readonly claudeChannelId = signal<string | undefined>(undefined);
   private currentConnectionPromise?: Promise<BaseTransport>;
   private lastSentSelection?: SelectionRange;
   private effectCleanup?: () => void;
   private autoInterruptTriggered = false;
+  // The session ID that the CLI assigned on the most recent resume. The CLI
+  // forks a new branch (new session_id) on every resume, but that branch has
+  // no JSONL content until the user sends a message. We defer updating the
+  // public sessionId (which drives persistence / window-restore) until the
+  // first `result` proves the fork's JSONL was written to disk.
+  private _sdkSessionId?: string;
 
   // Context-compaction interception state. When the SDK streams a compacting
   // window, we buffer the summary assistant output here and surface it as a
@@ -308,10 +314,12 @@ export class Session {
     const sessionId = this.sessionId();
     if (!sessionId) return;
 
+    console.log(`[Session.loadFromServer] sessionId=${sessionId}`);
     this.isLoading(true);
     try {
       const connection = await this.getConnection();
       const response = await connection.getSession(sessionId);
+      console.log(`[Session.loadFromServer] getSession response: messages=${response?.messages?.length ?? 'null/undefined'} sessionId=${sessionId}`);
       const accumulator: Message[] = [];
       // Holds the most-recently-created CompactionBlock so the isSynthetic
       // message that follows can attach its text as injectedContext.
@@ -375,8 +383,14 @@ export class Session {
       }
       // ReadCoalesced
       // this.messages(mergeConsecutiveReadMessages(accumulator));
+      console.log(`[Session.loadFromServer] accumulated ${accumulator.length} messages for sessionId=${sessionId}`);
       this.messages(accumulator);
+      console.log(`[Session.loadFromServer] messages signal set, calling launchClaude for sessionId=${sessionId}`);
       await this.launchClaude();
+      console.log(`[Session.loadFromServer] launchClaude returned for sessionId=${sessionId}`);
+    } catch (e) {
+      console.error(`[Session.loadFromServer] error loading sessionId=${sessionId}:`, e);
+      throw e;
     } finally {
       this.isLoading(false);
     }
@@ -550,9 +564,13 @@ export class Session {
     }
 
 
+    // Resume from the latest SDK-assigned branch if we have one; otherwise
+    // resume from the stable (persisted) sessionId.
+    const resumeId = this._sdkSessionId ?? this.sessionId();
+    console.log(`[Session.launchClaude] sending launch_claude: channel=${channelId} resume=${resumeId ?? 'null'}`);
     const stream = connection.launchClaude(
       channelId,
-      this.sessionId() ?? undefined,
+      resumeId ?? undefined,
       this.cwd() ?? undefined,
       this.modelSelection() ?? undefined,
       this.permissionMode(),
@@ -585,6 +603,12 @@ export class Session {
   }
 
   async restartClaude(): Promise<void> {
+    // Promote any deferred SDK session ID so the restart resumes from the
+    // most recent fork rather than the original pre-resume session.
+    if (this._sdkSessionId) {
+      this.sessionId(this._sdkSessionId);
+      this._sdkSessionId = undefined;
+    }
     await this.interrupt();
     this.claudeChannelId(undefined);
     // Channel is gone — any turns that were in flight will never produce a
@@ -742,6 +766,13 @@ export class Session {
       this.currentThinking(undefined);
       this.hasActiveTool(false);
       this.streamingText(undefined);
+      // The user sent a message and the CLI wrote a turn to the forked session's
+      // JSONL. It's now safe to promote the deferred SDK session ID so future
+      // window restores use the up-to-date session.
+      if (this._sdkSessionId) {
+        this.sessionId(this._sdkSessionId);
+        this._sdkSessionId = undefined;
+      }
       if (this.compactResultExpected) {
         // compact_boundary already settled the compact turn — absorb this result
         // without touching outstandingTurns so subsequent user turns aren't miscounted.
@@ -859,11 +890,11 @@ export class Session {
     }
 
     if (event?.type === 'system' && event?.subtype === 'compact_boundary') {
-      // Compaction creates a new session JSONL file. Update sessionId so that
-      // if the SDK stream restarts, launchClaude() resumes the correct session
-      // rather than the now-superseded pre-compact one.
+      // Compaction creates a new session JSONL file with real content — update
+      // sessionId immediately (no need to defer) and clear any pending fork ID.
       if (event.session_id) {
         this.sessionId(event.session_id);
+        this._sdkSessionId = undefined;
       }
       const summary = this.compactionBuffer.join('\n\n').trim();
       this.compactingMode(false);
@@ -1023,10 +1054,18 @@ export class Session {
     // this.messages(merged);
     this.messages(currentMessages);
 
-    // 6. — counter/pending already handled at the top of this
-    // method; only `system/init` still needs to update the session id here.
-    if (event?.type === 'system') {
-      this.sessionId(event.session_id);
+    // 6. Session ID update from system/init.
+    // For brand-new sessions there's no prior ID, so accept whatever the CLI assigns.
+    // For resumed sessions the CLI forks a new branch (new session_id) that has no
+    // JSONL content yet — store it in _sdkSessionId and defer the public update until
+    // the first `result` event proves the fork's JSONL was written.
+    if (event?.type === 'system' && event.session_id) {
+      const existing = this.sessionId();
+      if (!existing) {
+        this.sessionId(event.session_id);
+      } else if (event.session_id !== existing) {
+        this._sdkSessionId = event.session_id;
+      }
     }
   }
 
