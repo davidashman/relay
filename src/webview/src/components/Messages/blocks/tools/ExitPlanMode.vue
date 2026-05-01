@@ -3,8 +3,7 @@
     tool-icon="codicon-tasklist"
     tool-name="Plan"
     :tool-result="toolResult"
-    :default-expanded="true"
-    :always-expanded="true"
+    :default-expanded="false"
   >
     <template #main>
       <span class="tool-label">Plan</span>

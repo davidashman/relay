@@ -136,9 +136,10 @@ export function useRuntime(): RuntimeInstance {
 
         if (busy) _panelIconEverBusy = true;
 
-        let iconState: 'default' | 'done' | 'pending';
+        let iconState: 'default' | 'working' | 'done' | 'pending';
         if (permCount > 0) iconState = 'pending';
-        else if (!busy && _panelIconEverBusy) iconState = 'done';
+        else if (busy) iconState = 'working';
+        else if (_panelIconEverBusy) iconState = 'done';
         else iconState = 'default';
 
         void conn.setPanelBadge(permCount, iconState);

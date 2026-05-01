@@ -1,7 +1,7 @@
 <template>
   <div
     ref="containerRef"
-    class="permission-request-container"
+    :class="['permission-request-container', { 'plan-modal': isPlanMode }]"
     tabIndex="0"
     data-permission-panel="1"
   >
@@ -10,6 +10,7 @@
       <span class="tool-name">{{ toolLabel }}</span>
       <span v-if="toolDescription" class="tool-description" :title="toolDescription">{{ toolDescription }}</span>
     </div>
+    <div v-if="isPlanMode && renderedPlan" class="plan-review-content" v-html="renderedPlan"></div>
     <div class="permission-header">Do you approve?</div>
     <input
       ref="inputRef"
@@ -43,6 +44,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { marked } from 'marked';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { ToolContext } from '../types/tool';
 import { useKeybinding } from '../utils/useKeybinding';
@@ -102,6 +104,15 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 const toolLabel = computed(() => TOOL_LABELS[props.request.toolName] ?? props.request.toolName);
+
+const isPlanMode = computed(() => props.request.toolName === 'ExitPlanMode');
+
+const renderedPlan = computed(() => {
+  if (!isPlanMode.value) return '';
+  const plan = props.request.inputs.plan as string | undefined;
+  if (!plan) return '';
+  return marked(plan) as string;
+});
 
 const toolDescription = computed(() => {
   const inputs = props.request.inputs as Record<string, unknown>;
@@ -297,5 +308,62 @@ useKeybinding([
   opacity: 0.6;
   font-family: var(--vscode-editor-font-family, monospace);
   letter-spacing: 0;
+}
+
+.plan-modal {
+  max-height: 66vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-review-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  font-size: 0.95em;
+  line-height: 1.6;
+  color: var(--vscode-editor-foreground);
+  padding: 4px 2px;
+}
+
+.plan-review-content :deep(h1),
+.plan-review-content :deep(h2),
+.plan-review-content :deep(h3) {
+  font-weight: 600;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  color: var(--vscode-foreground);
+}
+
+.plan-review-content :deep(h1:first-child),
+.plan-review-content :deep(h2:first-child),
+.plan-review-content :deep(h3:first-child) {
+  margin-top: 0;
+}
+
+.plan-review-content :deep(h1) { font-size: 1.2em; }
+.plan-review-content :deep(h2) { font-size: 1.1em; }
+.plan-review-content :deep(h3) { font-size: 1em; }
+
+.plan-review-content :deep(p) {
+  margin-bottom: 6px;
+}
+
+.plan-review-content :deep(ul),
+.plan-review-content :deep(ol) {
+  margin-bottom: 6px;
+  padding-left: 20px;
+}
+
+.plan-review-content :deep(li) {
+  margin-bottom: 3px;
+}
+
+.plan-review-content :deep(code) {
+  background-color: color-mix(in srgb, var(--vscode-textCodeBlock-background) 50%, transparent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.9em;
 }
 </style>
