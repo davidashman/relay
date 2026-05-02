@@ -1065,6 +1065,12 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--vscode-sideBar-background);
+    padding-bottom: 16px;
+    background: linear-gradient(
+      to bottom,
+      var(--vscode-sideBar-background) 0px,
+      var(--vscode-sideBar-background) calc(100% - 24px),
+      transparent 100%
+    );
   }
 </style>

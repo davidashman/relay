@@ -1,6 +1,6 @@
 <template>
-  <div class="user-message" :class="{ 'user-message--pinned': pinned }">
-    <div class="message-wrapper" :class="{ 'message-wrapper--pinned': pinned }">
+  <div class="user-message">
+    <div class="message-wrapper">
       <!--  message-content  -->
       <div
         v-if="!isEditing && displayAttachments.length > 0"
@@ -255,22 +255,12 @@ onUnmounted(() => {
 .user-message {
   display: block;
   outline: none;
-  padding: 3px 12px 12px;
+  padding: 12px 12px 0px;
   opacity: 1;
 }
 
-.user-message--pinned {
-  padding: 0px 12px;
-  background-color: var(--vscode-panel-background);
-}
-
 .message-wrapper {
-  background-color: transparent;
-}
-
-.message-wrapper--pinned {
-  padding: 8px 0px 0px;
-  box-shadow: 0px 8px 16px color-mix(in srgb, var(--vscode-panel-background) 60%, transparent);
+  background-color: var(--vscode-sideBar-background);
 }
 
 /* - */
