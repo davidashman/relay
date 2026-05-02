@@ -1,5 +1,5 @@
 <template>
-  <div class="user-message" :class="{ 'user-message--readonly': readonly }">
+  <div class="user-message" :class="{ 'user-message--pinned': pinned }">
     <div class="message-wrapper">
       <!--  message-content  -->
       <div
@@ -39,9 +39,9 @@
         <div
           v-if="!isEditing"
           class="message-view"
-          :class="{ 'message-view--readonly': readonly }"
-          :role="readonly ? undefined : 'button'"
-          :tabindex="readonly ? undefined : 0"
+          :class="{ 'message-view--pinned': pinned }"
+          role="button"
+          tabindex="0"
           @click.stop="startEditing"
           @keydown.enter.prevent="startEditing"
           @keydown.space.prevent="startEditing"
@@ -91,7 +91,7 @@ import { RuntimeKey } from '../../composables/runtimeContext';
 interface Props {
   message: Message;
   context: ToolContext;
-  readonly?: boolean;
+  pinned?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -178,7 +178,6 @@ function extractAttachments(): AttachmentItem[] {
 }
 
 async function startEditing() {
-  if (props.readonly) return;
   isEditing.value = true;
 
   attachments.value = extractAttachments();
@@ -260,7 +259,7 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-.user-message--readonly {
+.user-message--pinned {
   padding: 8px 12px;
   background-color: var(--vscode-panel-background);
 }
@@ -298,8 +297,8 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-.message-view--readonly {
-  cursor: default;
+.message-view--pinned {
+  cursor: pointer;
 }
 
 /* Attachment tiles */

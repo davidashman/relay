@@ -55,7 +55,7 @@
               <!-- Section: sticky user prompt header + its responses -->
               <div v-else class="chat-section">
                 <div class="section-sticky-header">
-                  <UserMessage :message="section.header.message" :context="toolContext" :readonly="true" />
+                  <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" />
                 </div>
                 <template v-for="seg in section.body" :key="seg.key">
                   <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
