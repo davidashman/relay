@@ -57,9 +57,6 @@
       :show-progress="showProgress"
       :progress-percentage="progressPercentage"
       :context-tooltip="contextTooltip"
-      :input-tokens="inputTokens"
-      :output-tokens="outputTokens"
-      :show-token-usage="showTokenUsage"
       :thinking-enabled="thinkingEnabled"
       :effort-level="effortLevel"
       :permission-mode="permissionMode"
@@ -167,9 +164,6 @@ interface Props {
   showProgress?: boolean
   progressPercentage?: number
   contextTooltip?: string
-  inputTokens?: number
-  outputTokens?: number
-  showTokenUsage?: boolean
   placeholder?: string
   readonly?: boolean
   showSearch?: boolean
@@ -199,9 +193,6 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
-  inputTokens: 0,
-  outputTokens: 0,
-  showTokenUsage: true,
   // Enter: send (interleaves mid-turn). Cmd/Ctrl+Enter: interrupt then send.
   // IIFE-wrapped so defineProps defaults don't reference a setup-local binding.
   placeholder: (() => {

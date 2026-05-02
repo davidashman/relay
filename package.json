@@ -65,12 +65,6 @@
           "description": "Show Claude's internal thinking blocks in the chat. When disabled, thinking is hidden and only the final response is shown.",
           "order": 8
         },
-        "relay.showTokenUsage": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the token usage count in the input box, to the left of the context window meter.",
-          "order": 9
-        },
         "relay.autoInterruptOnRoaming": {
           "type": "boolean",
           "default": false,

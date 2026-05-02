@@ -106,7 +106,6 @@ export abstract class BaseTransport {
       permissionMode: initResponse.state.permissionMode,
       expandToolOutput: initResponse.state.expandToolOutput ?? true,
       showThinking: initResponse.state.showThinking ?? false,
-      showTokenUsage: initResponse.state.showTokenUsage ?? true,
     } as InitResponse["state"]);
     console.log('[BaseTransport.init] Set config with modelSetting:', this.config()?.modelSetting);
 
@@ -477,7 +476,6 @@ export abstract class BaseTransport {
           ...(incoming.permissionMode !== undefined ? { permissionMode: incoming.permissionMode } : {}),
           ...(incoming.expandToolOutput !== undefined ? { expandToolOutput: incoming.expandToolOutput } : {}),
           ...(incoming.showThinking !== undefined ? { showThinking: incoming.showThinking } : {}),
-          ...(incoming.showTokenUsage !== undefined ? { showTokenUsage: incoming.showTokenUsage } : {}),
         } as InitResponse["state"]);
         if (req.config !== undefined) {
           this.claudeConfig(req.config);

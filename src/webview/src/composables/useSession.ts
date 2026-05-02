@@ -55,10 +55,7 @@ export interface UseSessionReturn {
   roamingWarning: Ref<boolean>;
 
   usageData: Ref<{
-    inputTokens: number;
-    outputTokens: number;
     contextTokens: number;
-    totalCost: number;
     contextWindow: number;
   }>;
 

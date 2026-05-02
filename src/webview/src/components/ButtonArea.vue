@@ -130,9 +130,6 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
-  inputTokens: 0,
-  outputTokens: 0,
-  showTokenUsage: true,
   thinkingEnabled: true,
   effortLevel: undefined,
   permissionMode: 'default'
@@ -141,16 +138,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const fileInputRef = ref<HTMLInputElement>()
-
-const formattedTokens = computed(() => {
-  const fmt = (n: number) => {
-    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
-    return `${n}`
-  }
-  return `in: ${fmt(props.inputTokens)} / out: ${fmt(props.outputTokens)}`
-})
-
 
 const submitVariant = computed(() => {
   // Reactbusy
@@ -312,14 +299,6 @@ function handleFileUpload(event: Event) {
   opacity: 1;
   outline: 1.5px solid color-mix(in srgb, var(--vscode-editor-foreground) 60%, transparent);
   outline-offset: 1px;
-}
-
-.token-count-label {
-  font-size: 12px;
-  color: color-mix(in srgb,var(--vscode-foreground) 60%,transparent);
-  white-space: nowrap;
-  line-height: 1;
-  user-select: none;
 }
 
 .codicon-modifier-spin {

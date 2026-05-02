@@ -1,5 +1,5 @@
 <template>
-  <div class="user-message">
+  <div class="user-message" :class="{ 'user-message--readonly': readonly }">
     <div class="message-wrapper">
       <!--  message-content  -->
       <div
@@ -39,8 +39,9 @@
         <div
           v-if="!isEditing"
           class="message-view"
-          role="button"
-          tabindex="0"
+          :class="{ 'message-view--readonly': readonly }"
+          :role="readonly ? undefined : 'button'"
+          :tabindex="readonly ? undefined : 0"
           @click.stop="startEditing"
           @keydown.enter.prevent="startEditing"
           @keydown.space.prevent="startEditing"
@@ -90,6 +91,7 @@ import { RuntimeKey } from '../../composables/runtimeContext';
 interface Props {
   message: Message;
   context: ToolContext;
+  readonly?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -176,6 +178,7 @@ function extractAttachments(): AttachmentItem[] {
 }
 
 async function startEditing() {
+  if (props.readonly) return;
   isEditing.value = true;
 
   attachments.value = extractAttachments();
@@ -257,6 +260,11 @@ onUnmounted(() => {
   opacity: 1;
 }
 
+.user-message--readonly {
+  padding: 8px 12px;
+  background-color: var(--vscode-panel-background);
+}
+
 .message-wrapper {
   background-color: transparent;
 }
@@ -288,6 +296,10 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   gap: 4px;
+}
+
+.message-view--readonly {
+  cursor: default;
 }
 
 /* Attachment tiles */
@@ -393,7 +405,6 @@ onUnmounted(() => {
 
 .message-text > div:first-child {
   min-width: 0;
-  height: min-content;
   line-height: 1.5;
   font-family: inherit;
   font-size: 13px;
@@ -407,6 +418,10 @@ onUnmounted(() => {
   user-select: text;
   white-space: pre-wrap;
   flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
 }
 
 /* restore checkpoint */

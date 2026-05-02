@@ -5,6 +5,7 @@ import type { ModelOption } from '../../../shared/messages';
 import type { SessionSummary } from './types';
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
 import { processAndAttachMessage, findToolUseBlock /*, mergeConsecutiveReadMessages */ } from '../utils/messageUtils';
+import { isGroupableTool } from '../utils/toolGroups';
 import { parseMessageContent } from '../models/contentParsers';
 import { normalizeModelId, contextWindowForModel } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
@@ -1022,8 +1023,10 @@ export class Session {
       const hasToolUse = event.message.content.some((b: any) => b?.type === 'tool_use');
       if (hasToolUse) {
         this.hasActiveTool(true);
-        const toolUseCount = event.message.content.filter((b: any) => b?.type === 'tool_use').length;
-        this.currentTurnToolCallCount(this.currentTurnToolCallCount() + toolUseCount);
+        const passiveToolCount = event.message.content.filter(
+          (b: any) => b?.type === 'tool_use' && isGroupableTool(b.name)
+        ).length;
+        this.currentTurnToolCallCount(this.currentTurnToolCallCount() + passiveToolCount);
         this.checkRoaming();
       }
     }

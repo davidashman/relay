@@ -42,21 +42,29 @@
             </div>
           </template>
           <template v-else>
-            <!-- <div class="msg-list"> -->
-              <template v-for="segment in messageSegments" :key="segment.key">
-                <div v-if="segment.type === 'tool-group'" class="tool-group-msg">
-                  <ToolGroup
-                    :wrappers="getGroupWrappers(segment.messages)"
-                    :context="toolContext"
-                  />
-                </div>
-                <MessageRenderer
-                  v-else
-                  :message="segment.message"
-                  :context="toolContext"
-                />
+            <template v-for="section in chatSections" :key="section.key">
+              <!-- Pre-section: messages before the first user prompt -->
+              <template v-if="section.header === null">
+                <template v-for="seg in section.body" :key="seg.key">
+                  <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
+                    <ToolGroup :wrappers="getGroupWrappers(seg.messages)" :context="toolContext" />
+                  </div>
+                  <MessageRenderer v-else :message="seg.message" :context="toolContext" />
+                </template>
               </template>
-            <!-- </div> -->
+              <!-- Section: sticky user prompt header + its responses -->
+              <div v-else class="chat-section">
+                <div class="section-sticky-header">
+                  <UserMessage :message="section.header.message" :context="toolContext" :readonly="true" />
+                </div>
+                <template v-for="seg in section.body" :key="seg.key">
+                  <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
+                    <ToolGroup :wrappers="getGroupWrappers(seg.messages)" :context="toolContext" />
+                  </div>
+                  <MessageRenderer v-else :message="seg.message" :context="toolContext" />
+                </template>
+              </div>
+            </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
             <div v-if="isBusy && !pendingPermission && !streamingText" class="spinnerRow">
               <Spinner :size="18" :permission-mode="permissionMode" :label="spinnerLabel" />
@@ -149,6 +157,7 @@
   import RandomTip from '../components/RandomTip.vue';
   import MessageRenderer from '../components/Messages/MessageRenderer.vue';
   import StreamingMessage from '../components/Messages/StreamingMessage.vue';
+  import UserMessage from '../components/Messages/UserMessage.vue';
   import ToolGroup from '../components/Messages/blocks/ToolGroup.vue';
   import type { ContentBlockWrapper } from '../models/ContentBlockWrapper';
   import { useKeybinding } from '../utils/useKeybinding';
@@ -352,6 +361,39 @@
   const containerEl = ref<HTMLDivElement | null>(null);
   const endEl = ref<HTMLDivElement | null>(null);
   const chatInputRef = ref<InstanceType<typeof ChatInputBox> | null>(null);
+
+  type ChatSection = {
+    key: string;
+    header: MessageSegment | null;
+    body: MessageSegment[];
+  };
+
+  const chatSections = computed((): ChatSection[] => {
+    const sections: ChatSection[] = [];
+    let current: ChatSection = { key: 'pre', header: null, body: [] };
+
+    for (const seg of messageSegments.value) {
+      const isUserHeader =
+        seg.type === 'single' &&
+        (seg as any).message?.type === 'user' &&
+        !(seg as any).message?.isEmpty;
+
+      if (isUserHeader) {
+        if (current.header !== null || current.body.length > 0) {
+          sections.push(current);
+        }
+        current = { key: seg.key, header: seg as MessageSegment & { type: 'single' }, body: [] };
+      } else {
+        current.body.push(seg);
+      }
+    }
+
+    if (current.header !== null || current.body.length > 0) {
+      sections.push(current);
+    }
+
+    return sections;
+  });
 
   const attachments = ref<AttachmentItem[]>([]);
 
@@ -763,7 +805,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 8px 0 12px;
+    padding: 0px 0 12px;
     position: relative;
   }
 
@@ -1012,5 +1054,17 @@
   .jump-button-leave-from {
     opacity: 1;
     transform: translateY(0);
+  }
+
+  /* Section-based sticky prompt headers */
+  .chat-section {
+    /* transparent wrapper — just provides the sticky constraint boundary */
+  }
+
+  .section-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--vscode-sideBar-background);
   }
 </style>

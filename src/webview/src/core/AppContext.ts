@@ -169,11 +169,6 @@ export class AppContext {
     return connection?.config()?.showThinking ?? false;
   }
 
-  get showTokenUsage(): boolean {
-    const connection = this.connectionManager.connection();
-    return connection?.config()?.showTokenUsage ?? true;
-  }
-
   get autoInterruptOnRoaming(): boolean {
     const connection = this.connectionManager.connection();
     return connection?.config()?.autoInterruptOnRoaming ?? false;
