@@ -72,7 +72,14 @@ import type {
     UpdateExtensionConfigRequest,
     UpdateExtensionConfigResponse,
     SdkProbeRequest,
-    SdkProbeResponse
+    SdkProbeResponse,
+    GetAgentDefinitionRequest,
+    GetAgentDefinitionResponse,
+    ListAgentsRequest,
+    ListAgentsResponse,
+    AgentDefinition,
+    UpdateSessionMetaRequest,
+    UpdateSessionMetaResponse,
 } from '../../../shared/messages';
 import type { HandlerContext } from './types';
 import type { PermissionMode, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
@@ -587,6 +594,16 @@ export async function handleListSessions(
             sessions: []
         };
     }
+}
+
+export async function handleUpdateSessionMeta(
+    request: UpdateSessionMetaRequest,
+    context: HandlerContext
+): Promise<UpdateSessionMetaResponse> {
+    const { sessionService, workspaceService } = context;
+    const cwd = workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
+    await sessionService.updateSessionMeta(request.sessionId, cwd, request.agent);
+    return { type: 'update_session_meta_response' };
 }
 
 /**
@@ -1156,6 +1173,163 @@ function detectLanguage(fileName?: string): string {
         default:
             return "plaintext";
     }
+}
+
+export async function handleGetAgentDefinition(
+    request: GetAgentDefinitionRequest,
+    _context: HandlerContext
+): Promise<GetAgentDefinitionResponse> {
+    const { subagentType } = request;
+    // Strip namespace prefix for matching (e.g. "voltagent-biz:content-marketer" → "content-marketer")
+    const bare = subagentType.includes(':') ? subagentType.split(':').pop()! : subagentType;
+
+    const homeDir = os.homedir();
+    const claudeDir = path.join(homeDir, '.claude');
+    const searchDirs = [
+        path.join(claudeDir, 'agents'),
+        path.join(claudeDir, 'plugins'),
+    ];
+
+    const definition = findAgentDefinition(bare, searchDirs);
+    return { type: 'get_agent_definition_response', definition };
+}
+
+export async function handleListAgents(
+    _request: ListAgentsRequest,
+    _context: HandlerContext
+): Promise<ListAgentsResponse> {
+    const homeDir = os.homedir();
+    const claudeDir = path.join(homeDir, '.claude');
+
+    const agents: AgentDefinition[] = [];
+    const seen = new Set<string>();
+
+    // Walk ~/.claude/agents/ directly
+    walkAllAgents(path.join(claudeDir, 'agents'), agents, seen);
+
+    // Discover agents from plugin cache via plugin.json manifests
+    const cacheDir = path.join(claudeDir, 'plugins', 'cache');
+    const pluginJsonPaths = findPluginJsonFiles(cacheDir);
+    for (const pluginJsonPath of pluginJsonPaths) {
+        let manifest: { agents?: string[] };
+        try {
+            manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8'));
+        } catch {
+            continue;
+        }
+        if (!Array.isArray(manifest.agents)) continue;
+        // Agent paths are relative to the plugin root (parent of .claude-plugin/)
+        const pluginRoot = path.dirname(path.dirname(pluginJsonPath));
+        for (const agentPath of manifest.agents) {
+            const full = path.resolve(pluginRoot, agentPath);
+            const parsed = parseAgentFile(full);
+            if (parsed && !seen.has(parsed.name)) {
+                seen.add(parsed.name);
+                agents.push(parsed);
+            }
+        }
+    }
+
+    return { type: 'list_agents_response', agents };
+}
+
+function findPluginJsonFiles(cacheDir: string): string[] {
+    const results: string[] = [];
+    let entries: fs.Dirent[];
+    try {
+        entries = fs.readdirSync(cacheDir, { withFileTypes: true });
+    } catch {
+        return results;
+    }
+    for (const entry of entries) {
+        const full = path.join(cacheDir, entry.name);
+        if (entry.isDirectory()) {
+            results.push(...findPluginJsonFiles(full));
+        } else if (entry.isFile() && entry.name === 'plugin.json') {
+            results.push(full);
+        }
+    }
+    return results;
+}
+
+function walkAllAgents(dir: string, results: AgentDefinition[], seen: Set<string>): void {
+    let entries: fs.Dirent[];
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+        return;
+    }
+    for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            walkAllAgents(full, results, seen);
+        } else if (entry.isFile() && entry.name.endsWith('.md')) {
+            const parsed = parseAgentFile(full);
+            if (parsed && !seen.has(parsed.name)) {
+                seen.add(parsed.name);
+                results.push(parsed);
+            }
+        }
+    }
+}
+
+function findAgentDefinition(name: string, dirs: string[]): AgentDefinition | null {
+    for (const dir of dirs) {
+        const found = walkForAgent(name, dir);
+        if (found) return found;
+    }
+    return null;
+}
+
+function walkForAgent(name: string, dir: string): AgentDefinition | null {
+    let entries: fs.Dirent[];
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+        return null;
+    }
+    for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            const found = walkForAgent(name, full);
+            if (found) return found;
+        } else if (entry.isFile() && entry.name.endsWith('.md')) {
+            const parsed = parseAgentFile(full);
+            if (parsed && parsed.name === name) return parsed;
+        }
+    }
+    return null;
+}
+
+function parseAgentFile(filePath: string): AgentDefinition | null {
+    let content: string;
+    try {
+        content = fs.readFileSync(filePath, 'utf-8');
+    } catch {
+        return null;
+    }
+    const match = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!match) return null;
+    const frontmatter = match[1];
+
+    const get = (key: string) => {
+        const m = frontmatter.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+        return m ? m[1].trim() : undefined;
+    };
+
+    const name = get('name');
+    if (!name) return null;
+
+    const toolsRaw = get('tools');
+    const tools = toolsRaw ? toolsRaw.split(',').map(t => t.trim()).filter(Boolean) : undefined;
+
+    return {
+        name,
+        model: get('model'),
+        tools,
+        color: get('color'),
+        description: get('description'),
+    };
 }
 
 function getConfigFilePath(configType: string): string {

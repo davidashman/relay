@@ -136,9 +136,8 @@
         "icon": "$(add)"
       },
       {
-        "command": "relay.newSessionPanel",
-        "title": "Relay: New Chat",
-        "icon": "resources/claude-logo.svg"
+        "command": "relay.newSessionDefault",
+        "title": "Relay: New Chat (Default Agent)"
       },
       {
         "command": "relay.toggleSearch",
@@ -162,7 +161,7 @@
       {
         "key": "ctrl+n",
         "mac": "cmd+n",
-        "command": "relay.newSession",
+        "command": "relay.newSessionDefault",
         "when": "relayFocused"
       },
       {
@@ -185,13 +184,6 @@
       }
     ],
     "menus": {
-      "editor/title": [
-        {
-          "command": "relay.newSessionPanel",
-          "group": "navigation",
-          "when": "true"
-        }
-      ],
       "view/title": [
         {
           "command": "relay.newSession",

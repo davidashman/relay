@@ -126,6 +126,7 @@
             :effort-level="session?.effortLevel.value"
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
+            :selected-agent="session?.agentSelection.value"
             @submit="handleSubmit"
             @submit-and-interrupt="handleSubmitAndInterrupt"
             @stop="handleStop"
@@ -845,7 +846,7 @@
     padding-left: 0px;
   }
   .spinnerRow {
-    padding-left: 16px;
+    padding-left: 20px;
     display: flex;
     align-items: center;
     gap: 8px;

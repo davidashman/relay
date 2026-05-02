@@ -24,8 +24,13 @@
         />
       </div>
 
-      <!-- Right Section: Token Indicator + Action Buttons -->
+      <!-- Right Section: Agent Chip + Token Indicator + Action Buttons -->
       <div class="actions-section">
+        <!-- Agent Chip -->
+        <Tooltip v-if="selectedAgent" :content="`Agent: ${selectedAgent}`">
+          <span class="agent-chip">{{ selectedAgent }}</span>
+        </Tooltip>
+
         <!-- Token Indicator -->
         <TokenIndicator
           v-if="showProgress"
@@ -99,6 +104,7 @@ interface Props {
   disabled?: boolean
   loading?: boolean
   selectedModel?: string
+  selectedAgent?: string
   conversationWorking?: boolean
   hasInputContent?: boolean
   showProgress?: boolean
@@ -125,6 +131,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
   selectedModel: undefined,
+  selectedAgent: undefined,
   conversationWorking: false,
   hasInputContent: false,
   showProgress: true,
@@ -229,6 +236,21 @@ function handleFileUpload(event: Event) {
   align-items: center;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.agent-chip {
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
 }
 
 .action-button,

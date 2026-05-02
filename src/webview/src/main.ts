@@ -20,6 +20,8 @@ declare global {
       /** Session to preload — separate from the panel key */
       sessionId?: string;
       title?: string;
+      /** Agent definition name to use for this panel's first new session */
+      initialAgent?: string;
     };
   }
 }

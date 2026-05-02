@@ -44,7 +44,11 @@ const command = computed(() => {
 });
 
 const description = computed(() => {
-  return props.toolUse?.input?.description || '';
+  const desc = props.toolUse?.input?.description;
+  if (desc) return desc;
+  const cmd = command.value;
+  if (!cmd) return '';
+  return cmd.length > 50 ? cmd.slice(0, 50) + '…' : cmd;
 });
 
 const runInBackground = computed(() => {

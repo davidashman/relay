@@ -50,6 +50,7 @@ export interface SdkQueryParams {
     resume: string | null;
     canUseTool: CanUseTool;
     model: string | null;  // ←  null
+    agent?: string | null; // Agent definition name from ~/.claude/agents/
     cwd: string;
     permissionMode: PermissionMode | string;  // ←
     thinking?: ThinkingConfig;
@@ -133,13 +134,14 @@ export class ClaudeSdkService implements IClaudeSdkService {
      *  Claude SDK
      */
     async query(params: SdkQueryParams): Promise<Query> {
-        const { inputStream, resume, canUseTool, model, cwd, permissionMode, thinking, effortLevel, onStderrError } = params;
+        const { inputStream, resume, canUseTool, model, agent, cwd, permissionMode, thinking, effortLevel, onStderrError } = params;
 
         this.logService.info('========================================');
         this.logService.info('ClaudeSdkService.query() ');
         this.logService.info('========================================');
         this.logService.info(`📋 :`);
         this.logService.info(`  - model: ${model}`);
+        this.logService.info(`  - agent: ${agent ?? 'none'}`);
         this.logService.info(`  - cwd: ${cwd}`);
         this.logService.info(`  - permissionMode: ${permissionMode}`);
         this.logService.info(`  - resume: ${resume}`);
@@ -206,6 +208,7 @@ export class ClaudeSdkService implements IClaudeSdkService {
             cwd: cwdParam,
             resume: resume || undefined,
             model: modelParam,
+            agent: agent || undefined,
             permissionMode: permissionModeParam,
             thinking,
 
@@ -515,13 +518,13 @@ export class ClaudeSdkService implements IClaudeSdkService {
       // for models with "[1m]" in their name; for Sonnet 4.6 and Opus 4.x we
       // inject it here via ANTHROPIC_BETAS so the CLI picks it up. We append
       // rather than overwrite so any user-configured betas are preserved.
-      if (model && this.needs1MBeta(model)) {
-          const existing = merged.ANTHROPIC_BETAS ?? '';
-          const betas = new Set(existing.split(',').map(b => b.trim()).filter(Boolean));
-          betas.add('context-1m-2025-08-07');
-          merged.ANTHROPIC_BETAS = [...betas].join(',');
-          this.logService.info(`[ClaudeSdkService] Injected context-1m-2025-08-07 beta for model: ${model}`);
-      }
+    //   if (model && this.needs1MBeta(model)) {
+    //       const existing = merged.ANTHROPIC_BETAS ?? '';
+    //       const betas = new Set(existing.split(',').map(b => b.trim()).filter(Boolean));
+    //       betas.add('context-1m-2025-08-07');
+    //       merged.ANTHROPIC_BETAS = [...betas].join(',');
+    //       this.logService.info(`[ClaudeSdkService] Injected context-1m-2025-08-07 beta for model: ${model}`);
+    //   }
 
       return merged;
     }

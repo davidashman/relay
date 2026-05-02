@@ -51,6 +51,7 @@ export interface SessionInfo {
     summary: string;
     isSidechain?: boolean;
     worktree?: string;
+    agent?: string;
     isCurrentWorkspace: boolean;
 }
 
@@ -66,6 +67,12 @@ export interface IClaudeSessionService {
     /**
      */
     getSession(sessionIdOrPath: string, cwd: string): Promise<any[]>;
+
+    /**
+     * Persist relay-specific metadata for a session (e.g. which agent was used).
+     * Written to relay-sessions.json in the project's history directory.
+     */
+    updateSessionMeta(sessionId: string, cwd: string, agent: string | null): Promise<void>;
 }
 
 // ============================================================================
@@ -444,6 +451,15 @@ export class ClaudeSessionService implements IClaudeSessionService {
             const projectDir = getProjectHistoryDir(cwd, configDir);
             this.logService.info(`[ClaudeSessionService] projectDir=${projectDir}, raw transcripts=${transcripts.length}`);
 
+            // Load relay-specific session metadata (agent associations, etc.)
+            let relayMeta: Record<string, { agent?: string }> = {};
+            try {
+                const raw = await fs.readFile(path.join(projectDir, 'relay-sessions.json'), 'utf8');
+                relayMeta = JSON.parse(raw);
+            } catch {
+                // file missing — no relay metadata yet
+            }
+
             const allSessions = transcripts
                 .filter(transcript => transcript.length > 0)
                 .map(transcript => {
@@ -451,12 +467,14 @@ export class ClaudeSessionService implements IClaudeSessionService {
                     const firstMessage = transcript[0];
                     const summary = generateSummary(transcript);
 
+                    const id = lastMessage.sessionId;
                     return {
                         lastModified: new Date(lastMessage.timestamp).getTime(),
                         messageCount: transcript.length,
                         isSidechain: firstMessage.isSidechain,
-                        id: lastMessage.sessionId,
+                        id,
                         summary: data.summaries.get(lastMessage.uuid) || summary,
+                        agent: relayMeta[id]?.agent,
                         isCurrentWorkspace: true
                     };
                 })
@@ -480,6 +498,34 @@ export class ClaudeSessionService implements IClaudeSessionService {
             this.logService.error(`[ClaudeSessionService] Failed to load session list:`, error);
             return [];
         }
+    }
+
+    async updateSessionMeta(sessionId: string, cwd: string, agent: string | null): Promise<void> {
+        const configDir = await this.resolveConfigDir();
+        const projectDir = getProjectHistoryDir(cwd, configDir);
+        const metaPath = path.join(projectDir, 'relay-sessions.json');
+
+        let existing: Record<string, { agent?: string }> = {};
+        try {
+            const raw = await fs.readFile(metaPath, 'utf8');
+            existing = JSON.parse(raw);
+        } catch {
+            // file missing or unparseable — start fresh
+        }
+
+        if (agent) {
+            existing[sessionId] = { ...existing[sessionId], agent };
+        } else {
+            const { agent: _removed, ...rest } = existing[sessionId] ?? {};
+            if (Object.keys(rest).length > 0) {
+                existing[sessionId] = rest;
+            } else {
+                delete existing[sessionId];
+            }
+        }
+
+        await fs.mkdir(projectDir, { recursive: true });
+        await fs.writeFile(metaPath, JSON.stringify(existing, null, 2), 'utf8');
     }
 
     /**

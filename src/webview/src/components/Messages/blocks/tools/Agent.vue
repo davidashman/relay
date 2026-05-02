@@ -34,10 +34,10 @@
 
     <!-- Expanded: prompt at top, then every child tool, then error. -->
     <div
-      v-if="isExpanded && (prompt || children.length > 0 || hasError)"
+      v-if="isExpanded && (prompt || effectiveModel || agentDefinition?.tools?.length || children.length > 0 || hasError)"
       class="task-children"
     >
-      <div v-if="prompt" class="prompt-section">
+      <div v-if="prompt || effectiveModel || agentDefinition?.tools?.length" class="prompt-section">
         <div class="section-header">
           <span class="codicon codicon-comment-discussion"></span>
           <span>Prompt</span>
@@ -47,7 +47,17 @@
             </button>
           </Tooltip>
         </div>
-        <pre class="prompt-content">{{ prompt }}</pre>
+        <div v-if="effectiveModel || agentDefinition?.tools?.length" class="agent-meta">
+          <span v-if="effectiveModel" class="meta-item">
+            <span class="meta-key">Model</span>
+            <span class="meta-value">{{ effectiveModel }}</span>
+          </span>
+          <span v-if="agentDefinition?.tools?.length" class="meta-item meta-item--tools">
+            <span class="meta-key">Tools</span>
+            <span class="meta-value">{{ agentDefinition.tools.join(', ') }}</span>
+          </span>
+        </div>
+        <pre v-if="prompt" class="prompt-content">{{ prompt }}</pre>
       </div>
 
       <ContentBlock
@@ -80,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, provide, ref, type Ref } from 'vue';
+import { computed, inject, provide, ref, watch, type Ref } from 'vue';
 import { useSignal } from '@gn8/alien-signals-vue';
 import Tooltip from '@/components/Common/Tooltip.vue';
 import ToolError from './common/ToolError.vue';
@@ -89,6 +99,7 @@ import ContentBlock from '../../ContentBlock.vue';
 import type { ContentBlockWrapper } from '@/models/ContentBlockWrapper';
 import type { ToolContext } from '@/types/tool';
 import { RuntimeKey } from '@/composables/runtimeContext';
+import type { AgentDefinition } from '../../../../../../shared/messages';
 
 interface Props {
   toolUse?: any;
@@ -121,6 +132,28 @@ const subagentType = computed(
   () => props.toolUse?.input?.subagent_type ?? props.toolUseResult?.subagent_type
 );
 
+// Model from input takes precedence; definition model is the fallback.
+const inputModel = computed(
+  () => props.toolUse?.input?.model ?? props.toolUseResult?.model
+);
+
+const agentDefinition = ref<AgentDefinition | null>(null);
+
+watch(subagentType, async (type) => {
+  if (!type || !runtime) return;
+  try {
+    const conn = await runtime.connectionManager.get();
+    const res = await conn.getAgentDefinition(type);
+    agentDefinition.value = res.definition ?? null;
+  } catch {
+    agentDefinition.value = null;
+  }
+}, { immediate: true });
+
+const effectiveModel = computed(
+  () => inputModel.value ?? agentDefinition.value?.model
+);
+
 const description = computed(
   () => props.toolUse?.input?.description ?? props.toolUseResult?.description
 );
@@ -140,7 +173,7 @@ const isActive = computed(
 );
 
 const isInteractive = computed(
-  () => children.value.length > 0 || !!prompt.value || hasError.value
+  () => children.value.length > 0 || !!prompt.value || !!subagentType.value || hasError.value
 );
 
 // Expansion state — user toggle overrides the default.
@@ -263,19 +296,6 @@ function handleRerun() {
   font-size: 1em;
 }
 
-.agent-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 6px;
-  background-color: color-mix(in srgb, var(--vscode-charts-purple) 25%, transparent);
-  color: var(--vscode-charts-purple);
-  border-radius: 3px;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: var(--vscode-editor-font-family);
-  line-height: 1;
-}
-
 .description-text {
   font-family: var(--vscode-editor-font-family);
   font-size: 1em;
@@ -336,6 +356,39 @@ function handleRerun() {
 
 .section-header > .codicon {
   font-size: 14px;
+}
+
+.agent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background-color: color-mix(in srgb, var(--vscode-charts-purple) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-purple) 25%, transparent);
+  border-radius: 4px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85em;
+}
+
+.meta-key {
+  font-weight: 600;
+  color: color-mix(in srgb, var(--vscode-charts-purple) 80%, var(--vscode-foreground));
+}
+
+.meta-value {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-foreground);
+}
+
+.meta-item--tools {
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .prompt-content {

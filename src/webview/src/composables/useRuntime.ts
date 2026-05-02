@@ -26,6 +26,8 @@ export function useRuntime(): RuntimeInstance {
   const panelSessionId = isPanelMode ? (bootstrap?.sessionId ?? '') : '';
   // The initial title for this panel (from bootstrap, set before sessions load)
   const panelTitle = isPanelMode ? (bootstrap?.title ?? '') : '';
+  // The agent to use for new sessions created in this panel
+  const panelInitialAgent = isPanelMode ? (bootstrap?.initialAgent ?? '') : '';
 
   // sessionLoading is true while:
   //   (a) this panel has a panelSessionId but no activeSession yet (finding the session), OR
@@ -335,7 +337,7 @@ export function useRuntime(): RuntimeInstance {
             }
           } else {
             console.log(`[restore] no panelSessionId, creating new tab`);
-            await tabs.createNewTab({ isExplicit: false });
+            await tabs.createNewTab({ isExplicit: false, initialAgent: panelInitialAgent || undefined });
           }
         } else if (bootstrap?.host !== 'sidebar') {
           await tabs.createNewTab({ isExplicit: false });

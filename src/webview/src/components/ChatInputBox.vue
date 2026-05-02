@@ -52,6 +52,7 @@
       :disabled="isSubmitDisabled"
       :loading="isLoading"
       :selected-model="selectedModel"
+      :selected-agent="selectedAgent"
       :conversation-working="conversationWorking"
       :has-input-content="!!content.trim()"
       :show-progress="showProgress"
@@ -168,6 +169,7 @@ interface Props {
   readonly?: boolean
   showSearch?: boolean
   selectedModel?: string
+  selectedAgent?: string
   conversationWorking?: boolean
   attachments?: AttachmentItem[]
   thinkingEnabled?: boolean

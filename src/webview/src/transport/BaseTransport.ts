@@ -121,6 +121,7 @@ export abstract class BaseTransport {
     resume?: string,
     cwd?: string,
     model?: string,
+    agent?: string | null,
     permissionMode?: PermissionMode,
     thinkingLevel?: string,
     effortLevel?: string
@@ -133,6 +134,7 @@ export abstract class BaseTransport {
       resume,
       cwd,
       model,
+      agent,
       permissionMode,
       thinkingLevel,
       effortLevel,
@@ -223,6 +225,9 @@ export abstract class BaseTransport {
   listSessions(): Promise<any> {
     return this.sendRequest({ type: "list_sessions_request" });
   }
+  updateSessionMeta(sessionId: string, agent: string | null): Promise<any> {
+    return this.sendRequest({ type: "update_session_meta", sessionId, agent });
+  }
   getSession(sessionId: string): Promise<any> {
     return this.sendRequest({ type: "get_session_request", sessionId });
   }
@@ -272,6 +277,14 @@ export abstract class BaseTransport {
 
   getSettings(): Promise<any> {
     return this.sendRequest({ type: "get_settings" });
+  }
+
+  getAgentDefinition(subagentType: string): Promise<any> {
+    return this.sendRequest({ type: "get_agent_definition", subagentType });
+  }
+
+  listAgents(): Promise<any> {
+    return this.sendRequest({ type: "list_agents" });
   }
 
   updateSetting(key: string, value: any, target?: 'local' | 'shared' | 'global'): Promise<any> {

@@ -41,6 +41,7 @@ export interface SessionOptions {
   isExplicit?: boolean;
   existingWorktree?: { name: string; path: string };
   resumeId?: string;
+  initialAgent?: string;
 }
 
 export interface SessionContext {
@@ -131,6 +132,7 @@ export class Session {
   private prePlanMode: PermissionMode | null = null;
   readonly summary = signal<string | undefined>(undefined);
   readonly modelSelection = signal<string | undefined>(undefined);
+  readonly agentSelection = signal<string | undefined>(undefined);
   readonly thinkingLevel = signal<string>('default_on');
   readonly effortLevel = signal<string | undefined>(undefined);
   readonly todos = signal<any[]>([]);
@@ -230,6 +232,10 @@ export class Session {
   ) {
     this.isExplicit(options.isExplicit ?? true);
 
+    if (options.initialAgent) {
+      this.agentSelection(options.initialAgent);
+    }
+
     effect(() => {
       this.selection(this.context.currentSelection());
     });
@@ -280,6 +286,9 @@ export class Session {
     session.summary(summary.summary);
     session.worktree(summary.worktree);
     session.messageCount(summary.messageCount ?? 0);
+    if (summary.agent) {
+      session.agentSelection(summary.agent);
+    }
     return session;
   }
 
@@ -544,6 +553,21 @@ export class Session {
       this.cwd(connection.config()?.defaultCwd);
     }
 
+    // Agent model always takes priority over config model. Check unconditionally
+    // so it overrides any model that the config-init effect may have set first.
+    const agentName = this.agentSelection();
+    if (agentName) {
+      try {
+        const agentDefResp = await connection.getAgentDefinition(agentName);
+        const agentModel = agentDefResp?.definition?.model;
+        if (agentModel) {
+          this.modelSelection(normalizeModelId(agentModel));
+        }
+      } catch {
+        // ignore — fall through to config model
+      }
+    }
+
     if (!this.modelSelection()) {
       const configModel = connection.config()?.modelSetting;
       // Normalize model aliases to full model IDs
@@ -568,6 +592,7 @@ export class Session {
       resumeId ?? undefined,
       this.cwd() ?? undefined,
       this.modelSelection() ?? undefined,
+      this.agentSelection() ?? null,
       this.permissionMode(),
       this.thinkingLevel(),
       this.effortLevel()
@@ -1060,6 +1085,12 @@ export class Session {
       const existing = this.sessionId();
       if (!existing) {
         this.sessionId(event.session_id);
+        // Persist the agent association for this session so it survives restores.
+        const agent = this.agentSelection();
+        if (agent) {
+          const conn = this.connection();
+          if (conn) void conn.updateSessionMeta(event.session_id, agent);
+        }
       } else if (event.session_id !== existing) {
         this._sdkSessionId = event.session_id;
       }

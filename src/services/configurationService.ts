@@ -46,6 +46,7 @@ export interface ExtensionConfig {
 
   // Startup defaults
   defaultModel: string;
+  defaultAgent: string; // Agent name from ~/.claude/agents/ (empty = none)
 
   // UI preferences
   systemNotifications: boolean;
@@ -151,6 +152,7 @@ export class ConfigurationService implements IConfigurationService {
   private readonly _extensionConfigDefaults: ExtensionConfig = {
     activeProfile: null,
     defaultModel: 'default',
+    defaultAgent: '',
     systemNotifications: false,
     completionSound: true,
     customModels: [],

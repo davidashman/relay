@@ -36,6 +36,7 @@ export interface LaunchClaudeMessage extends BaseMessage {
     resume?: string | null;        //  ID
     cwd?: string;                  //
     model?: string | null;         //
+    agent?: string | null;         // Agent definition name (from ~/.claude/agents/)
     permissionMode?: PermissionMode; //
     thinkingLevel?: string | null; // Thinking off | default_on
     effortLevel?: string | null;   // Effort low | medium | high Opus 4.6+
@@ -278,6 +279,33 @@ export interface SdkProbeResponse {
     errors?: Record<string, string>;
 }
 
+export interface GetAgentDefinitionRequest {
+    type: "get_agent_definition";
+    subagentType: string;
+}
+
+export interface AgentDefinition {
+    name: string;
+    model?: string;
+    tools?: string[];
+    color?: string;
+    description?: string;
+}
+
+export interface GetAgentDefinitionResponse {
+    type: "get_agent_definition_response";
+    definition: AgentDefinition | null;
+}
+
+export interface ListAgentsRequest {
+    type: "list_agents";
+}
+
+export interface ListAgentsResponse {
+    type: "list_agents_response";
+    agents: AgentDefinition[];
+}
+
 /**
  *  MCP
  */
@@ -316,8 +344,19 @@ export interface ListSessionsResponse {
         messageCount: number;
         summary: string;
         worktree?: string;
+        agent?: string;
         isCurrentWorkspace: boolean;
     }>;
+}
+
+export interface UpdateSessionMetaRequest {
+    type: "update_session_meta";
+    sessionId: string;
+    agent: string | null;
+}
+
+export interface UpdateSessionMetaResponse {
+    type: "update_session_meta_response";
 }
 
 /**
@@ -686,6 +725,7 @@ export interface GetExtensionConfigResponse {
     config: {
         activeProfile: string | null;
         defaultModel: string;
+        defaultAgent: string;
         systemNotifications: boolean;
         completionSound: boolean;
         customModels: Array<{ id: string; name?: string }>;
@@ -826,6 +866,7 @@ export type WebViewRequest =
     | UpdatePanelSessionRequest
     | GetClaudeStateRequest
     | SdkProbeRequest
+    | GetAgentDefinitionRequest
     | GetMcpServersRequest
     | GetAssetUrisRequest
     | ListSessionsRequest
@@ -847,7 +888,9 @@ export type WebViewRequest =
     | DeleteProfileRequest
     | GetExtensionConfigRequest
     | UpdateExtensionConfigRequest
-    | OpenSessionPanelRequest;
+    | ListAgentsRequest
+    | OpenSessionPanelRequest
+    | UpdateSessionMetaRequest;
 
 /**
  * Extension → WebView
@@ -869,6 +912,7 @@ export type WebViewRequestResponse =
     | UpdatePanelSessionResponse
     | GetClaudeStateResponse
     | SdkProbeResponse
+    | GetAgentDefinitionResponse
     | GetMcpServersResponse
     | GetAssetUrisResponse
     | ListSessionsResponse
@@ -891,7 +935,9 @@ export type WebViewRequestResponse =
     | DeleteProfileResponse
     | GetExtensionConfigResponse
     | UpdateExtensionConfigResponse
-    | OpenSessionPanelResponse;
+    | ListAgentsResponse
+    | OpenSessionPanelResponse
+    | UpdateSessionMetaResponse;
 
 /**
  * Extension → WebView

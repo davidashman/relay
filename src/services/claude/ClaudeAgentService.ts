@@ -83,6 +83,9 @@ import {
     handleGetExtensionConfig,
     handleUpdateExtensionConfig,
     handleSdkProbe,
+    handleGetAgentDefinition,
+    handleListAgents,
+    handleUpdateSessionMeta,
 } from './handlers/handlers';
 
 export const IClaudeAgentService = createDecorator<IClaudeAgentService>('claudeAgentService');
@@ -132,6 +135,7 @@ export interface IClaudeAgentService {
         resume: string | null,
         cwd: string,
         model: string | null,
+        agent: string | null,
         permissionMode: string,
         thinkingLevel: string | null,
         effortLevel: string | null
@@ -280,6 +284,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
                             message.resume || null,
                             message.cwd || this.getCwd(),
                             message.model || null,
+                            message.agent || null,
                             message.permissionMode || "default",
                             message.thinkingLevel || null,
                             message.effortLevel || null
@@ -334,6 +339,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         resume: string | null,
         cwd: string,
         model: string | null,
+        agent: string | null,
         permissionMode: string,
         thinkingLevel: string | null,
         effortLevel: string | null
@@ -358,6 +364,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         this.logService.info(`  Resume: ${resume || 'null'}`);
         this.logService.info(`  CWD: ${cwd}`);
         this.logService.info(`  Model: ${model || 'null'}`);
+        this.logService.info(`  Agent: ${agent || 'none'}`);
         this.logService.info(`  Permission: ${permissionMode}`);
         this.logService.info(`  Thinking Level: ${this.thinkingLevel}`);
         this.logService.info(`  Thinking Config: ${JSON.stringify(thinking)}`);
@@ -397,6 +404,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     );
                 },
                 model,
+                agent,
                 cwd,
                 permissionMode,
                 thinking,
@@ -543,6 +551,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         resume: string | null,
         canUseTool: CanUseTool,
         model: string | null,
+        agent: string | null,
         cwd: string,
         permissionMode: string,
         thinking: ThinkingConfig,
@@ -554,6 +563,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
             resume,
             canUseTool,
             model,
+            agent,
             cwd,
             permissionMode,
             thinking,
@@ -770,8 +780,17 @@ export class ClaudeAgentService implements IClaudeAgentService {
             case "update_extension_config":
                 return handleUpdateExtensionConfig(request, this.handlerContext);
 
+            case "get_agent_definition":
+                return handleGetAgentDefinition(request, this.handlerContext);
+
+            case "list_agents":
+                return handleListAgents(request, this.handlerContext);
+
             case "list_sessions_request":
                 return handleListSessions(request, this.handlerContext);
+
+            case "update_session_meta":
+                return handleUpdateSessionMeta(request as any, this.handlerContext);
 
             case "get_session_request":
                 return handleGetSession(request, this.handlerContext);

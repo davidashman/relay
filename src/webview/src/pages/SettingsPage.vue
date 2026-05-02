@@ -35,6 +35,7 @@ import SettingsTabHooks from '../components/settings/tabs/SettingsTabHooks.vue';
 import SettingsTabSlashCommands from '../components/settings/tabs/SettingsTabSlashCommands.vue';
 import SettingsTabSkills from '../components/settings/tabs/SettingsTabSkills.vue';
 import SettingsTabPlugins from '../components/settings/tabs/SettingsTabPlugins.vue';
+import SettingsTabAgent from '../components/settings/tabs/SettingsTabAgent.vue';
 import { SettingsStore } from '../core/SettingsStore';
 import { initSettingsStore } from '../composables/useSettingsStore';
 import type { SettingsScope } from '../composables/useSettingsStore';
@@ -55,6 +56,7 @@ const tabs = [
   // Profiles & Preferences
   { id: 'general', label: 'General', icon: 'mdi-cog' },
   { id: 'models', label: 'Models', icon: 'codicon-cube' },
+  { id: 'agent', label: 'Agent', icon: 'codicon-robot' },
   { id: 'profiles', label: 'Profiles', icon: 'mdi-account-cog-outline', divider: true },
   // Plugins & Environments
   { id: 'plugins', label: 'Plugins', icon: 'codicon-extensions' },
@@ -99,6 +101,8 @@ const currentTabComponent = computed(() => {
       return SettingsTabSkills;
     case 'plugins':
       return SettingsTabPlugins;
+    case 'agent':
+      return SettingsTabAgent;
     default:
       return SettingsTabGeneral;
   }

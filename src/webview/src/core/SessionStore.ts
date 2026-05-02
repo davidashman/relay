@@ -174,6 +174,9 @@ export class SessionStore {
             existingSession.summary(summary.summary);
             existingSession.worktree(summary.worktree);
             existingSession.messageCount(summary.messageCount ?? 0);
+            if (summary.agent && !existingSession.agentSelection()) {
+              existingSession.agentSelection(summary.agent);
+            }
             continue;
           }
 

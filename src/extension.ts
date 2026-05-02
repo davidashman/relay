@@ -3,11 +3,68 @@
  */
 
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { InstantiationServiceBuilder } from './di/instantiationServiceBuilder';
-import { registerServices, ILogService, IClaudeAgentService, IWebViewService } from './services/serviceRegistry';
+import { registerServices, ILogService, IClaudeAgentService, IWebViewService, IConfigurationService } from './services/serviceRegistry';
 import { VSCodeTransport } from './services/claude/transport/VSCodeTransport';
 
 let _webViewService: IWebViewService | undefined;
+
+// ── Agent discovery ────────────────────────────────────────────────────────
+
+interface AgentInfo {
+	name: string;
+	description?: string;
+	model?: string;
+}
+
+function listAllAgents(configDir?: string): AgentInfo[] {
+	const claudeDir = configDir ?? path.join(os.homedir(), '.claude');
+	const searchDirs = [
+		path.join(claudeDir, 'agents'),
+		path.join(claudeDir, 'plugins'),
+	];
+	const agents: AgentInfo[] = [];
+	const seen = new Set<string>();
+	for (const dir of searchDirs) {
+		walkAgentsDir(dir, agents, seen);
+	}
+	return agents;
+}
+
+function walkAgentsDir(dir: string, results: AgentInfo[], seen: Set<string>): void {
+	let entries: fs.Dirent[];
+	try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+	for (const entry of entries) {
+		const full = path.join(dir, entry.name);
+		if (entry.isDirectory()) {
+			walkAgentsDir(full, results, seen);
+		} else if (entry.isFile() && entry.name.endsWith('.md')) {
+			const agent = parseAgentFileMini(full);
+			if (agent && !seen.has(agent.name)) {
+				seen.add(agent.name);
+				results.push(agent);
+			}
+		}
+	}
+}
+
+function parseAgentFileMini(filePath: string): AgentInfo | null {
+	let content: string;
+	try { content = fs.readFileSync(filePath, 'utf-8'); } catch { return null; }
+	const match = content.match(/^---\n([\s\S]*?)\n---/);
+	if (!match) return null;
+	const fm = match[1];
+	const get = (key: string) => {
+		const m = fm.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+		return m ? m[1].trim() : undefined;
+	};
+	const name = get('name');
+	if (!name) return null;
+	return { name, description: get('description'), model: get('model') };
+}
 
 /**
  * Extension Activation
@@ -38,6 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const webViewService = accessor.get(IWebViewService);
 		_webViewService = webViewService;
 		const claudeAgentService = accessor.get(IClaudeAgentService);
+		const configService = accessor.get(IConfigurationService);
 		const subscriptions = context.subscriptions;
 
 		// Initialize relayFocused context (will be updated by webview focus events)
@@ -207,16 +265,66 @@ export function activate(context: vscode.ExtensionContext) {
 
 		context.subscriptions.push(configChangeListener);
 
+		// ── Shared agent picker logic ──────────────────────────────────────────
+		async function pickAgentAndOpen(): Promise<void> {
+			const agents = listAllAgents();
+			if (agents.length === 0) {
+				webViewService.openChatPanel(null, 'New Chat');
+				return;
+			}
+
+			const defaultAgentName = (await configService.getExtensionConfig()).defaultAgent ?? '';
+
+			const items: vscode.QuickPickItem[] = [];
+
+			const defaultAgent = defaultAgentName ? agents.find(a => a.name === defaultAgentName) : undefined;
+			if (defaultAgent) {
+				items.push({
+					label: defaultAgent.name,
+					description: defaultAgent.description,
+					detail: defaultAgent.model ? `Model: ${defaultAgent.model}` : undefined,
+				});
+				items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
+			}
+
+			items.push({ label: 'Default (no agent)', description: 'Start without an agent definition' });
+
+			for (const agent of agents) {
+				if (agent.name === defaultAgentName) continue;
+				items.push({
+					label: agent.name,
+					description: agent.description,
+					detail: agent.model ? `Model: ${agent.model}` : undefined,
+				});
+			}
+
+			const selected = await vscode.window.showQuickPick(items, {
+				placeHolder: 'Select an agent for this session',
+				matchOnDescription: true,
+			});
+
+			if (selected === undefined) return; // cancelled
+
+			const agentName = selected.label === 'Default (no agent)' ? undefined : selected.label;
+			webViewService.openChatPanel(null, 'New Chat', agentName);
+		}
+
 		// Register disposables
 		context.subscriptions.push(webviewProvider);
 		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.newSession', () => {
-				webViewService.openChatPanel(null, 'New Chat');
+				void pickAgentAndOpen();
 			})
 		);
 		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.newSessionPanel', () => {
-				webViewService.openChatPanel(null, 'New Chat');
+				void pickAgentAndOpen();
+			})
+		);
+		context.subscriptions.push(
+			vscode.commands.registerCommand('relay.newSessionDefault', async () => {
+				const defaultAgentName = (await configService.getExtensionConfig()).defaultAgent ?? '';
+				webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined);
 			})
 		);
 

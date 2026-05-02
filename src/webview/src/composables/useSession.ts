@@ -42,6 +42,7 @@ export interface UseSessionReturn {
   permissionMode: Ref<PermissionMode>;
   summary: Ref<string | undefined>;
   modelSelection: Ref<string | undefined>;
+  agentSelection: Ref<string | undefined>;
   thinkingLevel: Ref<string>;
   effortLevel: Ref<string | undefined>;
   currentThinking: Ref<string | undefined>;
@@ -116,6 +117,7 @@ export function useSession(session: Session): UseSessionReturn {
   const permissionMode = useSignal(session.permissionMode);
   const summary = useSignal(session.summary);
   const modelSelection = useSignal(session.modelSelection);
+  const agentSelection = useSignal(session.agentSelection);
   const thinkingLevel = useSignal(session.thinkingLevel);
   const effortLevel = useSignal(session.effortLevel);
   const currentThinking = useSignal(session.currentThinking);
@@ -175,6 +177,7 @@ export function useSession(session: Session): UseSessionReturn {
     permissionMode,
     summary,
     modelSelection,
+    agentSelection,
     thinkingLevel,
     effortLevel,
     currentThinking,

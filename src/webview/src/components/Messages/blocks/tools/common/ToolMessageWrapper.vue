@@ -192,7 +192,7 @@ function toggleExpand() {
   justify-content: center;
   background: none;
   border: none;
-  padding: 2px;
+  padding: 2px 2px 2px 0px;
   color: var(--vscode-foreground);
   width: 20px;
   height: 20px;
