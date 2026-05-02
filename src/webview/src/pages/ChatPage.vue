@@ -57,18 +57,19 @@
                 <div class="section-sticky-header">
                   <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" />
                 </div>
-                <template v-for="seg in section.body" :key="seg.key">
+                <div v-for="seg in section.body" :key="seg.key" class="section-content">
                   <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
                     <ToolGroup :wrappers="getGroupWrappers(seg.messages)" :context="toolContext" />
                   </div>
                   <MessageRenderer v-else :message="seg.message" :context="toolContext" />
-                </template>
+                </div>
               </div>
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
             <div v-if="isBusy && !pendingPermission && !streamingText" class="spinnerRow">
               <Spinner :size="18" :permission-mode="permissionMode" :label="spinnerLabel" />
             </div>
+            <div class="end-spacer" />
             <div ref="endEl" />
           </template>
 
@@ -81,6 +82,8 @@
               </button>
             </div>
           </Transition>
+
+          <div class="bottom-fade" />
         </div>
 
         <div class="inputContainer">
@@ -805,13 +808,32 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0px 0 12px;
+    padding: 0px 0 0;
     position: relative;
+  }
+
+  .bottom-fade {
+    position: sticky;
+    bottom: 0;
+    height: 16px;
+    margin-top: -16px;
+    pointer-events: none;
+    z-index: 5;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--vscode-panel-background) 70%, transparent) 100%
+    );
+  }
+
+  .end-spacer {
+    height: 48px;
+    flex-shrink: 0;
   }
 
   /* Mirror AssistantMessage padding so grouped tool messages align with regular messages */
   .tool-group-msg {
-    padding: 0 16px 0.4rem 12px;
+    padding: 0 16px 0.4rem 18px;
     background-color: var(--vscode-sideBar-background);
     font-size: 12px;
     line-height: 1.6;
@@ -823,7 +845,7 @@
     padding-left: 0px;
   }
   .spinnerRow {
-    padding-left: 12px;
+    padding-left: 16px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -928,14 +950,12 @@
 
   /* */
   .inputContainer {
-    padding: 8px 12px 12px;
+    padding: 0px 12px 12px;
   }
 
   /* */
   .main > :last-child {
     flex-shrink: 0;
-    background-color: var(--vscode-panel-background);
-    /* border-top: 1px solid var(--vscode-panel-border); */
     max-width: 1200px;
     width: 100%;
     align-self: center;
@@ -1068,9 +1088,13 @@
     padding-bottom: 16px;
     background: linear-gradient(
       to bottom,
-      var(--vscode-sideBar-background) 0px,
-      var(--vscode-sideBar-background) calc(100% - 24px),
+      var(--vscode-panel-background) 0px,
+      var(--vscode-panel-background) calc(100% - 24px),
       transparent 100%
     );
+  }
+
+  .section-content {
+    padding-left: 4px;
   }
 </style>

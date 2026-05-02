@@ -260,7 +260,7 @@ onUnmounted(() => {
 }
 
 .message-wrapper {
-  background-color: var(--vscode-sideBar-background);
+  background-color: var(--vscode-panel-background);
 }
 
 /* - */

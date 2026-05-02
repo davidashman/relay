@@ -111,7 +111,7 @@ const segments = computed((): Segment[] => {
 .assistant-message {
   display: block;
   outline: none;
-  padding: 0px 16px 6px 12px;
+  padding: 0px 16px;
   background-color: var(--vscode-sideBar-background);
   opacity: 1;
   font-size: 13px;

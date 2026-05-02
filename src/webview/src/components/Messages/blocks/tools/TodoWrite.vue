@@ -8,14 +8,9 @@
           <span class="todo-count">{{ todos.length }}</span>
         </div>
       </div>
-      <div class="todo-list-header-right">
-        <button class="expander-btn" @click="toggleExpand">
-          <span class="codicon" :class="isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'"></span>
-        </button>
-      </div>
     </div>
 
-    <div v-if="isExpanded" class="todo-list-content">
+    <div class="todo-list-content">
       <ul class="todo-list">
         <li
           v-for="(todo, index) in todos"
@@ -95,7 +90,7 @@ function getStatusClass(status: string): string {
 .todowrite-container {
   background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
   backdrop-filter: blur(9px) saturate(1.05);
-  margin: 4px 0;
+  margin: 4px 8px 4px 0px;
   border-radius: 6px;
   overflow: hidden;
 }

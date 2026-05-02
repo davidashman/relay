@@ -33,7 +33,7 @@ const block = computed<ContentBlockWrapper | undefined>(() => {
 <style scoped>
 .compaction-message {
   display: block;
-  padding: 2px 16px 0.4rem 12px;
+  padding: 2px 16px;
   background-color: var(--vscode-sideBar-background);
   font-size: 13px;
   line-height: 1.6;
