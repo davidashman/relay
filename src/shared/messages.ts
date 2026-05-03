@@ -757,6 +757,7 @@ export interface ToolPermissionRequest {
     toolName: string;
     inputs: Record<string, unknown>;
     suggestions: PermissionUpdate[];
+    agentName?: string;
 }
 
 export interface ToolPermissionResponse {

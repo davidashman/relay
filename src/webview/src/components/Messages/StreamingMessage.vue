@@ -1,7 +1,6 @@
 <template>
   <div class="assistant-message prefix">
     <div class="markdown-content" v-html="renderedMarkdown" />
-    <span class="streaming-cursor" />
   </div>
 </template>
 
@@ -113,18 +112,4 @@ const renderedMarkdown = computed(() => marked.parse(props.text) as string);
   line-height: 1.3;
 }
 
-.streaming-cursor {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  vertical-align: text-bottom;
-  background-color: var(--vscode-editor-foreground);
-  margin-left: 1px;
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
 </style>

@@ -34,7 +34,7 @@
       <div
         ref="containerRef"
         class="message-content"
-        :class="{ editing: isEditing }"
+        :class="{ editing: isEditing, 'active-spinner': isActive && !isEditing, 'active-compacting': isActive && isCompacting && !isEditing }"
       >
         <div
           v-if="!isEditing"
@@ -92,6 +92,8 @@ interface Props {
   message: Message;
   context: ToolContext;
   pinned?: boolean;
+  isActive?: boolean;
+  isCompacting?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -251,6 +253,7 @@ onUnmounted(() => {
 });
 </script>
 
+
 <style scoped>
 .user-message {
   display: block;
@@ -275,6 +278,47 @@ onUnmounted(() => {
   border-radius: 6px;
   position: relative;
   transition: all 0.2s ease;
+}
+
+.message-content.active-spinner {
+  overflow: hidden;
+  transition: none;
+}
+
+.message-content.active-spinner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(232, 125, 14, 0.08) 20%,
+    rgba(232, 125, 14, 0.22) 50%,
+    rgba(232, 125, 14, 0.08) 80%,
+    transparent 100%
+  );
+  animation: sweep 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.message-content.active-spinner.active-compacting::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(79, 195, 247, 0.08) 20%,
+    rgba(79, 195, 247, 0.22) 50%,
+    rgba(79, 195, 247, 0.08) 80%,
+    transparent 100%
+  );
+}
+
+@keyframes sweep {
+  0% { transform: translateX(-100%); }
+  70% { transform: translateX(250%); }
+  100% { transform: translateX(250%); }
 }
 
 .message-content.editing {

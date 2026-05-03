@@ -400,7 +400,8 @@ export class ClaudeAgentService implements IClaudeAgentService {
                         channelId,
                         toolName,
                         input,
-                        options.suggestions || []
+                        options.suggestions || [],
+                        agent || undefined
                     );
                 },
                 model,
@@ -877,13 +878,15 @@ export class ClaudeAgentService implements IClaudeAgentService {
         channelId: string,
         toolName: string,
         inputs: Record<string, unknown>,
-        suggestions: PermissionUpdate[]
+        suggestions: PermissionUpdate[],
+        agentName?: string
     ): Promise<PermissionResult> {
         const request: ToolPermissionRequest = {
             type: "tool_permission_request",
             toolName,
             inputs,
-            suggestions
+            suggestions,
+            ...(agentName ? { agentName } : {})
         };
 
         const response = await this.sendRequest<ToolPermissionRequest, ToolPermissionResponse>(

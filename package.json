@@ -21,9 +21,10 @@
     "configuration": {
       "title": "Relay",
       "properties": {
-        "relay.openClaudeCodeSettings": {
-          "type": "null",
-          "markdownDescription": "**Configure Claude Code Settings**\n\nClick here to open: [**Open Claude Code Settings**](command:relay.openSettings)\n\n---\n\nThe Claude Code Settings page allows you to configure:\n- Profiles & Model Selection\n- MCP Servers & Plugins\n- Permissions & Sandbox\n- Memory, Rules & Advanced Options\n\nNote: Relay extension settings are managed here in VSCode settings.",
+        "relay.defaultAgent": {
+          "type": "string",
+          "default": "",
+          "description": "Name of the agent definition to use for new sessions. Leave empty for no agent.",
           "order": 0
         },
         "relay.defaultPermissionMode": {

@@ -130,7 +130,7 @@ const openSession = async (wrappedSession: ReturnType<typeof useSession> | undef
   if (!wrappedSession) return;
   const connection = await runtime.connectionManager.get();
   const summary = wrappedSession.summary.value || '';
-  const title = summary.length > 25 ? `${summary.slice(0, 24)}\u2026` : summary || 'Chat';
+  const title = summary.length > 25 ? `${summary.slice(0, 24)}…` : summary || 'Chat';
   await connection.openSessionPanel(
     wrappedSession.sessionId.value || null,
     title

@@ -6,6 +6,7 @@ export class PermissionRequest {
   readonly toolName: string;
   readonly inputs: Record<string, unknown>;
   readonly suggestions: PermissionUpdate[];
+  readonly agentName?: string;
 
   private readonly resolved: EventEmitter<PermissionResult> = new EventEmitter();
 
@@ -13,12 +14,14 @@ export class PermissionRequest {
     channelId: string,
     toolName: string,
     inputs: Record<string, unknown>,
-    suggestions: PermissionUpdate[] = []
+    suggestions: PermissionUpdate[] = [],
+    agentName?: string
   ) {
     this.channelId = channelId;
     this.toolName = toolName;
     this.inputs = inputs;
     this.suggestions = suggestions;
+    this.agentName = agentName;
   }
 
   accept(

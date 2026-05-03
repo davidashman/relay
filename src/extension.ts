@@ -22,16 +22,45 @@ interface AgentInfo {
 
 function listAllAgents(configDir?: string): AgentInfo[] {
 	const claudeDir = configDir ?? path.join(os.homedir(), '.claude');
-	const searchDirs = [
-		path.join(claudeDir, 'agents'),
-		path.join(claudeDir, 'plugins'),
-	];
 	const agents: AgentInfo[] = [];
 	const seen = new Set<string>();
-	for (const dir of searchDirs) {
-		walkAgentsDir(dir, agents, seen);
+
+	// Walk ~/.claude/agents/ directly
+	walkAgentsDir(path.join(claudeDir, 'agents'), agents, seen);
+
+	// Walk plugin cache: find plugin.json files, read their agents arrays
+	const cacheDir = path.join(claudeDir, 'plugins', 'cache');
+	for (const pluginJsonPath of findPluginJsonFiles(cacheDir)) {
+		let manifest: { agents?: string[] };
+		try { manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8')); } catch { continue; }
+		if (!Array.isArray(manifest.agents)) continue;
+		const pluginRoot = path.dirname(path.dirname(pluginJsonPath));
+		for (const agentPath of manifest.agents) {
+			const full = path.resolve(pluginRoot, agentPath);
+			const agent = parseAgentFileMini(full);
+			if (agent && !seen.has(agent.name)) {
+				seen.add(agent.name);
+				agents.push(agent);
+			}
+		}
 	}
+
 	return agents;
+}
+
+function findPluginJsonFiles(dir: string): string[] {
+	const results: string[] = [];
+	let entries: fs.Dirent[];
+	try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return results; }
+	for (const entry of entries) {
+		const full = path.join(dir, entry.name);
+		if (entry.isDirectory()) {
+			results.push(...findPluginJsonFiles(full));
+		} else if (entry.isFile() && entry.name === 'plugin.json') {
+			results.push(full);
+		}
+	}
+	return results;
 }
 
 function walkAgentsDir(dir: string, results: AgentInfo[], seen: Set<string>): void {
@@ -273,7 +302,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			const defaultAgentName = (await configService.getExtensionConfig()).defaultAgent ?? '';
+			const defaultAgentName = vscode.workspace.getConfiguration('relay').get<string>('defaultAgent', '');
 
 			const items: vscode.QuickPickItem[] = [];
 
@@ -323,7 +352,7 @@ export function activate(context: vscode.ExtensionContext) {
 		);
 		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.newSessionDefault', async () => {
-				const defaultAgentName = (await configService.getExtensionConfig()).defaultAgent ?? '';
+				const defaultAgentName = vscode.workspace.getConfiguration('relay').get<string>('defaultAgent', '');
 				webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined);
 			})
 		);

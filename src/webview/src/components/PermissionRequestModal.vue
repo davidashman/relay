@@ -5,6 +5,10 @@
     tabIndex="0"
     data-permission-panel="1"
   >
+    <div v-if="props.request.agentName" class="agent-badge">
+      <span class="codicon codicon-robot"></span>
+      <span>{{ props.request.agentName }}</span>
+    </div>
     <div class="tool-title">
       <span class="codicon" :class="toolIcon"></span>
       <span class="tool-name">{{ toolLabel }}</span>
@@ -176,6 +180,7 @@ useKeybinding([
     allowInEditable: true,
     handler: () => {
       if (showSecondButton.value) handleApproveAndDontAsk();
+      else handleApprove();
     },
   },
 ]);
@@ -191,6 +196,23 @@ useKeybinding([
   padding: 12px;
   background: var(--vscode-editorWidget-background, color-mix(in srgb, var(--vscode-foreground) 5%, var(--vscode-editor-background)));
   border-radius: 6px;
+}
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vscode-badge-foreground);
+  background: var(--vscode-badge-background);
+  border-radius: 10px;
+  padding: 2px 8px 2px 6px;
+  align-self: flex-start;
+}
+
+.agent-badge .codicon {
+  font-size: 12px;
 }
 
 .tool-title {

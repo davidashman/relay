@@ -328,6 +328,7 @@ export async function handleGetExtensionConfig(
     context: HandlerContext
 ): Promise<GetExtensionConfigResponse> {
     const config = await context.configService.getExtensionConfig();
+    config.defaultAgent = vscode.workspace.getConfiguration('relay').get<string>('defaultAgent', '');
     return {
         type: 'get_extension_config_response',
         config
@@ -341,7 +342,11 @@ export async function handleUpdateExtensionConfig(
     request: UpdateExtensionConfigRequest,
     context: HandlerContext
 ): Promise<UpdateExtensionConfigResponse> {
-    await context.configService.updateExtensionConfig(request.key as any, request.value);
+    if (request.key === 'defaultAgent') {
+        await vscode.workspace.getConfiguration('relay').update('defaultAgent', request.value, vscode.ConfigurationTarget.Global);
+    } else {
+        await context.configService.updateExtensionConfig(request.key as any, request.value);
+    }
 
     // Broadcast config change to all webviews (so chat page ModelSelect can refresh)
     context.webViewService.postMessage({
@@ -1207,10 +1212,9 @@ export async function handleListAgents(
     // Walk ~/.claude/agents/ directly
     walkAllAgents(path.join(claudeDir, 'agents'), agents, seen);
 
-    // Discover agents from plugin cache via plugin.json manifests
+    // Walk plugin cache: find plugin.json files, read their agents arrays
     const cacheDir = path.join(claudeDir, 'plugins', 'cache');
-    const pluginJsonPaths = findPluginJsonFiles(cacheDir);
-    for (const pluginJsonPath of pluginJsonPaths) {
+    for (const pluginJsonPath of findPluginJsonFiles(cacheDir)) {
         let manifest: { agents?: string[] };
         try {
             manifest = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8'));
@@ -1218,7 +1222,6 @@ export async function handleListAgents(
             continue;
         }
         if (!Array.isArray(manifest.agents)) continue;
-        // Agent paths are relative to the plugin root (parent of .claude-plugin/)
         const pluginRoot = path.dirname(path.dirname(pluginJsonPath));
         for (const agentPath of manifest.agents) {
             const full = path.resolve(pluginRoot, agentPath);
@@ -1251,6 +1254,7 @@ function findPluginJsonFiles(cacheDir: string): string[] {
     }
     return results;
 }
+
 
 function walkAllAgents(dir: string, results: AgentDefinition[], seen: Set<string>): void {
     let entries: fs.Dirent[];

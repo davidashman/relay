@@ -514,7 +514,8 @@ export abstract class BaseTransport {
         channelId,
         request.toolName,
         request.inputs,
-        request.suggestions ?? []
+        request.suggestions ?? [],
+        request.agentName
       );
       trackedRequest = permissionRequest;
 

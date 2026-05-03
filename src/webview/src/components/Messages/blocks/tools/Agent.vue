@@ -296,6 +296,19 @@ function handleRerun() {
   font-size: 1em;
 }
 
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: var(--vscode-editor-font-family);
+  color: color-mix(in srgb, var(--vscode-charts-purple) 90%, var(--vscode-foreground));
+  background-color: color-mix(in srgb, var(--vscode-charts-purple) 15%, transparent);
+  line-height: 1;
+}
+
 .description-text {
   font-family: var(--vscode-editor-font-family);
   font-size: 1em;

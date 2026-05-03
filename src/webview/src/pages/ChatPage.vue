@@ -55,7 +55,7 @@
               <!-- Section: sticky user prompt header + its responses -->
               <div v-else class="chat-section">
                 <div class="section-sticky-header">
-                  <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" />
+                  <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" :is-active="isBusy && !streamingText && section.key === lastSectionKey" :is-compacting="isCompacting" />
                 </div>
                 <div v-for="seg in section.body" :key="seg.key" class="section-content">
                   <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
@@ -66,7 +66,7 @@
               </div>
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
-            <div v-if="isBusy && !pendingPermission && !streamingText" class="spinnerRow">
+            <div v-if="isBusy && !pendingPermission && !streamingText && !lastSectionKey" class="spinnerRow">
               <Spinner :size="18" :permission-mode="permissionMode" :label="spinnerLabel" />
             </div>
             <div class="end-spacer" />
@@ -397,6 +397,14 @@
     }
 
     return sections;
+  });
+
+  const lastSectionKey = computed(() => {
+    const sections = chatSections.value;
+    for (let i = sections.length - 1; i >= 0; i--) {
+      if (sections[i].header !== null) return sections[i].key;
+    }
+    return null;
   });
 
   const attachments = ref<AttachmentItem[]>([]);
@@ -834,7 +842,7 @@
 
   /* Mirror AssistantMessage padding so grouped tool messages align with regular messages */
   .tool-group-msg {
-    padding: 0 16px 0.4rem 18px;
+    padding: 0 16px 4px 18px;
     background-color: var(--vscode-sideBar-background);
     font-size: 12px;
     line-height: 1.6;
