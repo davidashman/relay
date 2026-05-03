@@ -49,20 +49,9 @@ export function normalizeModelId(modelId?: string): string | undefined {
 
 /**
  * Return the context window size (in tokens) for the given model.
- * Sonnet 4.6, Opus 4.6, Opus 4.7 return 1M because ClaudeSdkService injects
- * the context-1m-2025-08-07 beta header for those models automatically.
- * Everything else falls back to 200k.
+ * All models fall back to 200k (the 1M beta injection in ClaudeSdkService is disabled).
  */
 export function contextWindowForModel(modelId?: string): number {
-  const normalized = normalizeModelId(modelId);
-  if (!normalized) return 200_000;
-  if (
-    normalized.includes('sonnet-4-6') ||
-    normalized.includes('opus-4-6') ||
-    normalized.includes('opus-4-7')
-  ) {
-    return 1_000_000;
-  }
   return 200_000;
 }
 

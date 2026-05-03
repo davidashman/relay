@@ -23,7 +23,7 @@ const renderedMarkdown = computed(() => marked.parse(props.text) as string);
 .assistant-message {
   display: block;
   outline: none;
-  padding: 0px 16px 0.4rem 22px;
+  padding: 0px 16px 0 20px;
   background-color: var(--vscode-sideBar-background);
   opacity: 1;
   font-size: 13px;
@@ -38,7 +38,7 @@ const renderedMarkdown = computed(() => marked.parse(props.text) as string);
   color: var(--vscode-editor-foreground);
   word-wrap: break-word;
   user-select: text;
-  padding: 0 2px;
+  padding: 0 3px;
 }
 
 .markdown-content :deep(p) {

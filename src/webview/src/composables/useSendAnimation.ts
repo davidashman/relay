@@ -216,7 +216,7 @@ export function prepareSendAnimation(
           left: `${src.rect.left}px`,
           top: `${src.rect.top}px`,
           width: `${src.rect.width}px`,
-          minHeight: `${src.rect.height}px`,
+          height: `${src.rect.height}px`,
           margin: '0',
           boxSizing: 'border-box',
           font: src.font,
@@ -228,9 +228,10 @@ export function prepareSendAnimation(
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           overflowWrap: 'break-word',
+          overflow: 'hidden',
           pointerEvents: 'none',
           zIndex: String(GHOST_Z_INDEX),
-          willChange: 'left, top, width, padding, background, border-radius, font, line-height',
+          willChange: 'left, top, width, height, padding, background, border-radius, font, line-height',
         } as Partial<CSSStyleDeclaration>);
         document.body.appendChild(ghost);
         ghosts.push(ghost);
@@ -241,6 +242,7 @@ export function prepareSendAnimation(
               left: `${src.rect.left}px`,
               top: `${src.rect.top}px`,
               width: `${src.rect.width}px`,
+              height: `${src.rect.height}px`,
               font: src.font,
               lineHeight: src.lineHeight,
               padding: src.padding,
@@ -252,6 +254,7 @@ export function prepareSendAnimation(
               left: `${dstRect.left}px`,
               top: `${dstRect.top}px`,
               width: `${dstRect.width}px`,
+              height: `${dstRect.height}px`,
               font: dstStyle.font,
               lineHeight: dstStyle.lineHeight,
               padding: dstStyle.padding,

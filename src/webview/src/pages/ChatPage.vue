@@ -42,6 +42,7 @@
             </div>
           </template>
           <template v-else>
+            <div class="top-spacer" />
             <template v-for="section in chatSections" :key="section.key">
               <!-- Pre-section: messages before the first user prompt -->
               <template v-if="section.header === null">
@@ -819,6 +820,13 @@
     overflow-x: hidden;
     padding: 0px 0 0;
     position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-spacer {
+    flex: 1;
+    min-height: 0;
   }
 
   .bottom-fade {
@@ -838,6 +846,7 @@
   .end-spacer {
     height: 48px;
     flex-shrink: 0;
+    min-height: 48px;
   }
 
   /* Mirror AssistantMessage padding so grouped tool messages align with regular messages */
@@ -976,7 +985,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    flex: 1;
     padding: 32px 16px;
   }
 
