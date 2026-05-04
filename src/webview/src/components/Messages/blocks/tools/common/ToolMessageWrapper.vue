@@ -160,7 +160,7 @@ function toggleExpand() {
 .tool-message-wrapper {
   display: flex;
   flex-direction: column;
-  padding: 0px 8px 0px 0px;
+  padding: 0px 4px;
   font-size: 12px;
 }
 
@@ -237,6 +237,7 @@ function toggleExpand() {
 .expandable-content {
   padding: 4px 0 0px 16px;
   margin-left: 10px;
+  margin-bottom: 3px;
   border-left: 1px solid var(--vscode-panel-border);
 }
 

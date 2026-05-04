@@ -89,9 +89,10 @@ function getStatusClass(status: string): string {
 <style scoped>
 .todowrite-container {
   background: color-mix(in srgb, var(--vscode-editor-background) 90%, transparent);
+  border: .5px solid var(--vscode-widget-border);
   backdrop-filter: blur(9px) saturate(1.05);
-  margin: 4px 8px 4px 0px;
-  border-radius: 6px;
+  margin: 4px 3px;
+  border-radius: 3px;
   overflow: hidden;
 }
 

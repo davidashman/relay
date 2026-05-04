@@ -23,7 +23,7 @@ const renderedMarkdown = computed(() => marked.parse(props.text) as string);
 .assistant-message {
   display: block;
   outline: none;
-  padding: 0px 16px 0 20px;
+  padding: 0px 16px;
   background-color: var(--vscode-sideBar-background);
   opacity: 1;
   font-size: 13px;

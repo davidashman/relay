@@ -11,7 +11,7 @@
   </div>
 
   <!-- Expanded: all tools rendered normally, each also expanded -->
-  <template v-else>
+  <div v-else class="tool-group-expanded">
     <ContentBlock
       v-for="(wrapper, index) in wrappers"
       :key="index"
@@ -19,7 +19,7 @@
       :wrapper="wrapper"
       :context="context"
     />
-  </template>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -58,7 +58,7 @@ const latestWrapper = computed(() => props.wrappers[props.wrappers.length - 1]);
   cursor: pointer;
   display: flex;
   align-items: center;
-  margin: 0 8px 0 0;
+  margin: 0 4px;
 }
 
 .collapsed-content {

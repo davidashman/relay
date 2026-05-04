@@ -842,7 +842,7 @@
 
   /* Mirror AssistantMessage padding so grouped tool messages align with regular messages */
   .tool-group-msg {
-    padding: 0 16px 4px 18px;
+    padding: 0 16px 4px;
     background-color: var(--vscode-sideBar-background);
     font-size: 12px;
     line-height: 1.6;
@@ -854,7 +854,7 @@
     padding-left: 0px;
   }
   .spinnerRow {
-    padding-left: 20px;
+    padding-left: 16px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1103,7 +1103,4 @@
     );
   }
 
-  .section-content {
-    padding-left: 4px;
-  }
 </style>

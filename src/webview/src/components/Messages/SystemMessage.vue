@@ -29,7 +29,7 @@ const content = computed(() => {
 
 <style scoped>
 .system-message {
-  padding: 8px 12px;
+  padding: 8px 16px;
   background-color: var(--vscode-inputValidation-infoBackground);
   border-left: 3px solid var(--vscode-inputValidation-infoBorder);
   border-radius: 4px;
