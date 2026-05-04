@@ -54,6 +54,7 @@ export abstract class BaseTransport {
   readonly newTabEvents = new EventEmitter<void>();
   readonly closeTabEvents = new EventEmitter<void>();
   readonly compactSessionEvents = new EventEmitter<void>();
+  readonly panelFocusedEvents = new EventEmitter<void>();
 
   protected readonly fromHost = new AsyncQueue<ExtensionToWebViewMessage>();
   protected readonly streams = new Map<string, AsyncQueue<any>>();
@@ -448,6 +449,10 @@ export abstract class BaseTransport {
       }
       case "compact_session": {
         this.compactSessionEvents.emit();
+        break;
+      }
+      case "panel_focused": {
+        this.panelFocusedEvents.emit();
         break;
       }
 

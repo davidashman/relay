@@ -54,7 +54,7 @@
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
             <div class="busy-indicator">
-              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-loading': isBusy && !pendingPermission && !streamingText }]" />
+              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-working': isBusy && !pendingPermission && !streamingText }]" />
             </div>
             <div class="end-spacer" />
             <div ref="endEl" />
@@ -304,9 +304,13 @@
   const keepAnimating = ref(true);
   const showLoadingAnimation = computed(() => keepAnimating.value);
 
-  // Re-enable when a new session without a connection appears (e.g. after /clear).
+  // Track whether the connection has ever been ready in this panel instance.
+  // Only a brand-new panel (never connected) should show the startup animation;
+  // session clears (/clear) reuse the same panel and must not replay it.
+  const connectionEverReady = ref(false);
   watch(connectionReady, (ready) => {
-    if (!ready) keepAnimating.value = true;
+    if (ready) connectionEverReady.value = true;
+    if (!ready && !connectionEverReady.value) keepAnimating.value = true;
   });
 
   function handleIconAnimationIteration() {
@@ -368,6 +372,7 @@
   const containerEl = ref<HTMLDivElement | null>(null);
   const endEl = ref<HTMLDivElement | null>(null);
   const chatInputRef = ref<InstanceType<typeof ChatInputBox> | null>(null);
+  let unsubPanelFocus: (() => void) | undefined;
 
   type ChatSection = {
     key: string;
@@ -491,9 +496,13 @@
   });
 
   function handleWindowFocus() {
-    // Restore focus to the input box when the tab/window regains focus,
-    // but only when there is no permission modal blocking the input.
     if (!pendingPermission.value) {
+      chatInputRef.value?.focus();
+    }
+  }
+
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible' && !pendingPermission.value) {
       chatInputRef.value?.focus();
     }
   }
@@ -522,13 +531,20 @@
     }
 
     window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('keydown', handleDoubleEscape);
     document.addEventListener('relay:edit-cancelled', handleEditCancelled);
     document.addEventListener('relay:set-input', handleSetInput);
+
+    const conn = await runtime.connectionManager.get();
+    unsubPanelFocus = conn.panelFocusedEvents.add(() => {
+      if (!pendingPermission.value) chatInputRef.value?.focus();
+    });
   });
 
   onUnmounted(() => {
     try { unregisterToggle?.(); } catch {}
+    unsubPanelFocus?.();
 
     // Remove scroll listener
     const container = containerEl.value;
@@ -537,6 +553,7 @@
     }
 
     window.removeEventListener('focus', handleWindowFocus);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
     document.removeEventListener('keydown', handleDoubleEscape);
     document.removeEventListener('relay:edit-cancelled', handleEditCancelled);
     document.removeEventListener('relay:set-input', handleSetInput);
@@ -858,7 +875,7 @@
   }
 
   .end-spacer {
-    height: 36px;
+    height: 18px;
     flex-shrink: 0;
   }
 
@@ -1141,14 +1158,19 @@
     height: 30px;
   }
 
+  .relay-icon-working {
+    animation: relay-flip 2s ease-in-out infinite;
+  }
+
   .relay-icon-loading {
-    animation: relay-flip 1.5s ease-in-out infinite;
+    animation: relay-flip 2s ease-in-out infinite;
   }
 
   @keyframes relay-flip {
     0%   { transform: rotate(0deg); }
-    38%  { transform: rotate(210deg); animation-timing-function: ease-out; }
-    48%  { transform: rotate(180deg); animation-timing-function: ease-in; }
+    10%  { transform: rotate(-30deg); animation-timing-function: ease-out; }
+    40%  { transform: rotate(210deg); animation-timing-function: ease-out; }
+    50%  { transform: rotate(180deg); animation-timing-function: ease-in; }
     100% { transform: rotate(180deg); }
   }
 </style>

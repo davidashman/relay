@@ -350,6 +350,21 @@ export class WebViewService implements IWebViewService {
 		const panelWebview = panel.webview;
 		this.registerWebview(panelWebview, bootstrap);
 
+		panel.onDidChangeViewState(
+			(e) => {
+				if (e.webviewPanel.active) {
+					this.postMessage({
+						type: 'request',
+						requestId: `panel-focused-${Date.now()}`,
+						webviewId,
+						request: { type: 'panel_focused' }
+					});
+				}
+			},
+			undefined,
+			this.context.subscriptions
+		);
+
 		panel.onDidDispose(
 			() => {
 				this.removeWebview(panelWebview);
