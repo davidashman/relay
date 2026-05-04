@@ -57,11 +57,13 @@
                 <div class="section-sticky-header">
                   <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" :is-active="isBusy && !streamingText && section.key === lastSectionKey" :is-compacting="isCompacting" />
                 </div>
-                <div v-for="seg in section.body" :key="seg.key" class="section-content">
-                  <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
-                    <ToolGroup :wrappers="getGroupWrappers(seg.messages)" :context="toolContext" />
+                <div class="section-body">
+                  <div v-for="seg in section.body" :key="seg.key" class="section-content">
+                    <div v-if="seg.type === 'tool-group'" class="tool-group-msg">
+                      <ToolGroup :wrappers="getGroupWrappers(seg.messages)" :context="toolContext" />
+                    </div>
+                    <MessageRenderer v-else :message="seg.message" :context="toolContext" />
                   </div>
-                  <MessageRenderer v-else :message="seg.message" :context="toolContext" />
                 </div>
               </div>
             </template>
@@ -1090,11 +1092,14 @@
     /* transparent wrapper — just provides the sticky constraint boundary */
   }
 
+  .section-body {
+    padding-top: 12px;
+  }
+
   .section-sticky-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    padding-bottom: 16px;
     background: linear-gradient(
       to bottom,
       var(--vscode-panel-background) 0px,
