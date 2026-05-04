@@ -72,79 +72,83 @@
     />
 
     <!-- Slash Command Dropdown -->
-    <Dropdown
-      v-if="slashCompletion.isOpen.value"
-      :is-visible="slashCompletion.isOpen.value"
-      :position="slashCompletion.position.value"
-      :width="240"
-      :should-auto-focus="false"
-      :close-on-click-outside="false"
-      :data-nav="slashCompletion.navigationMode.value"
-      :selected-index="slashCompletion.activeIndex.value"
-      :offset-y="-8"
-      :offset-x="-8"
-      :prefer-placement="'above'"
-      @close="slashCompletion.close"
-    >
-      <template #content>
-        <div @mouseleave="slashCompletion.handleMouseLeave">
-          <template v-if="slashCompletion.items.value.length > 0">
-            <template v-for="(item, index) in slashCompletion.items.value" :key="item.id">
-              <DropdownItem
-                :item="item"
-                :index="index"
-                :is-selected="index === slashCompletion.activeIndex.value"
-                @click="slashCompletion.selectActive()"
-                @mouseenter="slashCompletion.handleMouseEnter(index)"
-              />
+    <Teleport to="body">
+      <Dropdown
+        v-if="slashCompletion.isOpen.value"
+        :is-visible="slashCompletion.isOpen.value"
+        :position="slashCompletion.position.value"
+        :width="240"
+        :should-auto-focus="false"
+        :close-on-click-outside="false"
+        :data-nav="slashCompletion.navigationMode.value"
+        :selected-index="slashCompletion.activeIndex.value"
+        :offset-y="4"
+        :offset-x="-8"
+        :prefer-placement="'above'"
+        @close="slashCompletion.close"
+      >
+        <template #content>
+          <div @mouseleave="slashCompletion.handleMouseLeave">
+            <template v-if="slashCompletion.items.value.length > 0">
+              <template v-for="(item, index) in slashCompletion.items.value" :key="item.id">
+                <DropdownItem
+                  :item="item"
+                  :index="index"
+                  :is-selected="index === slashCompletion.activeIndex.value"
+                  @click="slashCompletion.selectActive()"
+                  @mouseenter="slashCompletion.handleMouseEnter(index)"
+                />
+              </template>
             </template>
-          </template>
-          <div v-else class="px-2 py-1 text-xs opacity-60">No matches</div>
-        </div>
-      </template>
-    </Dropdown>
+            <div v-else class="px-2 py-1 text-xs opacity-60">No matches</div>
+          </div>
+        </template>
+      </Dropdown>
+    </Teleport>
 
     <!-- @  Dropdown -->
-    <Dropdown
-      v-if="fileCompletion.isOpen.value"
-      :is-visible="fileCompletion.isOpen.value"
-      :position="fileCompletion.position.value"
-      :width="320"
-      :should-auto-focus="false"
-      :close-on-click-outside="false"
-      :data-nav="fileCompletion.navigationMode.value"
-      :selected-index="fileCompletion.activeIndex.value"
-      :offset-y="-8"
-      :offset-x="-8"
-      :prefer-placement="'above'"
-      @close="fileCompletion.close"
-    >
-      <template #content>
-        <div @mouseleave="fileCompletion.handleMouseLeave">
-          <template v-if="fileCompletion.items.value.length > 0">
-            <template v-for="(item, index) in fileCompletion.items.value" :key="item.id">
-              <DropdownItem
-                :item="item"
-                :index="index"
-                :is-selected="index === fileCompletion.activeIndex.value"
-                @click="fileCompletion.selectActive()"
-                @mouseenter="fileCompletion.handleMouseEnter(index)"
-              >
-                <template #icon v-if="'data' in item && item.data?.file">
-                  <FileIcon
-                    :file-name="item.data.file.name"
-                    :is-directory="item.data.file.type === 'directory'"
-                    :folder-path="item.data.file.path"
-                    :size="16"
-                  />
-                </template>
-              </DropdownItem>
+    <Teleport to="body">
+      <Dropdown
+        v-if="fileCompletion.isOpen.value"
+        :is-visible="fileCompletion.isOpen.value"
+        :position="fileCompletion.position.value"
+        :width="320"
+        :should-auto-focus="false"
+        :close-on-click-outside="false"
+        :data-nav="fileCompletion.navigationMode.value"
+        :selected-index="fileCompletion.activeIndex.value"
+        :offset-y="4"
+        :offset-x="-8"
+        :prefer-placement="'above'"
+        @close="fileCompletion.close"
+      >
+        <template #content>
+          <div @mouseleave="fileCompletion.handleMouseLeave">
+            <template v-if="fileCompletion.items.value.length > 0">
+              <template v-for="(item, index) in fileCompletion.items.value" :key="item.id">
+                <DropdownItem
+                  :item="item"
+                  :index="index"
+                  :is-selected="index === fileCompletion.activeIndex.value"
+                  @click="fileCompletion.selectActive()"
+                  @mouseenter="fileCompletion.handleMouseEnter(index)"
+                >
+                  <template #icon v-if="'data' in item && item.data?.file">
+                    <FileIcon
+                      :file-name="item.data.file.name"
+                      :is-directory="item.data.file.type === 'directory'"
+                      :folder-path="item.data.file.path"
+                      :size="16"
+                    />
+                  </template>
+                </DropdownItem>
+              </template>
             </template>
-          </template>
-          <div v-else class="px-2 py-1 text-xs opacity-60">No matches</div>
-        </div>
-      </template>
-    </Dropdown>
+            <div v-else class="px-2 py-1 text-xs opacity-60">No matches</div>
+          </div>
+        </template>
+      </Dropdown>
+    </Teleport>
   </div>
 </template>
 
@@ -416,11 +420,13 @@ function handleInput(event: Event) {
 
   // dropdown
   if (slashCompletion.isOpen.value) {
+    updateDropdownPosition(slashCompletion, 'queryStart')
     nextTick(() => {
       updateDropdownPosition(slashCompletion, 'queryStart')
     })
   }
   if (fileCompletion.isOpen.value) {
+    updateDropdownPosition(fileCompletion, 'queryStart')
     nextTick(() => {
       updateDropdownPosition(fileCompletion, 'queryStart')
     })
@@ -1016,12 +1022,20 @@ defineExpose({
     content.value = text || ''
     if (textareaRef.value) {
       textareaRef.value.textContent = content.value
+      placeCaretAtEnd(textareaRef.value)
     }
     autoResizeTextarea()
   },
   /** */
   focus() {
-    nextTick(() => textareaRef.value?.focus())
+    nextTick(() => {
+      const el = textareaRef.value
+      if (!el) return
+      el.focus()
+      if (content.value) {
+        placeCaretAtEnd(el)
+      }
+    })
   }
 })
 

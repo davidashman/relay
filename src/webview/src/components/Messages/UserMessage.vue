@@ -3,7 +3,7 @@
     <div class="message-wrapper">
       <!--  message-content  -->
       <div
-        v-if="!isEditing && displayAttachments.length > 0"
+        v-if="displayAttachments.length > 0"
         class="attachment-tiles"
       >
         <button
@@ -32,46 +32,24 @@
       </div>
 
       <div
-        ref="containerRef"
         class="message-content"
-        :class="{ editing: isEditing, 'active-spinner': isActive && !isEditing, 'active-compacting': isActive && isCompacting && !isEditing }"
+        :class="{ 'active-spinner': isActive, 'active-compacting': isActive && isCompacting }"
       >
         <div
-          v-if="!isEditing"
           class="message-view"
           :class="{ 'message-view--pinned': pinned }"
-          role="button"
-          tabindex="0"
-          @click.stop="startEditing"
-          @keydown.enter.prevent="startEditing"
-          @keydown.space.prevent="startEditing"
         >
           <div class="message-text">
             <div>{{ displayContent }}</div>
-            <Tooltip content="Restore checkpoint">
+            <Tooltip content="Use as input">
               <button
                 class="restore-button"
-                @click.stop="handleRestore"
+                @click.stop="handleReplay"
               >
                 <span class="codicon codicon-restore"></span>
               </button>
             </Tooltip>
           </div>
-        </div>
-
-        <div v-else class="edit-mode">
-          <ChatInputBox
-            :show-progress="false"
-            :conversation-working="false"
-            :attachments="attachments"
-            :selected-model="sessionModel"
-            :thinking-level="sessionThinkingLevel"
-            :permission-mode="sessionPermissionMode"
-            ref="chatInputRef"
-            @submit="handleSaveEdit"
-            @stop="cancelEdit"
-            @remove-attachment="handleRemoveAttachment"
-          />
         </div>
       </div>
     </div>
@@ -79,14 +57,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, inject } from 'vue';
+import { computed } from 'vue';
 import type { Message } from '../../models/Message';
 import type { ToolContext } from '../../types/tool';
 import type { AttachmentItem } from '../../types/attachment';
 import Tooltip from '../Common/Tooltip.vue';
-import ChatInputBox from '../ChatInputBox.vue';
 import FileIcon from '../FileIcon.vue';
-import { RuntimeKey } from '../../composables/runtimeContext';
 
 interface Props {
   message: Message;
@@ -98,23 +74,10 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const runtime = inject(RuntimeKey);
-
-const activeSession = computed(() => runtime?.sessionStore?.activeSession?.() ?? null);
-const sessionModel = computed(() => activeSession.value?.modelSelection?.());
-const sessionThinkingLevel = computed(() => activeSession.value?.thinkingLevel?.());
-const sessionPermissionMode = computed(() => activeSession.value?.permissionMode?.());
-
-const isEditing = ref(false);
-const chatInputRef = ref<InstanceType<typeof ChatInputBox>>();
-const containerRef = ref<HTMLElement>();
-const attachments = ref<AttachmentItem[]>([]);
-
 const displayContent = computed(() => {
   if (typeof props.message.message.content === 'string') {
     return props.message.message.content;
   }
-  // content blocks
   if (Array.isArray(props.message.message.content)) {
     return props.message.message.content
       .map(wrapper => {
@@ -139,7 +102,6 @@ function handleOpenAttachment(attachment: AttachmentItem) {
   );
 }
 
-// image document blocks
 function extractAttachments(): AttachmentItem[] {
   if (typeof props.message.message.content === 'string') {
     return [];
@@ -179,78 +141,12 @@ function extractAttachments(): AttachmentItem[] {
   return extracted;
 }
 
-async function startEditing() {
-  isEditing.value = true;
-
-  attachments.value = extractAttachments();
-
-  // DOM
-  await nextTick();
-  if (chatInputRef.value) {
-    chatInputRef.value.setContent?.(displayContent.value || '');
-    chatInputRef.value.focus?.();
-  }
-}
-
-function handleRemoveAttachment(id: string) {
-  attachments.value = attachments.value.filter(a => a.id !== id);
-}
-
-function cancelEdit() {
-  isEditing.value = false;
-  attachments.value = [];
-  document.dispatchEvent(new CustomEvent('relay:edit-cancelled'));
-}
-
-function handleSaveEdit(content?: string) {
-  const finalContent = (content || displayContent.value).trim();
-
-  if (finalContent && runtime) {
-    const session = runtime.sessionStore.activeSession();
-    if (session) {
-      void session.send(finalContent, attachments.value);
-    }
-  }
-
-  cancelEdit();
-}
-
-function handleRestore() {
+function handleReplay() {
   const content = displayContent.value.trim();
-  if (content && runtime) {
-    const session = runtime.sessionStore.activeSession();
-    if (session) {
-      void session.send(content, []);
-    }
+  if (content) {
+    document.dispatchEvent(new CustomEvent('relay:set-input', { detail: content }));
   }
 }
-
-function handleKeydown(event: KeyboardEvent) {
-  if (isEditing.value && event.key === 'Escape') {
-    event.preventDefault();
-    cancelEdit();
-  }
-}
-
-function handleClickOutside(event: MouseEvent) {
-  if (!isEditing.value) return;
-
-  const target = event.target as HTMLElement;
-
-  if (containerRef.value?.contains(target)) return;
-
-  cancelEdit();
-}
-
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown);
-  document.addEventListener('click', handleClickOutside);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown);
-  document.removeEventListener('click', handleClickOutside);
-});
 </script>
 
 
@@ -321,23 +217,18 @@ onUnmounted(() => {
   100% { transform: translateX(250%); }
 }
 
-.message-content.editing {
-  z-index: 200;
-}
-
 /* */
 .message-view {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  cursor: pointer;
   transition: all 0.2s ease;
   gap: 4px;
 }
 
 .message-view--pinned {
-  cursor: pointer;
+  cursor: default;
 }
 
 /* Attachment tiles */
@@ -414,7 +305,7 @@ onUnmounted(() => {
 }
 
 .message-view .message-text {
-  cursor: pointer;
+  cursor: default;
   background-color: color-mix(
     in srgb,
     var(--vscode-input-background) 50%,
@@ -433,13 +324,6 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.message-view .message-text:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-input-background) 70%,
-    transparent
-  );
-}
 
 .message-text > div:first-child {
   min-width: 0;
@@ -490,24 +374,4 @@ onUnmounted(() => {
   color: var(--vscode-foreground);
 }
 
-/* */
-.edit-mode {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  position: relative;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* */
-.edit-mode :deep(.full-input-box) {
-  background: color-mix(in srgb, var(--vscode-input-background) 70%, transparent);
-}
-
-.edit-mode :deep(.full-input-box:focus-within) {
-  box-shadow: 0 0 8px 2px
-    color-mix(in srgb, var(--vscode-input-background) 30%, transparent);
-}
 </style>
