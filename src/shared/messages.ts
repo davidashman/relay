@@ -616,104 +616,6 @@ export interface OpenClaudeInTerminalResponse {
 
 
 /**
- */
-export interface GetSettingsRequest {
-    type: "get_settings";
-}
-
-export interface GetSettingsResponse {
-    type: "get_settings_response";
-    settings: any;
-  // New fields for Profile Management
-  activeProfile: string | null;
-  profiles: string[];
-  hasWorkspace: boolean;
-  metadata?: Record<
-    string,
-    {
-      effectiveScope: 'managed' | 'cli' | 'profile' | 'local' | 'shared' | 'global' | 'default';
-      values: {
-        managed?: any;
-        cli?: any;
-        profile?: any;
-        local?: any;
-        shared?: any;
-        global?: any;
-        default?: any;
-      };
-    }
-  >;
-}
-
-/**
- *  Profile
- */
-export interface SwitchProfileRequest {
-  type: 'switch_profile';
-  profile: string | null; // null for default
-}
-
-export interface SwitchProfileResponse {
-  type: 'switch_profile_response';
-  success: boolean;
-}
-
-/**
- *  Profile
- */
-export interface CreateProfileRequest {
-  type: 'create_profile';
-  name: string;
-}
-
-export interface CreateProfileResponse {
-  type: 'create_profile_response';
-  success: boolean;
-  error?: string;
-}
-
-/**
- *  Profile
- */
-export interface DeleteProfileRequest {
-  type: 'delete_profile';
-  name: string;
-}
-
-export interface DeleteProfileResponse {
-  type: 'delete_profile_response';
-  success: boolean;
-  error?: string;
-}
-
-/**
- */
-export interface UpdateSettingRequest {
-    type: "update_setting";
-    key: string;
-    value: any;
-    target?: 'local' | 'shared' | 'global';
-}
-
-export interface UpdateSettingResponse {
-    type: "update_setting_response";
-    success: boolean;
-}
-
-/**
- */
-export interface ResetSettingRequest {
-    type: "reset_setting";
-    key: string;
-    target: 'local' | 'shared' | 'global';
-}
-
-export interface ResetSettingResponse {
-    type: "reset_setting_response";
-    success: boolean;
-}
-
-/**
  *  (~/.relay.json)
  */
 export interface GetExtensionConfigRequest {
@@ -881,12 +783,6 @@ export type WebViewRequest =
     // | SubmitOAuthCodeRequest
     | OpenConfigFileRequest
     | OpenClaudeInTerminalRequest
-    | GetSettingsRequest
-    | UpdateSettingRequest
-    | ResetSettingRequest
-    | SwitchProfileRequest
-    | CreateProfileRequest
-    | DeleteProfileRequest
     | GetExtensionConfigRequest
     | UpdateExtensionConfigRequest
     | ListAgentsRequest
@@ -928,12 +824,6 @@ export type WebViewRequestResponse =
     | OpenConfigFileResponse
     | OpenConfigFileResponse
     | OpenClaudeInTerminalResponse
-    | GetSettingsResponse
-    | UpdateSettingResponse
-    | ResetSettingResponse
-    | SwitchProfileResponse
-    | CreateProfileResponse
-    | DeleteProfileResponse
     | GetExtensionConfigResponse
     | UpdateExtensionConfigResponse
     | ListAgentsResponse

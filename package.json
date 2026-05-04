@@ -127,11 +127,6 @@
         "title": "Show Relay"
       },
       {
-        "command": "relay.openSettings",
-        "title": "Relay: Open Settings",
-        "icon": "$(gear)"
-      },
-      {
         "command": "relay.newSession",
         "title": "Relay: New Chat",
         "icon": "$(add)"

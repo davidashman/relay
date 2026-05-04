@@ -16,10 +16,6 @@
             v-else-if="currentPage === 'chat'"
             key="chat"
           />
-          <SettingsPage
-            v-else-if="currentPage === 'settings'"
-            key="settings"
-          />
           <!-- IconTestPage -->
           <!-- <IconTestPage
             v-else-if="currentPage === 'icontest'"
@@ -36,14 +32,13 @@ import { ref, onMounted, onUnmounted, provide } from 'vue';
 import { Motion } from 'motion-v';
 import SessionsPage from './pages/SessionsPage.vue';
 import ChatPage from './pages/ChatPage.vue';
-import SettingsPage from './pages/SettingsPage.vue';
 import './styles/claude-theme.css';
 import { useRuntime } from './composables/useRuntime';
 import { RuntimeKey } from './composables/runtimeContext';
 import { transport } from './core/runtimeTransport';
 // import IconTestPage from './pages/IconTestPage.vue';
 
-type PageName = 'sessions' | 'chat' | 'settings';
+type PageName = 'sessions' | 'chat';
 
 const bootstrap = window.RELAY_BOOTSTRAP;
 const initialPage = (bootstrap?.page as PageName | undefined) ?? 'chat';

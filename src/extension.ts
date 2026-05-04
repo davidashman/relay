@@ -414,24 +414,8 @@ export function activate(context: vscode.ExtensionContext) {
 			})
 		);
 
-		context.subscriptions.push(
-			vscode.commands.registerCommand('relay.openSettings', async () => {
-				await instantiationService.invokeFunction(accessorInner => {
-					const webViewServiceInner = accessorInner.get(IWebViewService);
-					const logServiceInner = accessorInner.get(ILogService);
-					try {
-						// Settings  instanceId page  key
-						webViewServiceInner.openEditorPage('settings', 'Relay Settings');
-					} catch (error) {
-						logServiceInner.error('[Command]  Settings ', error);
-					}
-				});
-			})
-		);
-
 		logService.info('✓ Claude Agent Service connected to Transport');
 		logService.info('✓ WebView Service registered as Session List sidebar provider');
-		logService.info('✓ Settings command registered');
 	});
 
 	// 6. Register commands

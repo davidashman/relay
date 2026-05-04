@@ -22,8 +22,8 @@
             </div>
           </template>
           <template v-else-if="messages.length === 0">
-            <div class="emptyState">
-              <RelayIcon class="relay-icon" />
+            <div class="emptyState" @animationiteration="handleIconAnimationIteration">
+              <RelayIcon :class="`relay-icon${showLoadingAnimation ? ' relay-icon-loading' : ''}`" />
             </div>
           </template>
           <template v-else>
@@ -53,6 +53,9 @@
               </div>
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
+            <div class="busy-indicator">
+              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-loading': isBusy && !pendingPermission && !streamingText }]" />
+            </div>
             <div class="end-spacer" />
             <div ref="endEl" />
           </template>
@@ -140,9 +143,7 @@
   import MessageQueueList from '../components/MessageQueueList.vue';
   import PermissionRequestModal from '../components/PermissionRequestModal.vue';
   import AskUserQuestionModal from '../components/AskUserQuestionModal.vue';
-  import Spinner from '../components/Messages/WaitingIndicator.vue';
   import RelayIcon from '@/components/RelayIcon.vue';
-  import RandomTip from '../components/RandomTip.vue';
   import MessageRenderer from '../components/Messages/MessageRenderer.vue';
   import StreamingMessage from '../components/Messages/StreamingMessage.vue';
   import UserMessage from '../components/Messages/UserMessage.vue';
@@ -293,6 +294,24 @@
 
   const isBusy = computed(() => session.value?.busy.value ?? false);
   const isSessionLoading = computed(() => session.value?.isLoading.value ?? false);
+
+  // Animation runs until the transport connection is established — that's when
+  // config is loaded and the model/mode are set, making the UI ready for input.
+  const connectionReady = computed(() => !!session.value?.connection.value);
+
+  // keepAnimating starts true and is cleared at the next cycle boundary once the
+  // connection is ready — guarantees we stop cleanly at the end of a rotation.
+  const keepAnimating = ref(true);
+  const showLoadingAnimation = computed(() => keepAnimating.value);
+
+  // Re-enable when a new session without a connection appears (e.g. after /clear).
+  watch(connectionReady, (ready) => {
+    if (!ready) keepAnimating.value = true;
+  });
+
+  function handleIconAnimationIteration() {
+    if (connectionReady.value) keepAnimating.value = false;
+  }
   const sessionError = computed(() => session.value?.error.value ?? null);
   const roamingWarning = computed(() => session.value?.roamingWarning.value ?? false);
   const currentTurnToolCallCount = computed(() => session.value?.currentTurnToolCallCount.value ?? 0);
@@ -1111,13 +1130,25 @@
     height: 60px;
   }
 
+  .busy-indicator {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 8px;
+  }
+
+  .relay-icon-busy {
+    width: 30px;
+    height: 30px;
+  }
+
   .relay-icon-loading {
     animation: relay-flip 1.5s ease-in-out infinite;
   }
 
   @keyframes relay-flip {
     0%   { transform: rotate(0deg); }
-    35%  { transform: rotate(180deg); }
-    100%  { transform: rotate(180deg); }
+    38%  { transform: rotate(210deg); animation-timing-function: ease-out; }
+    48%  { transform: rotate(180deg); animation-timing-function: ease-in; }
+    100% { transform: rotate(180deg); }
   }
 </style>

@@ -74,12 +74,6 @@ import {
     // handleGetAuthStatus,
     // handleLogin,
     // handleSubmitOAuthCode,
-    handleGetSettings,
-    handleUpdateSetting,
-    handleResetSetting,
-    handleSwitchProfile,
-    handleCreateProfile,
-    handleDeleteProfile,
     handleGetExtensionConfig,
     handleUpdateExtensionConfig,
     handleSdkProbe,
@@ -766,25 +760,6 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
             case "open_config_file":
                 return handleOpenConfigFile(request, this.handlerContext);
-
-            case "get_settings":
-                return handleGetSettings(request, this.handlerContext);
-
-            case "update_setting":
-                return handleUpdateSetting(request, this.handlerContext);
-
-            case "reset_setting":
-                return handleResetSetting(request, this.handlerContext);
-
-            // Profile
-            case "switch_profile":
-                return handleSwitchProfile(request, this.handlerContext);
-
-            case "create_profile":
-                return handleCreateProfile(request, this.handlerContext);
-
-            case "delete_profile":
-                return handleDeleteProfile(request, this.handlerContext);
 
             //  (~/.relay.json)
             case "get_extension_config":

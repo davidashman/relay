@@ -275,36 +275,12 @@ export abstract class BaseTransport {
     return this.sendRequest({ type: "get_asset_uris" });
   }
 
-  getSettings(): Promise<any> {
-    return this.sendRequest({ type: "get_settings" });
-  }
-
   getAgentDefinition(subagentType: string): Promise<any> {
     return this.sendRequest({ type: "get_agent_definition", subagentType });
   }
 
   listAgents(): Promise<any> {
     return this.sendRequest({ type: "list_agents" });
-  }
-
-  updateSetting(key: string, value: any, target?: 'local' | 'shared' | 'global'): Promise<any> {
-    return this.sendRequest({ type: 'update_setting', key, value, target });
-  }
-
-  resetSetting(key: string, target: 'local' | 'shared' | 'global'): Promise<any> {
-    return this.sendRequest({ type: 'reset_setting', key, target });
-  }
-
-  switchProfile(profile: string | null): Promise<any> {
-    return this.sendRequest({ type: 'switch_profile', profile });
-  }
-
-  createProfile(name: string): Promise<any> {
-    return this.sendRequest({ type: 'create_profile', name });
-  }
-
-  deleteProfile(name: string): Promise<any> {
-    return this.sendRequest({ type: 'delete_profile', name });
   }
 
   getExtensionConfig(): Promise<any> {

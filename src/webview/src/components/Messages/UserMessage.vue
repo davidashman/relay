@@ -33,7 +33,6 @@
 
       <div
         class="message-content"
-        :class="{ 'active-spinner': isActive, 'active-compacting': isActive && isCompacting }"
       >
         <div
           class="message-view"
