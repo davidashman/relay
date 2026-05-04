@@ -6,6 +6,7 @@
           ref="containerEl"
           :class="['messagesContainer', 'custom-scroll-container']"
         >
+          <div class="messages-inner">
           <template v-if="sessionLoading || isSessionLoading">
             <div class="emptyState">
               <div class="emptyWordmark">
@@ -80,12 +81,12 @@
             <div v-if="showJumpToLatest" class="jumpToLatestContainer">
               <button class="jumpToLatestButton" @click="jumpToLatest">
                 <span class="codicon codicon-arrow-down"></span>
-                Jump to Latest
               </button>
             </div>
           </Transition>
 
           <div class="bottom-fade" />
+          </div>
         </div>
 
         <div class="inputContainer">
@@ -823,6 +824,15 @@
     position: relative;
   }
 
+  .messages-inner {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
   .bottom-fade {
     position: sticky;
     bottom: 0;
@@ -964,10 +974,9 @@
     padding: 0px 12px 12px;
   }
 
-  /* */
-  .main > :last-child {
+  .inputContainer {
     flex-shrink: 0;
-    max-width: 1200px;
+    max-width: 1400px;
     width: 100%;
     align-self: center;
   }
@@ -978,7 +987,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    flex: 1;
     padding: 32px 16px;
   }
 
@@ -1032,7 +1041,7 @@
   /* Jump to latest button */
   .jumpToLatestContainer {
     position: sticky;
-    bottom: 8px;
+    bottom: 12px;
     left: 0;
     right: 0;
     display: flex;
@@ -1046,7 +1055,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 8px;
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
     border: 1px solid var(--vscode-button-border, transparent);
@@ -1093,17 +1102,18 @@
   }
 
   .section-body {
-    padding-top: 12px;
+    padding-top: 6px;
   }
 
   .section-sticky-header {
     position: sticky;
     top: 0;
     z-index: 10;
+    padding-bottom: 6px;
     background: linear-gradient(
       to bottom,
       var(--vscode-panel-background) 0px,
-      var(--vscode-panel-background) calc(100% - 24px),
+      var(--vscode-panel-background) calc(100% - 12px),
       transparent 100%
     );
   }
