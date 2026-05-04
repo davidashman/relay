@@ -9,19 +9,11 @@
           <div class="messages-inner">
           <template v-if="sessionLoading || isSessionLoading">
             <div class="emptyState">
-              <div class="emptyWordmark">
-                <ClaudeWordmark class="emptyWordmarkSvg" />
-              </div>
-              <div class="loadingSpinnerRow">
-                <Spinner :size="20" :permission-mode="'default'" label="Loading..." :showIcon="false" />
-              </div>
+              <RelayIcon class="relay-icon relay-icon-loading" />
             </div>
           </template>
           <template v-else-if="sessionError && messages.length === 0">
             <div class="emptyState">
-              <div class="emptyWordmark">
-                <ClaudeWordmark class="emptyWordmarkSvg" />
-              </div>
               <div class="errorBox">
                 <span class="codicon codicon-error errorBoxIcon"></span>
                 <div class="errorBoxText">{{ sessionError }}</div>
@@ -30,15 +22,7 @@
             </div>
           </template>
           <template v-else-if="messages.length === 0">
-            <div v-if="isBusy" class="emptyState">
-              <div class="emptyWordmark">
-                <ClaudeWordmark class="emptyWordmarkSvg" />
-              </div>
-            </div>
-            <div v-else class="emptyState">
-              <div class="emptyWordmark">
-                <ClaudeWordmark class="emptyWordmarkSvg" />
-              </div>
+            <div class="emptyState">
               <RandomTip :platform="platform" />
             </div>
           </template>
@@ -160,7 +144,7 @@
   import PermissionRequestModal from '../components/PermissionRequestModal.vue';
   import AskUserQuestionModal from '../components/AskUserQuestionModal.vue';
   import Spinner from '../components/Messages/WaitingIndicator.vue';
-  import ClaudeWordmark from '../components/ClaudeWordmark.vue';
+  import RelayIcon from '@/components/RelayIcon.vue';
   import RandomTip from '../components/RandomTip.vue';
   import MessageRenderer from '../components/Messages/MessageRenderer.vue';
   import StreamingMessage from '../components/Messages/StreamingMessage.vue';
@@ -872,10 +856,7 @@
     word-wrap: break-word;
   }
 
-  .loadingSpinnerRow {
-    padding-left: 0px;
-  }
-  .spinnerRow {
+.spinnerRow {
     padding-left: 16px;
     display: flex;
     align-items: center;
@@ -1128,4 +1109,18 @@
     );
   }
 
+  .relay-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .relay-icon-loading {
+    animation: relay-flip 1.75s ease-in-out infinite;
+  }
+
+  @keyframes relay-flip {
+    0%   { transform: rotate(0deg); }
+    40%  { transform: rotate(180deg); }
+    100%  { transform: rotate(180deg); }
+  }
 </style>

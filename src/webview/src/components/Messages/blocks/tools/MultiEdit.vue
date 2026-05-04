@@ -121,7 +121,8 @@ watch(
     else if (props.toolUse?.input?.old_string && props.toolUse?.input?.new_string) {
       structuredPatch.value = generatePatchFromInput(
         props.toolUse.input.old_string,
-        props.toolUse.input.new_string
+        props.toolUse.input.new_string,
+        props.toolUse.input._oldStart || 1
       );
     }
   },
@@ -153,7 +154,7 @@ function handleContentScroll() {
 }
 
 // old_string new_string patch
-function generatePatchFromInput(oldStr: string, newStr: string): any[] {
+function generatePatchFromInput(oldStr: string, newStr: string, startLine = 1): any[] {
   const oldLines = oldStr.split('\n');
   const newLines = newStr.split('\n');
 
@@ -168,9 +169,9 @@ function generatePatchFromInput(oldStr: string, newStr: string): any[] {
   });
 
   return [{
-    oldStart: 1,
+    oldStart: startLine,
     oldLines: oldLines.length,
-    newStart: 1,
+    newStart: startLine,
     newLines: newLines.length,
     lines
   }];

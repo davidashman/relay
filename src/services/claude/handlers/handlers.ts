@@ -1011,13 +1011,9 @@ function getAssetUris(context: HandlerContext): Record<string, { light: string; 
     }
 
     const assets = {
-        clawd: {
-            light: path.join("resources", "clawd.svg"),
-            dark: path.join("resources", "clawd.svg")
-        },
-        "welcome-art": {
-            light: path.join("resources", "welcome-art-light.svg"),
-            dark: path.join("resources", "welcome-art-dark.svg")
+        relay: {
+            light: path.join("resources", "relay-logo.svg"),
+            dark: path.join("resources", "relay-logo.svg")
         }
     } as const;
 

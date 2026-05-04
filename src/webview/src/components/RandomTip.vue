@@ -1,13 +1,13 @@
 <template>
   <div class="empty-state-content">
-    <ClawdIcon class="empty-mascot" />
+    <RelayIcon class="empty-mascot" />
     <p class="empty-state-message">{{ currentTip }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import ClawdIcon from './ClawdIcon.vue';
+import RelayIcon from './RelayIcon.vue';
 
 interface Props {
   platform: string;
@@ -51,8 +51,8 @@ onMounted(() => {
 }
 
 .empty-mascot {
-  width: 47px;
-  height: 38px;
+  width: 60px;
+  height: 60px;
 }
 
 .empty-state-message {

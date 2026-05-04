@@ -1,7 +1,7 @@
 {
   "name": "relay-vscode",
-  "displayName": "Relay - Claude Code for VSCode",
-  "description": "Claude Code for VSCode. Bring the power of Claude AI assistant directly into your coding environment.",
+  "displayName": "Relay",
+  "description": "Bring the power of Claude AI directly into your coding environment.",
   "version": "0.6.1",
   "publisher": "Haleclipse",
   "engines": {
@@ -12,7 +12,7 @@
     "AI",
     "Other"
   ],
-  "icon": "resources/claude-logo.png",
+  "icon": "resources/relay-logo.png",
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -107,14 +107,14 @@
         {
           "id": "relay-chat-sidebar",
           "title": "Relay",
-          "icon": "resources/claude-logo.svg"
+          "icon": "resources/relay-logo.svg"
         }
       ]
     },
     "views": {
       "relay-chat-sidebar": [
         {
-          "icon": "resources/claude-logo.svg",
+          "icon": "resources/relay-logo.svg",
           "type": "webview",
           "id": "relay.sessionList",
           "name": "Sessions"

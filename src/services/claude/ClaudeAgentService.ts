@@ -396,10 +396,22 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 async (toolName, input, options) => {
                     //  RPC  WebView
                     this.logService.info(`🔧 : ${toolName}`);
+                    let enrichedInput = input;
+                    if (toolName === 'Edit' && typeof input.file_path === 'string' && typeof input.old_string === 'string') {
+                        try {
+                            const fs = require('fs') as typeof import('fs');
+                            const content = await fs.promises.readFile(input.file_path, 'utf8');
+                            const idx = content.indexOf(input.old_string);
+                            if (idx !== -1) {
+                                const oldStart = content.substring(0, idx).split('\n').length;
+                                enrichedInput = { ...input, _oldStart: oldStart };
+                            }
+                        } catch {}
+                    }
                     return this.requestToolPermission(
                         channelId,
                         toolName,
-                        input,
+                        enrichedInput,
                         options.suggestions || [],
                         agent || undefined
                     );

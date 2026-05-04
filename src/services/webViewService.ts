@@ -388,10 +388,10 @@ export class WebViewService implements IWebViewService {
 	private applyPanelPresentation(model: PanelModel): void {
 		const pending = model.iconState === 'pending';
 		model.panel.title = pending ? WebViewService.PENDING_PREFIX + model.title : model.title;
-		const iconFile = model.iconState === 'pending' ? 'claude-logo-pending.svg'
-		               : model.iconState === 'done'    ? 'claude-logo-done.svg'
-		               : model.iconState === 'working' ? 'claude-logo-working.svg'
-		               :                                 'claude-logo.svg';
+		const iconFile = model.iconState === 'pending' ? 'relay-logo-pending.svg'
+		               : model.iconState === 'done'    ? 'relay-logo-done.svg'
+		               : model.iconState === 'working' ? 'relay-logo.svg'
+		               :                                 'relay-logo-idle.svg';
 		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', iconFile));
 		model.panel.iconPath = { light: iconUri, dark: iconUri };
 	}

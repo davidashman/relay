@@ -32,3 +32,5 @@ records/**
 # Documentation
 CLAUDE.md
 .mcp.json
+
+agents/

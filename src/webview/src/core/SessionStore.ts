@@ -43,7 +43,7 @@ export class SessionStore {
     this.effectCleanups.push(
       effect(() => {
         const session = this.activeSession();
-        const defaultTitle = 'Claude Code';
+        const defaultTitle = 'Relay';
 
         if (!session) {
           // Only reset to the default title after a session has been active at least once.
