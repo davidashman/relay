@@ -107,14 +107,14 @@
         {
           "id": "relay-chat-sidebar",
           "title": "Relay",
-          "icon": "resources/relay-logo.svg"
+          "icon": "resources/relay-logo-activity.svg"
         }
       ]
     },
     "views": {
       "relay-chat-sidebar": [
         {
-          "icon": "resources/relay-logo.svg",
+          "icon": "resources/relay-logo-activity.svg",
           "type": "webview",
           "id": "relay.sessionList",
           "name": "Sessions"

@@ -391,7 +391,7 @@ export class WebViewService implements IWebViewService {
 		const iconFile = model.iconState === 'pending' ? 'relay-logo-pending.svg'
 		               : model.iconState === 'done'    ? 'relay-logo-done.svg'
 		               : model.iconState === 'working' ? 'relay-logo.svg'
-		               :                                 'relay-logo-idle.svg';
+		               :                                 'relay-logo.svg';
 		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', iconFile));
 		model.panel.iconPath = { light: iconUri, dark: iconUri };
 	}

@@ -23,7 +23,7 @@
           </template>
           <template v-else-if="messages.length === 0">
             <div class="emptyState">
-              <RandomTip :platform="platform" />
+              <RelayIcon class="relay-icon" />
             </div>
           </template>
           <template v-else>
@@ -53,9 +53,6 @@
               </div>
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
-            <div v-if="isBusy && !pendingPermission && !streamingText && !lastSectionKey" class="spinnerRow">
-              <Spinner :size="18" :permission-mode="permissionMode" :label="spinnerLabel" />
-            </div>
             <div class="end-spacer" />
             <div ref="endEl" />
           </template>
@@ -842,7 +839,7 @@
   }
 
   .end-spacer {
-    height: 48px;
+    height: 36px;
     flex-shrink: 0;
   }
 
@@ -1115,12 +1112,12 @@
   }
 
   .relay-icon-loading {
-    animation: relay-flip 1.75s ease-in-out infinite;
+    animation: relay-flip 1.5s ease-in-out infinite;
   }
 
   @keyframes relay-flip {
     0%   { transform: rotate(0deg); }
-    40%  { transform: rotate(180deg); }
+    35%  { transform: rotate(180deg); }
     100%  { transform: rotate(180deg); }
   }
 </style>
