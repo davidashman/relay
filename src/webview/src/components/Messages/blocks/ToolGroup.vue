@@ -3,6 +3,7 @@
   <div v-if="!isGroupExpanded" class="tool-group-collapsed" @click="isGroupExpanded = true">
     <div class="collapsed-content">
       <ContentBlock
+        :key="latestWrapper"
         :block="latestWrapper.content"
         :wrapper="latestWrapper"
         :context="context"

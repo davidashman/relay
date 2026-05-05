@@ -54,7 +54,7 @@
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
             <div class="busy-indicator">
-              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-working': isBusy && !pendingPermission && !streamingText }]" />
+              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-working': isBusy && !pendingPermission }]" />
             </div>
             <div class="end-spacer" />
             <div ref="endEl" />
@@ -322,11 +322,6 @@
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
   const currentThinking = computed(() => session.value?.currentThinking.value);
   const streamingText = computed(() => session.value?.streamingText.value);
-  const spinnerLabel = computed(() => {
-    if (isCompacting.value) return 'Compacting...';
-    if (currentThinking.value) return 'Thinking...';
-    return 'Working...';
-  });
   // Slash commands (e.g. /compact) are SDK directives, not user messages — hide them from the queue display.
   const outboundQueue = computed(() =>
     (session.value?.outboundQueue.value ?? []).filter(m => !m.content.startsWith('/'))
