@@ -465,6 +465,14 @@
     chatInputRef.value?.focus();
   });
 
+  // When the session loading gate (sessionLoading || isSessionLoading) clears,
+  // endEl enters the DOM for the first time — force-scroll so we land at the bottom.
+  watch(
+    () => sessionLoading.value || isSessionLoading.value,
+    (loading) => { if (!loading) scrollToBottom(true); },
+    { flush: 'post' }
+  );
+
   // Scroll to bottom on any messages change (new messages or content updates within
   // existing messages) and when the spinner appears — but only if already at bottom.
   watch(messages, () => { scrollToBottom(); }, { flush: 'post' });
