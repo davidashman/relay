@@ -1060,7 +1060,7 @@
   /* Jump to latest button */
   .jumpToLatestContainer {
     position: sticky;
-    bottom: 12px;
+    bottom: 16px;
     left: 0;
     right: 0;
     display: flex;
@@ -1145,7 +1145,7 @@
   .busy-indicator {
     display: flex;
     justify-content: center;
-    padding: 8px 0 8px;
+    padding: 4px;
   }
 
   .relay-icon-busy {

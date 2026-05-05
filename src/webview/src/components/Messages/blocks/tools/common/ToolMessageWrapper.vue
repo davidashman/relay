@@ -21,11 +21,11 @@
             ></span>
             <span
               v-else-if="isExpanded"
-              class="codicon codicon-fold"
+              class="codicon codicon-chevron-up"
             ></span>
             <span
               v-else
-              class="codicon codicon-chevron-up-down"
+              class="codicon codicon-chevron-down"
             ></span>
           </button>
         </Tooltip>
