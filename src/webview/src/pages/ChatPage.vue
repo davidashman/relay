@@ -1145,7 +1145,7 @@
   .busy-indicator {
     display: flex;
     justify-content: center;
-    padding: 4px;
+    padding: 6px;
   }
 
   .relay-icon-busy {
@@ -1154,11 +1154,11 @@
   }
 
   .relay-icon-working {
-    animation: relay-flip 2s ease-in-out infinite;
+    animation: relay-flip 1.8s ease-in-out infinite;
   }
 
   .relay-icon-loading {
-    animation: relay-flip 2s ease-in-out infinite;
+    animation: relay-flip 1.8s ease-in-out infinite;
   }
 
   @keyframes relay-flip {
