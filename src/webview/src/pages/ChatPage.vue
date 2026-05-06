@@ -54,7 +54,7 @@
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
             <div class="busy-indicator">
-              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-working': isBusy && !pendingPermission }]" />
+              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-squeezing': isBusy && isCompacting && !pendingPermission, 'relay-icon-working': isBusy && !pendingPermission && !isCompacting }]" />
             </div>
             <div class="end-spacer" />
             <div ref="endEl" />
@@ -1165,8 +1165,23 @@
     animation: relay-flip 1.8s ease-in-out infinite;
   }
 
+  .relay-icon-squeezing {
+    transform-origin: center bottom;
+    animation: relay-squeeze 3s ease-in-out infinite;
+  }
+
   .relay-icon-loading {
     animation: relay-flip 1.8s ease-in-out infinite;
+  }
+
+  @keyframes relay-squeeze {
+    0%   { transform: scaleY(1)    scaleX(1); }
+    35%  { transform: scaleY(0.35) scaleX(1.3); }
+    45%  { transform: scaleY(1.2)  scaleX(0.88); }
+    55%  { transform: scaleY(0.92) scaleX(1.04); }
+    67%  { transform: scaleY(1.04) scaleX(0.98); }
+    75%  { transform: scaleY(1)    scaleX(1); }
+    100% { transform: scaleY(1)    scaleX(1); }
   }
 
   @keyframes relay-flip {
