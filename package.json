@@ -173,6 +173,11 @@
         "command": "relay.newSessionDefault"
       },
       {
+        "key": "shift+alt+ctrl+n",
+        "mac": "shift+alt+cmd+n",
+        "command": "relay.newSession"
+      },
+      {
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
         "command": "relay.clearSession",
