@@ -39,17 +39,6 @@
           :size="19"
         />
 
-        <!-- Thinking Toggle Button -->
-        <Tooltip :content="thinkingEnabled ? 'Thinking on' : 'Thinking off'">
-          <button
-            class="action-button think-button"
-            :class="{ 'thinking-active': thinkingEnabled }"
-            @click="handleThinkingToggle"
-          >
-            <span class="codicon codicon-brain text-[16px]!" />
-          </button>
-        </Tooltip>
-
         <!-- Attach File Button -->
         <Tooltip content="Attach File">
           <button
@@ -110,7 +99,6 @@ interface Props {
   showProgress?: boolean
   progressPercentage?: number
   contextTooltip?: string
-  thinkingEnabled?: boolean
   effortLevel?: string
   permissionMode?: PermissionMode
 }
@@ -121,7 +109,6 @@ interface Emits {
   (e: 'attach'): void
   (e: 'addAttachment', files: FileList): void
   (e: 'mention', filePath?: string): void
-  (e: 'thinkingToggle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
   (e: 'effortSelect', level: string | undefined): void
@@ -137,7 +124,6 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
-  thinkingEnabled: true,
   effortLevel: undefined,
   permissionMode: 'default'
 })
@@ -167,10 +153,6 @@ function handleSubmit() {
   } else if (submitVariant.value === 'enabled') {
     emit('submit')
   }
-}
-
-function handleThinkingToggle() {
-  emit('thinkingToggle')
 }
 
 function handleAttachClick() {
@@ -278,21 +260,6 @@ function handleFileUpload(event: Event) {
 .action-button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-}
-
-.action-button.thinking-active {
-  color: var(--vscode-button-secondaryForeground);
-  opacity: 1;
-}
-
-/* Think hover opacity off */
-.action-button.think-button:hover:not(.thinking-active) {
-  opacity: 0.5; /*  opacity 1 */
-}
-
-/* hover */
-.action-button.think-button.thinking-active:hover {
-  opacity: 1;
 }
 
 .submit-button {

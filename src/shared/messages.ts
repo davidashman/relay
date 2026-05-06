@@ -142,6 +142,8 @@ export interface InitResponse {
         expandToolOutput?: boolean;    // Expand tool output by default
         showThinking?: boolean;        // Show thinking blocks in chat
         autoInterruptOnRoaming?: boolean; // Auto-interrupt when tool call count exceeds threshold
+        autoCompaction?: boolean;      // Auto-compact after N turns
+        autoCompactionTurns?: number;  // Number of turns before auto-compaction
     };
 }
 

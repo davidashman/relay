@@ -75,6 +75,7 @@ export class Session {
   private lastSentSelection?: SelectionRange;
   private effectCleanup?: () => void;
   private autoInterruptTriggered = false;
+  private completedTurnCount = 0;
   // The session ID that the CLI assigned on the most recent resume. The CLI
   // forks a new branch (new session_id) on every resume, but that branch has
   // no JSONL content until the user sends a message. We defer updating the
@@ -620,6 +621,7 @@ export class Session {
     this.currentTurnToolCallCount(0);
     this.roamingWarningDismissed(false);
     this.autoInterruptTriggered = false;
+    this.completedTurnCount = 0;
   }
 
   async restartClaude(): Promise<void> {
@@ -801,10 +803,16 @@ export class Session {
           void this.drainOutboundQueue();
         }
       } else {
+        const wasRealUserTurn = !!this.pendingReplayMessage;
         this.pendingReplayMessage = undefined;
+        if (wasRealUserTurn) {
+          this.completedTurnCount++;
+        }
         this.decrementOutstandingTurns();
         if (this.outstandingTurns() === 0 && this.outboundQueue().length > 0) {
           void this.drainOutboundQueue();
+        } else if (wasRealUserTurn && this.outstandingTurns() === 0) {
+          void this.checkAutoCompaction();
         }
       }
     }
@@ -919,6 +927,7 @@ export class Session {
       const summary = this.compactionBuffer.join('\n\n').trim();
       this.compactingMode(false);
       this.compactionBuffer = [];
+      this.completedTurnCount = 0;
       // Restore to the pre-compaction snapshot so that any assistant turns
       // the model emitted while generating the summary are discarded.
       const baseMessages = this.compactionStartMessages ?? [...this.messages()];
@@ -1137,6 +1146,16 @@ export class Session {
     if (autoInterrupt) {
       this.autoInterruptTriggered = true;
       void this.interrupt();
+    }
+  }
+
+  private async checkAutoCompaction(): Promise<void> {
+    const config = this.config() as any;
+    if (!(config?.autoCompaction ?? true)) return;
+    const threshold = config?.autoCompactionTurns ?? 15;
+    if (this.completedTurnCount >= threshold) {
+      this.completedTurnCount = 0;
+      await this.send('/compact', [], false);
     }
   }
 

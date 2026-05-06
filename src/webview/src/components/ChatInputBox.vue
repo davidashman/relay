@@ -58,14 +58,12 @@
       :show-progress="showProgress"
       :progress-percentage="progressPercentage"
       :context-tooltip="contextTooltip"
-      :thinking-enabled="thinkingEnabled"
       :effort-level="effortLevel"
       :permission-mode="permissionMode"
       @submit="handleSubmit"
       @stop="handleStop"
       @add-attachment="handleAddFiles"
       @mention="handleMention"
-      @thinking-toggle="() => emit('thinkingToggle')"
       @mode-select="(mode) => emit('modeSelect', mode)"
       @model-select="(modelId) => emit('modelSelect', modelId)"
       @effort-select="(level) => emit('effortSelect', level)"
@@ -176,7 +174,6 @@ interface Props {
   selectedAgent?: string
   conversationWorking?: boolean
   attachments?: AttachmentItem[]
-  thinkingEnabled?: boolean
   effortLevel?: string
   permissionMode?: PermissionMode
 }
@@ -189,7 +186,6 @@ interface Emits {
   (e: 'attach'): void
   (e: 'addAttachment', files: FileList): void
   (e: 'removeAttachment', id: string): void
-  (e: 'thinkingToggle'): void
   (e: 'modeSelect', mode: PermissionMode): void
   (e: 'modelSelect', modelId: string): void
   (e: 'effortSelect', level: string | undefined): void
@@ -215,7 +211,6 @@ const props = withDefaults(defineProps<Props>(), {
   showSearch: false,
   conversationWorking: false,
   attachments: () => [],
-  thinkingEnabled: true,
   effortLevel: undefined,
   permissionMode: 'default'
 })

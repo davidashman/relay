@@ -109,7 +109,6 @@
             :context-tooltip="contextTooltip"
 :conversation-working="isBusy"
             :attachments="attachments"
-            :thinking-enabled="session?.thinkingLevel.value !== 'off'"
             :effort-level="session?.effortLevel.value"
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
@@ -119,7 +118,6 @@
             @stop="handleStop"
             @add-attachment="handleAddAttachment"
             @remove-attachment="handleRemoveAttachment"
-            @thinking-toggle="handleToggleThinking"
             @mode-select="handleModeSelect"
             @model-select="handleModelSelect"
             @effort-select="handleEffortSelect"
@@ -682,15 +680,6 @@
     void animation.play();
   }
 
-  async function handleToggleThinking() {
-    const s = session.value;
-    if (!s) return;
-
-    const currentLevel = s.thinkingLevel.value;
-    const newLevel = currentLevel === 'off' ? 'default_on' : 'off';
-
-    await s.setThinkingLevel(newLevel);
-  }
 
   async function handleModeSelect(mode: PermissionMode) {
     const s = session.value;
@@ -866,14 +855,14 @@
   .bottom-fade {
     position: sticky;
     bottom: 0;
-    height: 16px;
-    margin-top: -16px;
+    height: 7px;
+    margin-top: -7px;
     pointer-events: none;
     z-index: 5;
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      color-mix(in srgb, var(--vscode-panel-background) 70%, transparent) 100%
+      color-mix(in srgb, var(--vscode-panel-background) 45%, transparent) 100%
     );
   }
 
@@ -1068,7 +1057,7 @@
   /* Jump to latest button */
   .jumpToLatestContainer {
     position: sticky;
-    bottom: 16px;
+    bottom: 18px;
     left: 0;
     right: 0;
     display: flex;

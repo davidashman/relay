@@ -107,6 +107,8 @@ export abstract class BaseTransport {
       permissionMode: initResponse.state.permissionMode,
       expandToolOutput: initResponse.state.expandToolOutput ?? true,
       showThinking: initResponse.state.showThinking ?? false,
+      autoCompaction: initResponse.state.autoCompaction ?? true,
+      autoCompactionTurns: initResponse.state.autoCompactionTurns ?? 15,
     } as InitResponse["state"]);
     console.log('[BaseTransport.init] Set config with modelSetting:', this.config()?.modelSetting);
 

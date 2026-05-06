@@ -46,6 +46,10 @@ const renderedMarkdown = computed(() => marked.parse(props.text) as string);
   line-height: 1.6;
 }
 
+.markdown-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
 .markdown-content :deep(code) {
   font-family: var(--vscode-editor-font-family, 'Hack Nerd Font Mono', 'SF Mono', Consolas, 'Courier New', monospace);
   word-break: break-all;

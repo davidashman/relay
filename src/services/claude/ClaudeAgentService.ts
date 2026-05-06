@@ -348,7 +348,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
             this.effortLevel = effortLevel;
         }
 
-        const thinking = this.getThinkingConfig(this.thinkingLevel);
+        const thinking = this.getThinkingConfig(this.thinkingLevel, model);
 
         this.logService.info('');
         this.logService.info('╔════════════════════════════════════════╗');
@@ -907,7 +907,8 @@ export class ClaudeAgentService implements IClaudeAgentService {
         return this.workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
     }
 
-    private getThinkingConfig(level: string): ThinkingConfig {
+    private getThinkingConfig(level: string, model: string | null): ThinkingConfig {
+        if (model?.toLowerCase().includes('haiku')) return { type: 'disabled' };
         return level === 'off' ? { type: 'disabled' } : { type: 'adaptive' };
     }
 

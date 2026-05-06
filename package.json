@@ -72,6 +72,19 @@
           "description": "Automatically interrupt Claude if it makes more than 15 tool calls in a single turn. When disabled, a warning banner is shown instead so you can interrupt manually.",
           "order": 10
         },
+        "relay.autoCompaction": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically compact the conversation context after a set number of turns to keep the context window fresh.",
+          "order": 11
+        },
+        "relay.autoCompactionTurns": {
+          "type": "number",
+          "default": 15,
+          "minimum": 1,
+          "description": "Number of completed turns before auto-compaction is triggered. Only applies when Auto Compaction is enabled.",
+          "order": 12
+        },
         "relay.configurationDirectory": {
           "type": "string",
           "default": "",
@@ -155,10 +168,9 @@
     ],
     "keybindings": [
       {
-        "key": "ctrl+n",
-        "mac": "cmd+n",
-        "command": "relay.newSessionDefault",
-        "when": "relayFocused"
+        "key": "alt+ctrl+n",
+        "mac": "alt+cmd+n",
+        "command": "relay.newSessionDefault"
       },
       {
         "key": "ctrl+shift+k",
@@ -170,7 +182,7 @@
         "key": "ctrl+w",
         "mac": "cmd+w",
         "command": "relay.closeSession",
-        "when": "relayFocused"
+        "when": "activeWebviewPanelId == 'relay.chatPanel'"
       },
       {
         "key": "ctrl+shift+c",
