@@ -38,8 +38,8 @@
                 </template>
               </template>
               <!-- Section: sticky user prompt header + its responses -->
-              <div v-else class="chat-section">
-                <div class="section-sticky-header">
+              <div v-else class="chat-section" :data-section-key="section.key">
+                <div class="section-sticky-header" @click="scrollToSection(section.key)">
                   <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" :is-active="isBusy && !streamingText && section.key === lastSectionKey" :is-compacting="isCompacting" />
                 </div>
                 <div class="section-body">
@@ -455,6 +455,18 @@
 
   function jumpToLatest(): void {
     scrollToBottom(true);
+  }
+
+  function scrollToSection(sectionKey: string): void {
+    const container = containerEl.value;
+    if (!container) return;
+    const sectionEl = container.querySelector<HTMLElement>(
+      `.chat-section[data-section-key="${sectionKey}"]`
+    );
+    if (!sectionEl) return;
+    isUserScrolledUp.value = true;
+    showJumpToLatest.value = true;
+    sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   watch(session, async () => {
@@ -1126,12 +1138,17 @@
     top: 0;
     z-index: 10;
     padding-bottom: 6px;
+    cursor: pointer;
     background: linear-gradient(
       to bottom,
       var(--vscode-panel-background) 0px,
       var(--vscode-panel-background) calc(100% - 12px),
       transparent 100%
     );
+  }
+
+  .section-sticky-header:hover :deep(.message-content) {
+    border-color: var(--vscode-focusBorder);
   }
 
   .relay-icon {
