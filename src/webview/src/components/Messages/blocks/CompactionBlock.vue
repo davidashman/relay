@@ -2,6 +2,7 @@
   <ToolMessageWrapper
     tool-icon="codicon-archive"
     tool-name="Compacted context"
+    tool-result="Compacted"
     :default-expanded="false"
   >
     <template #main>

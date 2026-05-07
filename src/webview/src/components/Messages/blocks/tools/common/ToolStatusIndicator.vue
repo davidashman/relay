@@ -19,8 +19,10 @@ const stateClass = computed(() => {
       return 'status-success';
     case 'error':
       return 'status-error';
-    default:
+    case 'pending':
       return 'status-pending';
+    default:
+      return 'status-unknown';
   }
 });
 </script>
@@ -37,8 +39,8 @@ const stateClass = computed(() => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: var(--vscode-foreground);
-  opacity: 0.3;
+  background-color: var(--vscode-badge-background);
+  opacity: 0.5;
 }
 
 .status-success .status-dot {

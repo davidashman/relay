@@ -141,10 +141,11 @@ const isHovered = ref(false);
 // In that case the group provides the outer horizontal margin so we skip our own padding.
 const inCollapsedGroup = computed(() => toolGroupExpanded !== null && !toolGroupExpanded.value);
 
-const indicatorState = computed<'success' | 'error' | 'pending'>(() => {
+const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
   if (props.toolResult?.is_error) return 'error';
+  if (props.permissionState === 'pending') return 'pending';
   if (props.toolResult) return 'success';
-  return 'pending';
+  return null;
 });
 
 function toggleExpand() {
