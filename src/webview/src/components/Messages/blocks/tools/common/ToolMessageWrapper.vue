@@ -38,7 +38,6 @@
         <span v-if="inCollapsedGroup && toolGroupCount > 0" class="tool-count-badge">+{{ toolGroupCount }}</span>
 
         <ToolStatusIndicator
-          v-if="indicatorState"
           :state="indicatorState"
           class="status-indicator-trailing"
         />
@@ -142,11 +141,10 @@ const isHovered = ref(false);
 // In that case the group provides the outer horizontal margin so we skip our own padding.
 const inCollapsedGroup = computed(() => toolGroupExpanded !== null && !toolGroupExpanded.value);
 
-const indicatorState = computed<'success' | 'error' | 'pending' | null>(() => {
+const indicatorState = computed<'success' | 'error' | 'pending'>(() => {
   if (props.toolResult?.is_error) return 'error';
-  if (props.permissionState === 'pending') return 'pending';
   if (props.toolResult) return 'success';
-  return null;
+  return 'pending';
 });
 
 function toggleExpand() {

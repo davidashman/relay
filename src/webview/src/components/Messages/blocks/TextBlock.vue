@@ -25,7 +25,7 @@ function handleLinkClick(event: MouseEvent) {
   const target = (event.target as HTMLElement).closest('a');
   if (!target) return;
 
-  const href = target.getAttribute('href');
+  const href = target.getAttribute('data-href') ?? target.getAttribute('href');
   if (!href) return;
 
   event.preventDefault();
@@ -62,9 +62,16 @@ marked.setOptions({
   breaks: true,
 });
 
+const renderer = new marked.Renderer();
+renderer.link = ({ href, title, text }) => {
+  const titleAttr = title ? ` title="${title}"` : '';
+  // Use data-href so VSCode's webview doesn't intercept external link navigation
+  return `<a data-href="${href}"${titleAttr}>${text}</a>`;
+};
+
 // Markdown
 const renderedMarkdown = computed(() => {
-  const rawHtml = marked.parse(props.block.text) as string;
+  const rawHtml = marked.parse(props.block.text, { renderer }) as string;
   // TODO: DOMPurify.sanitize(rawHtml)
   return rawHtml;
 });

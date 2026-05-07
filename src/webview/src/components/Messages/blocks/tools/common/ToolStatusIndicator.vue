@@ -19,10 +19,8 @@ const stateClass = computed(() => {
       return 'status-success';
     case 'error':
       return 'status-error';
-    case 'pending':
-      return 'status-pending';
     default:
-      return '';
+      return 'status-pending';
   }
 });
 </script>
