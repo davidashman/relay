@@ -1183,10 +1183,10 @@
   @keyframes relay-squeeze {
     0%   { transform: scaleY(1)    scaleX(1); }
     35%  { transform: scaleY(0.35) scaleX(1.3); }
-    45%  { transform: scaleY(1.2)  scaleX(0.88); }
-    55%  { transform: scaleY(0.92) scaleX(1.04); }
-    67%  { transform: scaleY(1.04) scaleX(0.98); }
-    75%  { transform: scaleY(1)    scaleX(1); }
+    42%  { transform: scaleY(1.2)  scaleX(0.88); }
+    49%  { transform: scaleY(0.92) scaleX(1.04); }
+    56%  { transform: scaleY(1.04) scaleX(0.98); }
+    63%  { transform: scaleY(1)    scaleX(1); }
     100% { transform: scaleY(1)    scaleX(1); }
   }
 
