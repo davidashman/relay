@@ -7,23 +7,16 @@
           :class="['messagesContainer', 'custom-scroll-container']"
         >
           <div class="messages-inner">
-          <template v-if="sessionLoading || isSessionLoading">
-            <div class="emptyState">
-              <RelayIcon class="relay-icon relay-icon-loading" />
-            </div>
-          </template>
-          <template v-else-if="sessionError && messages.length === 0">
-            <div class="emptyState">
-              <div class="errorBox">
-                <span class="codicon codicon-error errorBoxIcon"></span>
-                <div class="errorBoxText">{{ sessionError }}</div>
-              </div>
-              <button class="retryBtn" @click="handleRetry">Retry</button>
-            </div>
-          </template>
-          <template v-else-if="messages.length === 0">
+          <template v-if="sessionLoading || isSessionLoading || messages.length === 0">
             <div class="emptyState" @animationiteration="handleIconAnimationIteration">
-              <RelayIcon :class="`relay-icon${showLoadingAnimation ? ' relay-icon-loading' : ''}`" />
+              <template v-if="sessionError">
+                <div v-if="sessionError" class="errorBox">
+                  <span class="codicon codicon-error errorBoxIcon"></span>
+                  <div class="errorBoxText">{{ sessionError }}</div>
+                </div>
+                <button class="retryBtn" @click="handleRetry">Retry</button>
+              </template>
+              <RelayIcon v-else :class="['relay-icon-loading', showLoadingAnimation ? 'relay-icon-working' : 'relay-icon-waiting']" />
             </div>
           </template>
           <template v-else>
@@ -54,7 +47,7 @@
             </template>
             <StreamingMessage v-if="streamingText" :text="streamingText" />
             <div class="busy-indicator">
-              <RelayIcon :class="['relay-icon-busy', { 'relay-icon-squeezing': isBusy && isCompacting && !pendingPermission, 'relay-icon-working': isBusy && !pendingPermission && !isCompacting }]" />
+              <RelayIcon :class="['relay-icon', relayIconClass]" />
             </div>
             <div class="end-spacer" />
             <div ref="endEl" />
@@ -191,6 +184,22 @@
   // Vue Ref.value
   const title = computed(() => session.value?.summary.value || 'New Conversation');
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
+
+  const relayIconClass = computed(() => {
+    if (isBusy.value) {
+      if (pendingPermission.value) {
+        return 'relay-icon-pending';
+      }
+
+      if (isCompacting.value) {
+        return 'relay-icon-squeezing';
+      }
+
+      return 'relay-icon-working';
+    }
+
+    return 'relay-icon-waiting';
+  })
 
   // Only these tool types are collapsed into a group; others render individually
   // True if the message contains only groupable tool_use blocks (ignoring empty text
@@ -1033,9 +1042,9 @@
     background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 60%, transparent);
     border: 1px solid var(--vscode-inputValidation-errorBorder);
     border-radius: 6px;
-    padding: 10px 14px;
+    margin: 12px;
+    padding: 14px;
     max-width: 420px;
-    margin-bottom: 12px;
   }
 
   .errorBoxIcon {
@@ -1152,8 +1161,9 @@
   }
 
   .relay-icon {
-    width: 60px;
-    height: 60px;
+    width: 30px;
+    height: 30px;
+    color: #D97757;
   }
 
   .busy-indicator {
@@ -1162,13 +1172,14 @@
     padding: 6px;
   }
 
-  .relay-icon-busy {
-    width: 30px;
-    height: 30px;
+  .relay-icon-loading {
+    width: 60px;
+    height: 60px;
+    color: #D97757;
   }
 
   .relay-icon-working {
-    animation: relay-flip 1.8s ease-in-out infinite;
+    animation: relay-flip 2.4s ease-in-out infinite;
   }
 
   .relay-icon-squeezing {
@@ -1176,8 +1187,8 @@
     animation: relay-squeeze 3s ease-in-out infinite;
   }
 
-  .relay-icon-loading {
-    animation: relay-flip 1.8s ease-in-out infinite;
+  .relay-icon-pending {
+    color: #3794ff;
   }
 
   @keyframes relay-squeeze {
@@ -1192,8 +1203,9 @@
 
   @keyframes relay-flip {
     0%   { transform: rotate(0deg); }
-    10%  { transform: rotate(-30deg); animation-timing-function: ease-out; }
-    40%  { transform: rotate(210deg); animation-timing-function: ease-out; }
+    27%  { transform: rotate(235deg); animation-timing-function: ease-out; }
+    37%  { transform: rotate(160deg); animation-timing-function: ease-in; }
+    44%  { transform: rotate(190deg); animation-timing-function: ease-in; }
     50%  { transform: rotate(180deg); animation-timing-function: ease-in; }
     100% { transform: rotate(180deg); }
   }

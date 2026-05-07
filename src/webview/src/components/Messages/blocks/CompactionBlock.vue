@@ -52,5 +52,6 @@ const triggerLabel = computed(() => props.block.trigger ?? '');
   font-size: 0.85em;
   color: color-mix(in srgb, var(--vscode-foreground) 65%, transparent);
   margin-left: 2px;
+  margin-top: 2px;
 }
 </style>

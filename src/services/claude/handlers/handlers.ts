@@ -100,7 +100,7 @@ export async function handleInit(
     const expandToolOutput = vscodeConfig.get<boolean>('expandToolOutput') ?? true;
     const showThinking = vscodeConfig.get<boolean>('showThinking') ?? false;
     const autoInterruptOnRoaming = vscodeConfig.get<boolean>('autoInterruptOnRoaming') ?? false;
-    const autoCompaction = vscodeConfig.get<boolean>('autoCompaction') ?? true;
+    const autoCompaction = vscodeConfig.get<boolean>('autoCompaction') ?? false;
     const autoCompactionTurns = vscodeConfig.get<number>('autoCompactionTurns') ?? 15;
 
     const thinkingLevel = defaultThinkingLevel;

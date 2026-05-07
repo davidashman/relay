@@ -390,6 +390,7 @@ export class Session {
       // this.messages(mergeConsecutiveReadMessages(accumulator));
       console.log(`[Session.loadFromServer] accumulated ${accumulator.length} messages for sessionId=${sessionId}`);
       this.messages(accumulator);
+      this.messageCount(accumulator.length);
       console.log(`[Session.loadFromServer] messages signal set, calling launchClaude for sessionId=${sessionId}`);
       await this.launchClaude();
       console.log(`[Session.loadFromServer] launchClaude returned for sessionId=${sessionId}`);
@@ -948,6 +949,7 @@ export class Session {
       );
       const next = [...baseMessages, msg] as Message[];
       this.messages(next);
+      this.messageCount(next.length);
 
       // The compact turn is consumed by compaction itself. Settle the counter
       // now so the thread doesn't get stuck busy.

@@ -133,6 +133,20 @@ function convertMessage(msg: SessionMessage, parentToolUseId: string | null = nu
     }
 
     if (msg.type === "user") {
+        // Skip slash command messages — they're SDK directives, not conversation content.
+        // Content may be a plain text array ("/compact") or a skill-invocation string
+        // ("<command-name>/compact</command-name>...").
+        const content = msg.message?.content;
+        const text = typeof content === 'string'
+            ? content
+            : Array.isArray(content)
+                ? ((content as any[]).filter((b: any) => b?.type === 'text').pop()?.text ?? '')
+                : '';
+        const trimmed = text.trim();
+        if (trimmed.startsWith('/') || trimmed.startsWith('<command-name>/')) {
+            return undefined;
+        }
+
         return {
             type: "user",
             message: msg.message,
@@ -564,7 +578,24 @@ export class ClaudeSessionService implements IClaudeSessionService {
                 return [];
             }
 
-            const mainTranscript = getTranscript(latestMain, data);
+            // Walk the transcript backwards from the most recent message.
+            // compact_boundary entries have parentUuid=null, so getTranscript()
+            // stops there. Loop to prepend any earlier chains so a reloaded session
+            // shows its full history across compaction boundaries.
+            let mainTranscript = getTranscript(latestMain, data);
+            while (
+                mainTranscript.length > 0 &&
+                mainTranscript[0].type === 'system' &&
+                mainTranscript[0].subtype === 'compact_boundary'
+            ) {
+                const seen = new Set(mainTranscript.map(m => m.uuid).filter(Boolean));
+                const preLeaf = sessionMessageList
+                    .filter(m => !m.isSidechain && m.uuid && !seen.has(m.uuid))
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                if (!preLeaf) break;
+                mainTranscript = [...getTranscript(preLeaf, data), ...mainTranscript];
+            }
+
             const mainUuidSet = new Set(mainTranscript.map(m => m.uuid));
 
             // Collect subagent (sidechain) messages that belong to Task tool invocations

@@ -35,8 +35,8 @@ const messageComponent = computed(() => {
       return AssistantMessage;
     case 'tip':
       return TipMessage;
-    case 'slash_command_result':
-      return SlashCommandResultMessage;
+    // case 'slash_command_result':
+    //   return SlashCommandResultMessage;
     case 'system':
       return SystemMessage;
     case 'result':
