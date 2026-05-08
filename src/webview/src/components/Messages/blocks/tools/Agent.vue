@@ -14,8 +14,8 @@
             v-if="!isHovered || !isInteractive"
             class="codicon codicon-tasklist"
           ></span>
-          <span v-else-if="isExpanded" class="codicon codicon-fold"></span>
-          <span v-else class="codicon codicon-chevron-up-down"></span>
+          <span v-else-if="isExpanded" class="codicon codicon-chevron-up"></span>
+          <span v-else class="codicon codicon-chevron-down"></span>
         </button>
       </Tooltip>
 
@@ -37,25 +37,14 @@
       v-if="isExpanded && (prompt || effectiveModel || agentDefinition?.tools?.length || children.length > 0 || hasError)"
       class="task-children"
     >
-      <div v-if="prompt || effectiveModel || agentDefinition?.tools?.length" class="prompt-section">
+      <div v-if="prompt || effectiveModel || sessionModel || agentDefinition?.tools?.length" class="prompt-section">
         <div class="section-header">
           <span class="codicon codicon-comment-discussion"></span>
-          <span>Prompt</span>
-          <Tooltip content="Rerun prompt">
-            <button class="rerun-button" @click.stop="handleRerun">
-              <span class="codicon codicon-redo"></span>
-            </button>
-          </Tooltip>
+          <span>{{ friendlyModelName(effectiveModel ?? sessionModel) ?? 'Prompt' }}</span>
         </div>
-        <div v-if="effectiveModel || agentDefinition?.tools?.length" class="agent-meta">
-          <span v-if="effectiveModel" class="meta-item">
-            <span class="meta-key">Model</span>
-            <span class="meta-value">{{ effectiveModel }}</span>
-          </span>
-          <span v-if="agentDefinition?.tools?.length" class="meta-item meta-item--tools">
-            <span class="meta-key">Tools</span>
-            <span class="meta-value">{{ agentDefinition.tools.join(', ') }}</span>
-          </span>
+        <div v-if="agentDefinition?.tools?.length" class="tools-line">
+          <span class="codicon codicon-tools"></span>
+          {{ agentDefinition.tools.join(', ') }}
         </div>
         <pre v-if="prompt" class="prompt-content">{{ prompt }}</pre>
       </div>
@@ -100,6 +89,7 @@ import type { ContentBlockWrapper } from '@/models/ContentBlockWrapper';
 import type { ToolContext } from '@/types/tool';
 import { RuntimeKey } from '@/composables/runtimeContext';
 import type { AgentDefinition } from '../../../../../../shared/messages';
+import { friendlyModelName } from '@/utils/modelUtils';
 
 interface Props {
   toolUse?: any;
@@ -112,6 +102,11 @@ interface Props {
 const props = defineProps<Props>();
 
 const runtime = inject(RuntimeKey);
+
+// Tracks both activeSession and modelSelection alien-signals reactively.
+const sessionModel = useSignal(
+  () => runtime?.sessionStore.activeSession()?.modelSelection() as string | undefined
+);
 
 // Reactive view of the wrapper's childTools signal. The Session hoists
 // subagent tool_use blocks onto this list as they stream in, so the Task
@@ -371,37 +366,20 @@ function handleRerun() {
   font-size: 14px;
 }
 
-.agent-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-  padding: 6px 8px;
-  background-color: color-mix(in srgb, var(--vscode-charts-purple) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--vscode-charts-purple) 25%, transparent);
-  border-radius: 4px;
-}
-
-.meta-item {
+.tools-line {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 0.85em;
-}
-
-.meta-key {
   font-weight: 600;
-  color: color-mix(in srgb, var(--vscode-charts-purple) 80%, var(--vscode-foreground));
-}
-
-.meta-value {
+  color: color-mix(in srgb, var(--vscode-foreground) 80%, transparent);
   font-family: var(--vscode-editor-font-family);
-  color: var(--vscode-foreground);
+  margin-bottom: 6px;
 }
 
-.meta-item--tools {
-  align-items: flex-start;
-  flex-wrap: wrap;
+.tools-line > .codicon {
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .prompt-content {

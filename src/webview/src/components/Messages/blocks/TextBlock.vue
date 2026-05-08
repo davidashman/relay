@@ -89,7 +89,7 @@ const renderedMarkdown = computed(() => {
   color: var(--vscode-editor-foreground);
   word-wrap: break-word;
   user-select: text;
-  padding: 8px 5px 0px 5px;
+  padding: 8px 5px 2px 5px;
 }
 
 .slash-command-text {

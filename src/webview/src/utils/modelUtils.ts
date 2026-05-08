@@ -98,6 +98,16 @@ export function getEffortLevels(modelId?: string): string[] {
 }
 
 /**
+ * Return a human-friendly name for a model ID, e.g. "claude-sonnet-4-6" → "Sonnet 4.6".
+ * Falls back to the raw ID if unrecognized.
+ */
+export function friendlyModelName(modelId?: string): string | undefined {
+  if (!modelId) return undefined;
+  const { label, model } = parseModelInfo(modelId);
+  return model ? label : modelId;
+}
+
+/**
  * Parse a model ID and return detailed information
  *
  * @param modelId - The model ID to parse
