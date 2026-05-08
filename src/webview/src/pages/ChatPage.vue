@@ -693,6 +693,7 @@
     if (!s) return;
 
     await s.setPermissionMode(mode);
+    chatInputRef.value?.focus();
   }
 
   // permissionMode.toggle
@@ -732,6 +733,7 @@
     if (!s) return;
 
     await s.setModel({ value: modelId });
+    chatInputRef.value?.focus();
   }
 
   async function handleEffortSelect(level: string | undefined) {
@@ -739,6 +741,7 @@
     if (!s) return;
 
     await s.setEffortLevel(level);
+    chatInputRef.value?.focus();
   }
 
   function handleStop() {
@@ -796,6 +799,7 @@
     } catch (e) {
       console.error('[ChatPage] Failed to convert files:', e);
     }
+    chatInputRef.value?.focus();
   }
 
   function handleRemoveAttachment(id: string) {
