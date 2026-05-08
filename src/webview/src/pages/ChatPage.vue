@@ -313,22 +313,25 @@
   // config is loaded and the model/mode are set, making the UI ready for input.
   const connectionReady = computed(() => !!session.value?.connection.value);
 
-  // keepAnimating starts true and is cleared at the next cycle boundary once the
-  // connection is ready — guarantees we stop cleanly at the end of a rotation.
-  const keepAnimating = ref(true);
-  const showLoadingAnimation = computed(() => keepAnimating.value);
-
-  // Track whether the connection has ever been ready in this panel instance.
-  // Only a brand-new panel (never connected) should show the startup animation;
-  // session clears (/clear) reuse the same panel and must not replay it.
-  const connectionEverReady = ref(false);
+  // panelEverConnected: set true on the first connection, never resets.
+  const panelEverConnected = ref(false);
   watch(connectionReady, (ready) => {
-    if (ready) connectionEverReady.value = true;
-    if (!ready && !connectionEverReady.value) keepAnimating.value = true;
+    if (ready) panelEverConnected.value = true;
   });
 
+  // keepAnimating drives the startup spin for brand-new panels.
+  // Cleared cleanly at the next animation cycle boundary, or immediately when
+  // the session is replaced (clear / Shift+Cmd+K) after the panel has connected.
+  const keepAnimating = ref(true);
+  watch(activeSessionRaw, () => {
+    if (panelEverConnected.value) keepAnimating.value = false;
+  });
+
+  // Spin during initial startup OR while loading a session from history.
+  const showLoadingAnimation = computed(() => keepAnimating.value || isSessionLoading.value);
+
   function handleIconAnimationIteration() {
-    if (connectionReady.value) keepAnimating.value = false;
+    if (panelEverConnected.value) keepAnimating.value = false;
   }
   const sessionError = computed(() => session.value?.error.value ?? null);
   const roamingWarning = computed(() => session.value?.roamingWarning.value ?? false);

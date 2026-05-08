@@ -202,7 +202,9 @@ function handleReplay() {
 .message-content.active {
   overflow: hidden;
   transition: none;
-  border-color: var(--mode-border-color) !important;
+  /* border-color: var(--mode-border-color) !important; */
+  border-color: color-mix(in srgb, #D97757 50%, transparent) !important;
+  background-color: color-mix(in srgb, #D97757 20%, transparent);
 }
 
 /* */
