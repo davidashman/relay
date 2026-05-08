@@ -1156,10 +1156,6 @@
     );
   }
 
-  .section-sticky-header:hover :deep(.message-content) {
-    border-color: var(--vscode-focusBorder);
-  }
-
   .relay-icon {
     width: 30px;
     height: 30px;

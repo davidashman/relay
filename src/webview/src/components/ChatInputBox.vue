@@ -4,34 +4,37 @@
     :style="{ position: 'relative', '--mode-border-color': modeBorderColor }"
   >
     <div v-if="attachments && attachments.length > 0" class="attachments-list">
-      <div
-        v-for="attachment in attachments"
-        :key="attachment.id"
-        class="attachment-item"
+      <Tooltip 
+          v-for="attachment in attachments"
+          :key="attachment.id"
+          :content="attachment.fileName"
+          side="bottom"
       >
-        <!-- Image: fills tile as thumbnail -->
-        <img
-          v-if="attachment.mediaType?.startsWith('image/')"
-          :src="`data:${attachment.mediaType};base64,${attachment.data}`"
-          :alt="attachment.fileName"
-          class="attachment-thumbnail"
-        />
-        <!-- Non-image: icon + name stacked -->
-        <template v-else>
-          <div class="attachment-file-icon">
-            <FileIcon :file-name="attachment.fileName" :size="20" />
-          </div>
-          <span class="attachment-name">{{ attachment.fileName }}</span>
-        </template>
-        <!-- Remove X (top-right corner, appears on hover) -->
-        <button
-          class="remove-button-thumbnail"
-          @click.stop="handleRemoveAttachment(attachment.id)"
-          :aria-label="`Remove ${attachment.fileName}`"
-        >
-          <span class="codicon codicon-close" />
-        </button>
-      </div>
+        <div class="attachment-item">
+          <!-- Image: fills tile as thumbnail -->
+          <img
+            v-if="attachment.mediaType?.startsWith('image/')"
+            :src="`data:${attachment.mediaType};base64,${attachment.data}`"
+            :alt="attachment.fileName"
+            class="attachment-thumbnail"
+          />
+          <!-- Non-image: icon + name stacked -->
+          <template v-else>
+            <div class="attachment-file-icon">
+              <FileIcon :file-name="attachment.fileName" :size="20" />
+            </div>
+            <span class="attachment-name">{{ attachment.fileName }}</span>
+          </template>
+          <!-- Remove X (top-right corner, appears on hover) -->
+          <button
+            class="remove-button-thumbnail"
+            @click.stop="handleRemoveAttachment(attachment.id)"
+            :aria-label="`Remove ${attachment.fileName}`"
+          >
+            <span class="codicon codicon-close" />
+          </button>
+        </div>
+      </Tooltip>
     </div>
 
     <div
@@ -162,6 +165,7 @@ import { useCompletionDropdown } from '../composables/useCompletionDropdown'
 import { getSlashCommands, commandToDropdownItem } from '../providers/slashCommandProvider'
 import { getFileReferences, fileToDropdownItem, type FileReference } from '../providers/fileReferenceProvider'
 import { captureSourceSnapshot, type SendSnapshot } from '../composables/useSendAnimation'
+import Tooltip from './Common/Tooltip.vue';
 
 interface Props {
   showProgress?: boolean
@@ -1051,7 +1055,7 @@ defineExpose({
 /* */
 .full-input-box:focus-within {
   border-color: var(--mode-border-color) !important;
-  background: color-mix(in srgb, var(--vscode-input-background) 70%, transparent);
+  background: color-mix(in srgb, var(--vscode-input-background) 50%, transparent);
   outline: none !important;
 }
 
@@ -1089,7 +1093,7 @@ defineExpose({
   justify-content: center;
   gap: 2px;
   padding: 4px;
-  border: 1px solid var(--vscode-editorWidget-border);
+  /* border: 1px solid var(--vscode-editorWidget-border); */
   border-radius: 6px;
   flex-shrink: 0;
   width: 48px;
@@ -1103,8 +1107,8 @@ defineExpose({
 }
 
 .attachment-item:hover {
-  background-color: var(--vscode-list-hoverBackground);
-  border-color: var(--vscode-focusBorder);
+  background-color: var(--vscode-input-background);
+  /* border-color: var(--vscode-focusBorder); */
 }
 
 .attachment-thumbnail {
@@ -1122,6 +1126,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-bottom: 3px;
 }
 
 .attachment-name {
@@ -1137,8 +1142,8 @@ defineExpose({
 
 .remove-button-thumbnail {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -3px;
+  right: -3px;
   display: flex;
   align-items: center;
   justify-content: center;

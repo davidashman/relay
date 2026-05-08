@@ -1,55 +1,53 @@
 <template>
   <div class="user-message">
     <div class="message-wrapper">
-      <!--  message-content  -->
-      <div
-        v-if="displayAttachments.length > 0"
-        class="attachment-tiles"
-      >
-        <button
-          v-for="attachment in displayAttachments"
-          :key="attachment.id"
-          type="button"
-          class="attachment-tile"
-          :title="attachment.fileName"
-          @click.stop="handleOpenAttachment(attachment)"
-        >
-          <!-- Image: fills tile as thumbnail -->
-          <img
-            v-if="attachment.mediaType?.startsWith('image/')"
-            :src="`data:${attachment.mediaType};base64,${attachment.data}`"
-            :alt="attachment.fileName"
-            class="attachment-tile-thumbnail"
-          />
-          <!-- Non-image: icon + name stacked -->
-          <template v-else>
-            <div class="attachment-tile-icon">
-              <FileIcon :file-name="attachment.fileName" :size="20" />
-            </div>
-            <span class="attachment-tile-name">{{ attachment.fileName }}</span>
-          </template>
-        </button>
-      </div>
-
       <div
         class="message-content"
       >
         <div
           class="message-view"
-          :class="{ 'message-view--pinned': pinned }"
         >
-          <div class="message-text">
-            <div>{{ displayContent }}</div>
-            <Tooltip content="Use as input">
-              <button
-                class="restore-button"
-                @click.stop="handleReplay"
+          <div v-if="displayAttachments.length > 0" class="attachments-list">
+            <Tooltip 
+                v-for="attachment in displayAttachments"
+                :key="attachment.id"
+                :content="attachment.fileName"
+                side="bottom"
+            >
+              <div
+                class="attachment-item"
+                :title="attachment.fileName"
+                @click.stop="handleOpenAttachment(attachment)"
               >
-                <span class="codicon codicon-restore"></span>
-              </button>
+                <!-- Image: fills tile as thumbnail -->
+                <img
+                  v-if="attachment.mediaType?.startsWith('image/')"
+                  :src="`data:${attachment.mediaType};base64,${attachment.data}`"
+                  :alt="attachment.fileName"
+                  class="attachment-thumbnail"
+                />
+                <!-- Non-image: icon + name stacked -->
+                <template v-else>
+                  <div class="attachment-file-icon">
+                    <FileIcon :file-name="attachment.fileName" :size="20" />
+                  </div>
+                  <span class="attachment-name">{{ attachment.fileName }}</span>
+                </template>
+              </div>
             </Tooltip>
           </div>
+          <div class="message-text">
+            <div>{{ displayContent }}</div>
+          </div>
         </div>
+        <Tooltip content="Reuse Prompt" side="top">
+          <button
+            class="restore-button"
+            @click.stop="handleReplay"
+          >
+            <span class="codicon codicon-restore"></span>
+          </button>
+        </Tooltip>
       </div>
     </div>
   </div>
@@ -159,6 +157,7 @@ function handleReplay() {
 
 .message-wrapper {
   background-color: var(--vscode-panel-background);
+  cursor: pointer;
 }
 
 /* - */
@@ -167,7 +166,7 @@ function handleReplay() {
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  background-color: color-mix(in srgb, var(--vscode-sideBar-background) 50%, transparent);
+  background-color: color-mix(in srgb, var(--vscode-input-background) 30%, transparent);
   outline: none;
   border: 1px solid var(--vscode-editorWidget-border);
   border-radius: 6px;
@@ -224,14 +223,12 @@ function handleReplay() {
   width: 100%;
   transition: all 0.2s ease;
   gap: 4px;
+  padding: 6px 8px;
+  box-sizing: border-box;
 }
 
-.message-view--pinned {
-  cursor: default;
-}
-
-/* Attachment tiles */
-.attachment-tiles {
+/* Attachments — matches input box style */
+.attachments-list {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -239,23 +236,22 @@ function handleReplay() {
   gap: 4px;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 6px;
+  overflow: visible;
+  padding: 2px 0px;
 }
 
-.attachment-tile {
+.attachment-item {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
   padding: 4px;
-  background: transparent;
-  border: 1px solid var(--vscode-editorWidget-border);
-  border-radius: 8px;
-  font-family: inherit;
+  /* border: 1px solid var(--vscode-editorWidget-border); */
+  border-radius: 6px;
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   cursor: pointer;
   transition: all 0.15s;
   position: relative;
@@ -265,34 +261,30 @@ function handleReplay() {
   color: var(--vscode-foreground);
 }
 
-.attachment-tile:hover {
+.attachment-item:hover {
   background-color: var(--vscode-list-hoverBackground);
-  border-color: var(--vscode-focusBorder);
+  /* border-color: var(--vscode-focusBorder); */
 }
 
-.attachment-tile-thumbnail {
+.attachment-thumbnail {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 5px;
 }
 
-.attachment-tile-icon {
+.attachment-file-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-bottom: 3px;
 }
 
-.attachment-tile-icon :deep(.mdi),
-.attachment-tile-icon :deep(.codicon) {
-  color: var(--vscode-foreground);
-  opacity: 0.8;
-}
-
-.attachment-tile-name {
+.attachment-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -304,16 +296,10 @@ function handleReplay() {
 }
 
 .message-view .message-text {
-  cursor: default;
-  background-color: color-mix(
-    in srgb,
-    var(--vscode-input-background) 50%,
-    transparent
-  );
+  background-color: transparent;
   outline: none;
-  border-radius: 6px;
   width: 100%;
-  padding: 6px 8px;
+  padding-right: 28px;
   box-sizing: border-box;
   min-width: 0;
   flex: 1;
@@ -347,20 +333,22 @@ function handleReplay() {
 
 /* restore checkpoint */
 .restore-button {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   background: transparent;
   border: none;
   color: var(--vscode-foreground);
   display: flex;
-  width: 20px;
+  width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
-  line-height: 17px;
-  padding: 0 6px;
-  height: 26px;
+  padding: 0;
   box-sizing: border-box;
-  flex-shrink: 0;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 6px;
   transition: background-color 0.1s ease;
 }
 
