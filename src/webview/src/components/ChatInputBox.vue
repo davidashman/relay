@@ -209,7 +209,7 @@ const props = withDefaults(defineProps<Props>(), {
           || navigator.userAgent
       )
     const modifierKey = isMac ? 'Cmd' : 'Ctrl'
-    return `Plan, @ for context, / for commands — Enter: send • ${modifierKey}+Enter: interrupt then send`
+    return `Plan, @ for context, / for commands`
   })(),
   readonly: false,
   showSearch: false,
@@ -612,9 +612,8 @@ function handleKeydown(event: KeyboardEvent) {
     if (event.isComposing) {
       return
     }
-    const interrupt = event.metaKey || event.ctrlKey
     event.preventDefault()
-    handleSubmit(interrupt)
+    handleSubmit()
   }
 
   if (event.key === 'Backspace' || event.key === 'Delete') {

@@ -508,6 +508,36 @@ export class Session {
     }
   }
 
+  /**
+   * Interrupt the current turn (if any) and send the specified queued message
+   * next. The item is moved to the front of the queue before interrupting so
+   * the drain fires in the right position — either from the `result` handler
+   * (which already checks for a non-empty queue) or from readMessages finally
+   * for interrupted turns that never emit `result`. Both paths guarantee the
+   * old turn's assistant messages are already in messages[] before the new
+   * user message is appended.
+   */
+  async interruptAndSendNow(id: string): Promise<void> {
+    const queue = this.outboundQueue();
+    const idx = queue.findIndex((m) => m.id === id);
+    if (idx < 0) return;
+
+    if (this.outstandingTurns() === 0) {
+      this.sendQueuedNow(id);
+      return;
+    }
+
+    // Move item to front so it's next to drain, keeping the rest in order.
+    if (idx > 0) {
+      const entry = queue[idx];
+      this.outboundQueue([entry, ...queue.slice(0, idx), ...queue.slice(idx + 1)]);
+    }
+
+    // Interrupt without draining — the drain will fire once the old turn's
+    // messages have landed (see readMessages finally and the result handler).
+    await this.interrupt();
+  }
+
   /** Re-send a message to the SDK after auto-compaction without adding it to the UI. */
   private async replayAfterCompaction(
     input: string,
@@ -604,6 +634,11 @@ export class Session {
     return channelId;
   }
 
+  async interruptAll(): Promise<void> {
+    this.interrupt();
+    this.outboundQueue([]);
+  }
+
   async interrupt(): Promise<void> {
     const channelId = this.claudeChannelId();
     if (!channelId) {
@@ -618,7 +653,6 @@ export class Session {
     this.pendingReplayMessage = undefined;
     this.hasActiveTool(false);
     this.streamingText(undefined);
-    this.outboundQueue([]);
     this.currentTurnToolCallCount(0);
     this.roamingWarningDismissed(false);
     this.autoInterruptTriggered = false;
@@ -768,11 +802,14 @@ export class Session {
       this.resetOutstandingTurns();
       this.hasActiveTool(false);
       this.streamingText(undefined);
-      // Don't drop the outbound queue here — if the stream ended because the
-      // SDK naturally closed between turns, we still want the next queued
-      // entry to drain when the channel comes back up. `interrupt()` is the
-      // explicit path that clears the queue.
       this.claudeChannelId(undefined);
+      // Drain any queued messages now that this channel's messages[] are fully
+      // settled. For normal turn completions, `result` already drained the
+      // queue (leaving it empty here). For interrupted turns that never emit
+      // `result`, this is the first chance to drain with correct message order.
+      if (this.outboundQueue().length > 0) {
+        void this.drainOutboundQueue();
+      }
     }
   }
 

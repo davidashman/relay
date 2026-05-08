@@ -1,8 +1,8 @@
 <template>
-  <div class="user-message">
+  <div class="user-message" :style="{ '--mode-border-color': modeBorderColor }">
     <div class="message-wrapper">
       <div
-        class="message-content"
+        :class="['message-content', { 'active': isActive }]"
       >
         <div
           class="message-view"
@@ -40,7 +40,15 @@
             <div>{{ displayContent }}</div>
           </div>
         </div>
-        <Tooltip content="Reuse Prompt" side="top">
+        <Tooltip v-if="isActive" content="Cancel prompt" side="top">
+          <button
+            class="restore-button interrupt-button"
+            @click.stop="emit('interrupt')"
+          >
+            <span class="codicon codicon-close"></span>
+          </button>
+        </Tooltip>
+        <Tooltip v-else content="Reuse prompt" side="top">
           <button
             class="restore-button"
             @click.stop="handleReplay"
@@ -67,9 +75,26 @@ interface Props {
   pinned?: boolean;
   isActive?: boolean;
   isCompacting?: boolean;
+  permissionMode?: string;
 }
 
 const props = defineProps<Props>();
+const emit = defineEmits<{ interrupt: [] }>();
+
+const modeBorderColor = computed(() => {
+  if (props.isActive) {
+    switch (props.permissionMode) {
+      case 'acceptEdits':
+        return 'color-mix(in srgb, #a855f7 45%, transparent)';
+      case 'plan':
+        return 'color-mix(in srgb, #3b82f6 45%, transparent)';
+      default:
+        return 'color-mix(in srgb, var(--vscode-foreground) 25%, transparent)';
+    }
+  }
+
+  return 'var(--vscode-editorWidget-border)';
+});
 
 const displayContent = computed(() => {
   if (typeof props.message.message.content === 'string') {
@@ -174,45 +199,10 @@ function handleReplay() {
   transition: all 0.2s ease;
 }
 
-.message-content.active-spinner {
+.message-content.active {
   overflow: hidden;
   transition: none;
-}
-
-.message-content.active-spinner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 40%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(232, 125, 14, 0.08) 20%,
-    rgba(232, 125, 14, 0.22) 50%,
-    rgba(232, 125, 14, 0.08) 80%,
-    transparent 100%
-  );
-  animation: sweep 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.message-content.active-spinner.active-compacting::before {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(79, 195, 247, 0.08) 20%,
-    rgba(79, 195, 247, 0.22) 50%,
-    rgba(79, 195, 247, 0.08) 80%,
-    transparent 100%
-  );
-}
-
-@keyframes sweep {
-  0% { transform: translateX(-100%); }
-  70% { transform: translateX(250%); }
-  100% { transform: translateX(250%); }
+  border-color: var(--mode-border-color) !important;
 }
 
 /* */
@@ -359,6 +349,14 @@ function handleReplay() {
 .restore-button .codicon {
   font-size: 12px;
   color: var(--vscode-foreground);
+}
+
+.interrupt-button:hover {
+  background-color: color-mix(in srgb, var(--vscode-errorForeground) 15%, transparent);
+}
+
+.interrupt-button:hover .codicon {
+  color: var(--vscode-errorForeground);
 }
 
 </style>

@@ -57,7 +57,7 @@
         </Tooltip>
 
         <!-- Submit Button -->
-        <Tooltip :content="submitVariant === 'stop' ? 'Stop' : 'Send'">
+        <Tooltip :content="submitVariant === 'stop' ? 'Cancel all prompts' : 'Send'">
           <button
             class="submit-button"
             @click="handleSubmit"

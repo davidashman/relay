@@ -76,6 +76,7 @@ export interface UseSessionReturn {
   ) => Promise<void>;
   launchClaude: () => Promise<string>;
   interrupt: () => Promise<void>;
+  interruptAll: () => Promise<void>;
   restartClaude: () => Promise<void>;
   listFiles: (pattern?: string) => Promise<any>;
   setPermissionMode: (mode: PermissionMode, applyToConnection?: boolean) => Promise<boolean>;
@@ -88,6 +89,7 @@ export interface UseSessionReturn {
   onPermissionRequested: (callback: (request: PermissionRequest) => void) => () => void;
   removeFromQueue: (id: string) => void;
   sendQueuedNow: (id: string) => void;
+  interruptAndSendNow: (id: string) => Promise<void>;
   isSessionRoaming: () => boolean;
   dismissRoamingWarning: () => void;
   dispose: () => void;
@@ -146,6 +148,7 @@ export function useSession(session: Session): UseSessionReturn {
   const send = session.send.bind(session);
   const launchClaude = session.launchClaude.bind(session);
   const interrupt = session.interrupt.bind(session);
+  const interruptAll = session.interruptAll.bind(session);
   const restartClaude = session.restartClaude.bind(session);
   const listFiles = session.listFiles.bind(session);
   const setPermissionMode = session.setPermissionMode.bind(session);
@@ -158,6 +161,7 @@ export function useSession(session: Session): UseSessionReturn {
   const onPermissionRequested = session.onPermissionRequested.bind(session);
   const removeFromQueue = session.removeFromQueue.bind(session);
   const sendQueuedNow = session.sendQueuedNow.bind(session);
+  const interruptAndSendNow = session.interruptAndSendNow.bind(session);
   const isSessionRoaming = session.isSessionRoaming.bind(session);
   const dismissRoamingWarning = session.dismissRoamingWarning.bind(session);
   const dispose = session.dispose.bind(session);
@@ -202,6 +206,7 @@ export function useSession(session: Session): UseSessionReturn {
     send,
     launchClaude,
     interrupt,
+    interruptAll,
     restartClaude,
     listFiles,
     setPermissionMode,
@@ -214,6 +219,7 @@ export function useSession(session: Session): UseSessionReturn {
     onPermissionRequested,
     removeFromQueue,
     sendQueuedNow,
+    interruptAndSendNow,
     isSessionRoaming,
     dismissRoamingWarning,
     dispose,

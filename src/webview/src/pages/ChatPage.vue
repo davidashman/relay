@@ -33,7 +33,15 @@
               <!-- Section: sticky user prompt header + its responses -->
               <div v-else class="chat-section" :data-section-key="section.key">
                 <div class="section-sticky-header" @click="scrollToSection(section.key)">
-                  <UserMessage :message="section.header.message" :context="toolContext" :pinned="true" :is-active="isBusy && !streamingText && section.key === lastSectionKey" :is-compacting="isCompacting" />
+                  <UserMessage
+                    :message="section.header.message"
+                    :context="toolContext"
+                    :pinned="true"
+                    :is-active="isBusy && section.key === lastSectionKey"
+                    :is-compacting="isCompacting"
+                    :permission-mode="permissionMode"
+                    @interrupt="handleTurnInterrupt"
+                  />
                 </div>
                 <div class="section-body">
                   <div v-for="seg in section.body" :key="seg.key" class="section-content">
@@ -107,7 +115,6 @@
             :selected-model="session?.modelSelection.value"
             :selected-agent="session?.agentSelection.value"
             @submit="handleSubmit"
-            @submit-and-interrupt="handleSubmitAndInterrupt"
             @stop="handleStop"
             @add-attachment="handleAddAttachment"
             @remove-attachment="handleRemoveAttachment"
@@ -662,7 +669,7 @@
     const s = session.value;
     if (!s) return;
     try {
-      await s.interrupt();
+      await s.interruptAll();
     } catch (e) {
       console.error('[ChatPage] interrupt before send failed', e);
     }
@@ -673,32 +680,8 @@
     session.value?.removeFromQueue(id);
   }
 
-  async function handleQueueSendNow(id: string) {
-    // Capture the queue item's visual position BEFORE sendQueuedNow removes it
-    // from the queue, so we can animate it gliding into the thread.
-    const queueItemEl = document.querySelector<HTMLElement>(
-      `.message-queue-section .queue-item[data-message-id="${id}"]`
-    );
-    const snapshot = queueItemEl ? captureQueueItemSnapshot(queueItemEl) : null;
-
-    session.value?.sendQueuedNow(id);
-
-    if (!snapshot) return;
-
-    await nextTick();
-
-    // Find the new user message that just landed in the thread.
-    const container = containerEl.value;
-    const userMessages = container?.querySelectorAll<HTMLElement>('.user-message');
-    const targetEl = userMessages?.[userMessages.length - 1];
-    if (!targetEl) return;
-
-    const animation = prepareSendAnimation(snapshot, targetEl, 'thread');
-    scrollToBottom(true);
-
-    await new Promise<void>((r) => requestAnimationFrame(() => r()));
-    await new Promise<void>((r) => requestAnimationFrame(() => r()));
-    void animation.play();
+  function handleQueueSendNow(id: string) {
+    void session.value?.interruptAndSendNow(id);
   }
 
 
@@ -759,8 +742,12 @@
     const s = session.value;
     if (s) {
       // useSession
-      void s.interrupt();
+      void s.interruptAll();
     }
+  }
+
+  function handleTurnInterrupt() {
+    void session.value?.interrupt();
   }
 
   function handleDismissRoaming() {
