@@ -168,20 +168,20 @@ const dropdownStyle = computed(() => {
   const padding = 8
 
   // align
+  if (props.align === 'right') {
+    style.right = '0px'
+    style.left = 'auto'
+    return style
+  }
+
   let leftPosition = 0
 
   switch (props.align) {
-    case 'right':
-      // dropdown
-      leftPosition = triggerRect.right - dropdownWidth
-      break
     case 'center':
-      // dropdown
       leftPosition = triggerRect.left + (triggerRect.width / 2) - (dropdownWidth / 2)
       break
     case 'left':
     default:
-      // dropdown
       leftPosition = triggerRect.left
       break
   }

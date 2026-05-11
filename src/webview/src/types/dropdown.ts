@@ -1,6 +1,7 @@
 export interface DropdownItemData {
   id: string
   label?: string
+  sublabel?: string
   name?: string
   detail?: string
   icon?: string // CSS

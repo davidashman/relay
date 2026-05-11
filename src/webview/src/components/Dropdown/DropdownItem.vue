@@ -22,7 +22,9 @@
 
           <div class="menu-item-text-section">
             <div class="file-info-container">
-              <span class="monaco-highlighted-label">{{ item.label || item.name }}</span>
+              <span class="monaco-highlighted-label">
+                {{ item.label || item.name }}<span v-if="item.sublabel" class="monaco-highlighted-sublabel">{{ item.sublabel }}</span>
+              </span>
             </div>
             <span
               v-if="item.detail"
@@ -201,6 +203,7 @@ function handleMouseEnter() {
   max-width: 100%;
   color: var(--vscode-panelTitle-activeForeground);
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 
@@ -213,6 +216,12 @@ function handleMouseEnter() {
   overflow: hidden;
   display: block;
   width: 100%;
+}
+
+.monaco-highlighted-sublabel {
+  opacity: 0.45;
+  padding-left: 5px;
+  white-space: nowrap;
 }
 
 .file-path-container {

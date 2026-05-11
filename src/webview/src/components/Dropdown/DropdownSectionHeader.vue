@@ -16,10 +16,10 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped>
 .section-header {
-  padding: 4px 12px;
+  padding: 4px 6px 2px;
   color: var(--vscode-foreground);
   opacity: 0.5;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 600;
 }
 </style>

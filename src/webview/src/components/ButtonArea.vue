@@ -8,20 +8,6 @@
           :permission-mode="permissionMode"
           @mode-select="(mode) => emit('modeSelect', mode)"
         />
-
-        <!-- Model Select -->
-        <ModelSelect
-          :selected-model="selectedModel"
-          @model-select="(modelId) => emit('modelSelect', modelId)"
-        />
-
-        <!-- Effort Select (Opus 4.6/4.7 and Sonnet 4.6) -->
-        <EffortSelect
-          v-if="supportsEffort(selectedModel)"
-          :effort-level="effortLevel"
-          :selected-model="selectedModel"
-          @effort-select="(level) => emit('effortSelect', level)"
-        />
       </div>
 
       <!-- Right Section: Agent Chip + Token Indicator + Action Buttons -->
@@ -30,6 +16,14 @@
         <Tooltip v-if="selectedAgent" :content="`Agent: ${selectedAgent}`">
           <span class="agent-chip">{{ selectedAgent }}</span>
         </Tooltip>
+
+        <!-- Model + Effort Select -->
+        <ModelEffortSelect
+          :selected-model="selectedModel"
+          :effort-level="effortLevel"
+          @model-select="(modelId) => emit('modelSelect', modelId)"
+          @effort-select="(level) => emit('effortSelect', level)"
+        />
 
         <!-- Token Indicator -->
         <TokenIndicator
@@ -85,9 +79,7 @@ import { ref, computed } from 'vue'
 import Tooltip from './Common/Tooltip.vue'
 import TokenIndicator from './TokenIndicator.vue'
 import ModeSelect from './ModeSelect.vue'
-import ModelSelect from './ModelSelect.vue'
-import EffortSelect from './EffortSelect.vue'
-import { supportsEffort } from '../utils/modelUtils'
+import ModelEffortSelect from './ModelEffortSelect.vue'
 
 interface Props {
   disabled?: boolean
@@ -185,8 +177,7 @@ function handleFileUpload(event: Event) {
 }
 
 .button-row {
-  display: grid;
-  grid-template-columns: 4fr 1fr;
+  display: flex;
   align-items: center;
   height: 28px;
   padding-right: 2px;
@@ -200,17 +191,9 @@ function handleFileUpload(event: Event) {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-right: 6px;
-  flex-shrink: 1;
+  flex-shrink: 0;
   flex-grow: 0;
-  min-width: 0;
   height: 20px;
-  max-width: 100%;
-}
-
-/* Tighten only the Model ↔ Effort pair */
-.controls-section :deep(.effort-dropdown) {
-  margin-left: -8px;
 }
 
 .actions-section {
@@ -218,6 +201,8 @@ function handleFileUpload(event: Event) {
   align-items: center;
   gap: 8px;
   justify-content: flex-end;
+  flex: 1;
+  height: 20px;
 }
 
 .agent-chip {

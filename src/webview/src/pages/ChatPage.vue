@@ -31,7 +31,12 @@
                 </template>
               </template>
               <!-- Section: sticky user prompt header + its responses -->
-              <div v-else class="chat-section" :data-section-key="section.key">
+              <div
+                v-else
+                class="chat-section"
+                :data-section-key="section.key"
+                :style="section.key === lastSectionKey && containerHeight > 0 ? { minHeight: containerHeight + 'px' } : {}"
+              >
                 <div class="section-sticky-header" @click="scrollToSection(section.key)">
                   <UserMessage
                     :message="section.header.message"
@@ -50,14 +55,16 @@
                     </div>
                     <MessageRenderer v-else :message="seg.message" :context="toolContext" />
                   </div>
+                  <template v-if="section.key === lastSectionKey">
+                    <StreamingMessage v-if="streamingText" :text="streamingText" />
+                    <div class="busy-indicator">
+                      <RelayIcon :class="['relay-icon', relayIconClass]" />
+                    </div>
+                    <div class="end-spacer" />
+                  </template>
                 </div>
               </div>
             </template>
-            <StreamingMessage v-if="streamingText" :text="streamingText" />
-            <div class="busy-indicator">
-              <RelayIcon :class="['relay-icon', relayIconClass]" />
-            </div>
-            <div class="end-spacer" />
             <div ref="endEl" />
           </template>
 
@@ -385,6 +392,8 @@
   const endEl = ref<HTMLDivElement | null>(null);
   const chatInputRef = ref<InstanceType<typeof ChatInputBox> | null>(null);
   let unsubPanelFocus: (() => void) | undefined;
+  const containerHeight = ref(0);
+  let resizeObserver: ResizeObserver | null = null;
 
   type ChatSection = {
     key: string;
@@ -560,6 +569,11 @@
     const container = containerEl.value;
     if (container) {
       container.addEventListener('scroll', checkScrollPosition);
+      resizeObserver = new ResizeObserver(() => {
+        containerHeight.value = container.clientHeight;
+      });
+      resizeObserver.observe(container);
+      containerHeight.value = container.clientHeight;
     }
 
     window.addEventListener('focus', handleWindowFocus);
@@ -577,6 +591,8 @@
   onUnmounted(() => {
     try { unregisterToggle?.(); } catch {}
     unsubPanelFocus?.();
+
+    resizeObserver?.disconnect();
 
     // Remove scroll listener
     const container = containerEl.value;
@@ -1010,6 +1026,8 @@
     max-width: 1400px;
     width: 100%;
     align-self: center;
+    position: relative;
+    z-index: 20;
   }
 
   /* */
