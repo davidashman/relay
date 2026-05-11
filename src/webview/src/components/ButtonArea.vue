@@ -1,98 +1,52 @@
 <template>
   <div class="button-area-container">
-    <div class="button-row">
-      <!-- Left Section: Dropdowns -->
-      <div class="controls-section">
-        <!-- Mode Select -->
-        <ModeSelect
-          :permission-mode="permissionMode"
-          @mode-select="(mode) => emit('modeSelect', mode)"
+    <!-- Attach File Button -->
+    <Tooltip content="Attach File">
+      <button
+        class="action-button"
+        @click="handleAttachClick"
+      >
+        <span class="codicon codicon-attach text-[16px]!" />
+        <input
+          ref="fileInputRef"
+          type="file"
+          multiple
+          style="display: none;"
+          @change="handleFileUpload"
+        >
+      </button>
+    </Tooltip>
+
+    <!-- Submit Button -->
+    <Tooltip :content="submitVariant === 'stop' ? 'Cancel all prompts' : 'Send'">
+      <button
+        class="submit-button"
+        @click="handleSubmit"
+        :disabled="submitVariant === 'disabled'"
+        :data-variant="submitVariant"
+      >
+        <span
+          v-if="submitVariant === 'stop'"
+          class="codicon codicon-debug-stop text-[12px]! bg-(--vscode-editor-background)e-[0.6] rounded-[1px]"
         />
-      </div>
-
-      <!-- Right Section: Agent Chip + Token Indicator + Action Buttons -->
-      <div class="actions-section">
-        <!-- Agent Chip -->
-        <Tooltip v-if="selectedAgent" :content="`Agent: ${selectedAgent}`">
-          <span class="agent-chip">{{ selectedAgent }}</span>
-        </Tooltip>
-
-        <!-- Model + Effort Select -->
-        <ModelEffortSelect
-          :selected-model="selectedModel"
-          :effort-level="effortLevel"
-          @model-select="(modelId) => emit('modelSelect', modelId)"
-          @effort-select="(level) => emit('effortSelect', level)"
+        <span
+          v-else
+          class="codicon codicon-arrow-up-two text-[12px]!"
         />
-
-        <!-- Token Indicator -->
-        <TokenIndicator
-          v-if="showProgress"
-          :percentage="progressPercentage"
-          :context-tooltip="contextTooltip"
-          :size="19"
-        />
-
-        <!-- Attach File Button -->
-        <Tooltip content="Attach File">
-          <button
-            class="action-button"
-            @click="handleAttachClick"
-          >
-            <span class="codicon codicon-attach text-[16px]!" />
-            <input
-              ref="fileInputRef"
-              type="file"
-              multiple
-              style="display: none;"
-              @change="handleFileUpload"
-            >
-          </button>
-        </Tooltip>
-
-        <!-- Submit Button -->
-        <Tooltip :content="submitVariant === 'stop' ? 'Cancel all prompts' : 'Send'">
-          <button
-            class="submit-button"
-            @click="handleSubmit"
-            :disabled="submitVariant === 'disabled'"
-            :data-variant="submitVariant"
-          >
-            <span
-              v-if="submitVariant === 'stop'"
-              class="codicon codicon-debug-stop text-[12px]! bg-(--vscode-editor-background)e-[0.6] rounded-[1px]"
-            />
-            <span
-              v-else
-              class="codicon codicon-arrow-up-two text-[12px]!"
-            />
-          </button>
-        </Tooltip>
-      </div>
-    </div>
+      </button>
+    </Tooltip>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import { ref, computed } from 'vue'
 import Tooltip from './Common/Tooltip.vue'
-import TokenIndicator from './TokenIndicator.vue'
-import ModeSelect from './ModeSelect.vue'
-import ModelEffortSelect from './ModelEffortSelect.vue'
 
 interface Props {
   disabled?: boolean
   loading?: boolean
-  selectedModel?: string
-  selectedAgent?: string
   conversationWorking?: boolean
   hasInputContent?: boolean
-  showProgress?: boolean
-  progressPercentage?: number
-  contextTooltip?: string
-  effortLevel?: string
-  permissionMode?: PermissionMode
 }
 
 interface Emits {
@@ -100,24 +54,13 @@ interface Emits {
   (e: 'stop'): void
   (e: 'attach'): void
   (e: 'addAttachment', files: FileList): void
-  (e: 'mention', filePath?: string): void
-  (e: 'modeSelect', mode: PermissionMode): void
-  (e: 'modelSelect', modelId: string): void
-  (e: 'effortSelect', level: string | undefined): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
-  selectedModel: undefined,
-  selectedAgent: undefined,
   conversationWorking: false,
   hasInputContent: false,
-  showProgress: true,
-  progressPercentage: 48.7,
-  contextTooltip: '',
-  effortLevel: undefined,
-  permissionMode: 'default'
 })
 
 const emit = defineEmits<Emits>()
@@ -125,17 +68,14 @@ const emit = defineEmits<Emits>()
 const fileInputRef = ref<HTMLInputElement>()
 
 const submitVariant = computed(() => {
-  // Reactbusy
   if (props.conversationWorking) {
     return 'stop'
   }
 
-  // busy ->
   if (!props.hasInputContent) {
     return 'disabled'
   }
 
-  // ->
   return 'enabled'
 })
 
@@ -155,74 +95,27 @@ function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     emit('addAttachment', target.files)
-    // input
     target.value = ''
   }
 }
-
-
-
 </script>
 
 <style scoped>
 .button-area-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem;
+  justify-content: flex-end;
+  gap: 8px;
   flex-shrink: 0;
   cursor: auto;
-  width: 100%;
   user-select: none;
-}
-
-.button-row {
-  display: flex;
-  align-items: center;
-  height: 28px;
+  height: 20px;
   padding-right: 2px;
-  box-sizing: border-box;
-  flex: 1 1 0%;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.controls-section {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  flex-grow: 0;
-  height: 20px;
-}
-
-.actions-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-end;
-  flex: 1;
-  height: 20px;
-}
-
-.agent-chip {
-  font-size: 10px;
-  line-height: 1;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
-  color: var(--vscode-foreground);
-  opacity: 0.7;
-  white-space: nowrap;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: default;
 }
 
 .action-button,
 .submit-button {
-  opacity: 0.5;
+  opacity: 0.6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,6 +130,9 @@ function handleFileUpload(event: Event) {
   position: relative;
 }
 
+.action-button {
+  margin-top: 1px;
+}
 
 .action-button:hover:not(:disabled) {
   opacity: 1;
@@ -273,10 +169,6 @@ function handleFileUpload(event: Event) {
   opacity: 1;
   outline: 1.5px solid color-mix(in srgb, var(--vscode-editor-foreground) 60%, transparent);
   outline-offset: 1px;
-}
-
-.codicon-modifier-spin {
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {

@@ -459,6 +459,22 @@
     const container = containerEl.value;
     if (!container) return;
 
+    // Check whether actual message content is scrolled below the visible area.
+    // Using scrollHeight would count the minHeight padding on the last section as
+    // scrollable content, causing the button to appear when only blank space is hidden.
+    const sectionBodies = container.querySelectorAll<HTMLElement>('.chat-section .section-body');
+    const lastSectionBody = sectionBodies[sectionBodies.length - 1] ?? null;
+    if (lastSectionBody) {
+      const containerRect = container.getBoundingClientRect();
+      const bodyRect = lastSectionBody.getBoundingClientRect();
+      // Allow 30px of tolerance for the end-spacer and bottom fade.
+      const contentHiddenBelow = bodyRect.bottom > containerRect.bottom + 30;
+      isUserScrolledUp.value = contentHiddenBelow;
+      showJumpToLatest.value = contentHiddenBelow;
+      return;
+    }
+
+    // Fallback for empty state (no user-message sections).
     const nearBottom = isNearBottom(container);
     isUserScrolledUp.value = !nearBottom;
     showJumpToLatest.value = !nearBottom;
@@ -1018,7 +1034,7 @@
 
   /* */
   .inputContainer {
-    padding: 0px 12px 12px;
+    padding: 0px 12px;
   }
 
   .inputContainer {
@@ -1187,7 +1203,7 @@
   }
 
   .relay-icon-working {
-    animation: relay-flip 2.4s ease-in-out infinite;
+    animation: relay-flip 2.2s ease-in-out infinite;
   }
 
   .relay-icon-squeezing {
@@ -1211,10 +1227,10 @@
 
   @keyframes relay-flip {
     0%   { transform: rotate(0deg); }
-    27%  { transform: rotate(235deg); animation-timing-function: ease-out; }
-    37%  { transform: rotate(160deg); animation-timing-function: ease-in; }
-    44%  { transform: rotate(190deg); animation-timing-function: ease-in; }
-    50%  { transform: rotate(180deg); animation-timing-function: ease-in; }
+    30%  { transform: rotate(235deg); animation-timing-function: ease-out; }
+    40%  { transform: rotate(160deg); animation-timing-function: ease-in; }
+    47%  { transform: rotate(190deg); animation-timing-function: ease-in; }
+    53%  { transform: rotate(180deg); animation-timing-function: ease-in; }
     100% { transform: rotate(180deg); }
   }
 </style>

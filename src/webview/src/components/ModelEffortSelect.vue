@@ -1,5 +1,5 @@
 <template>
-  <DropdownTrigger align="right" :close-on-click-outside="true">
+  <DropdownTrigger align="left" :close-on-click-outside="true">
     <template #trigger="{ isOpen }">
       <div class="model-effort-dropdown" :class="{ 'is-open': isOpen }">
         <div class="dropdown-content">
@@ -196,9 +196,14 @@ function handleEffortSelect(item: DropdownItemData, close: () => void) {
   transition: opacity 0.15s ease;
 }
 
-.model-effort-dropdown:hover,
-.model-effort-dropdown.is-open {
-  background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+.model-effort-dropdown:hover .model-label,
+.model-effort-dropdown.is-open .model-label {
+  opacity: 1;
+}
+
+.model-effort-dropdown:hover .effort-label,
+.model-effort-dropdown.is-open .effort-label {
+  opacity: 0.55;
 }
 
 </style>

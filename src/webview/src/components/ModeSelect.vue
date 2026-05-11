@@ -3,19 +3,19 @@
     align="left"
     :close-on-click-outside="true"
   >
-    <template #trigger>
-      <div :class="['mode-dropdown', `mode-dropdown--${permissionMode}`]">
+    <template #trigger="{ isOpen }">
+      <div :class="['mode-dropdown', `mode-dropdown--${permissionMode}`, { 'is-open': isOpen }]">
         <div class="dropdown-content">
           <div :class="['codicon', selectedModeIcon, 'dropdown-icon', 'text-[14px]!']" />
           <div class="dropdown-text">
             <span class="dropdown-label">{{ selectedModeLabel }}</span>
           </div>
         </div>
-        <div class="codicon codicon-chevron-up chevron-icon text-[12px]!" />
       </div>
     </template>
 
     <template #content="{ close }">
+      <DropdownSectionHeader text="Mode" />
       <DropdownItem
         :item="{
           id: 'default',
@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
-import { DropdownTrigger, DropdownItem, type DropdownItemData } from './Dropdown'
+import { DropdownTrigger, DropdownItem, DropdownSectionHeader, type DropdownItemData } from './Dropdown'
 
 interface Props {
   permissionMode?: PermissionMode
@@ -117,29 +117,30 @@ function handleModeSelect(item: DropdownItemData, close: () => void) {
   line-height: 24px;
   min-width: 0;
   max-width: 100%;
-  padding: 2px 4px 2px 6px;
+  padding: 2px 0px;
   border-radius: 24px;
   flex-shrink: 0;
   cursor: pointer;
   border: none;
-  background: color-mix(in srgb, var(--vscode-foreground) 15%, transparent);
+  background: transparent;
   transition: background-color 0.2s ease;
-  opacity: .8;
+  opacity: .9;
 }
 
 .mode-dropdown--default {
-  background: color-mix(in srgb, var(--vscode-foreground) 15%, transparent);
+  color: var(--vscode-foreground);
 }
 
 .mode-dropdown--acceptEdits {
-  background: color-mix(in srgb, #a855f7 35%, transparent);
+  color: #a855f7;
 }
 
 .mode-dropdown--plan {
-  background: color-mix(in srgb, #3b82f6 35%, transparent);
+  color: #3b82f6;
 }
 
-.mode-dropdown:hover {
+.mode-dropdown:hover,
+.mode-dropdown.is-open {
   opacity: 1;
 }
 

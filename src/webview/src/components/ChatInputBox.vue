@@ -1,76 +1,97 @@
 <template>
-  <div
-    class="full-input-box"
-    :style="{ position: 'relative', '--mode-border-color': modeBorderColor }"
-  >
-    <div v-if="attachments && attachments.length > 0" class="attachments-list">
-      <Tooltip 
-          v-for="attachment in attachments"
-          :key="attachment.id"
-          :content="attachment.fileName"
-          side="bottom"
-      >
-        <div class="attachment-item">
-          <!-- Image: fills tile as thumbnail -->
-          <img
-            v-if="attachment.mediaType?.startsWith('image/')"
-            :src="`data:${attachment.mediaType};base64,${attachment.data}`"
-            :alt="attachment.fileName"
-            class="attachment-thumbnail"
-          />
-          <!-- Non-image: icon + name stacked -->
-          <template v-else>
-            <div class="attachment-file-icon">
-              <FileIcon :file-name="attachment.fileName" :size="20" />
-            </div>
-            <span class="attachment-name">{{ attachment.fileName }}</span>
-          </template>
-          <!-- Remove X (top-right corner, appears on hover) -->
-          <button
-            class="remove-button-thumbnail"
-            @click.stop="handleRemoveAttachment(attachment.id)"
-            :aria-label="`Remove ${attachment.fileName}`"
-          >
-            <span class="codicon codicon-close" />
-          </button>
-        </div>
-      </Tooltip>
-    </div>
-
+  <div class="chat-input-wrapper">
     <div
-      ref="textareaRef"
-      contenteditable="true"
-      class="aislash-editor-input custom-scroll-container"
-      :data-placeholder="placeholder"
-      style="min-height: 24px; max-height: 240px; resize: none; overflow-y: hidden; word-wrap: break-word; white-space: pre-wrap; width: 100%; height: 26px;"
-      @input="handleInput"
-      @keydown="handleKeydown"
-      @paste="handlePaste"
-      @dragover="handleDragOver"
-      @drop="handleDrop"
-    />
+      class="full-input-box"
+      :style="{ position: 'relative', '--mode-border-color': modeBorderColor }"
+    >
+      <div v-if="attachments && attachments.length > 0" class="attachments-list">
+        <Tooltip 
+            v-for="attachment in attachments"
+            :key="attachment.id"
+            :content="attachment.fileName"
+            side="bottom"
+        >
+          <div class="attachment-item">
+            <!-- Image: fills tile as thumbnail -->
+            <img
+              v-if="attachment.mediaType?.startsWith('image/')"
+              :src="`data:${attachment.mediaType};base64,${attachment.data}`"
+              :alt="attachment.fileName"
+              class="attachment-thumbnail"
+            />
+            <!-- Non-image: icon + name stacked -->
+            <template v-else>
+              <div class="attachment-file-icon">
+                <FileIcon :file-name="attachment.fileName" :size="20" />
+              </div>
+              <span class="attachment-name">{{ attachment.fileName }}</span>
+            </template>
+            <!-- Remove X (top-right corner, appears on hover) -->
+            <button
+              class="remove-button-thumbnail"
+              @click.stop="handleRemoveAttachment(attachment.id)"
+              :aria-label="`Remove ${attachment.fileName}`"
+            >
+              <span class="codicon codicon-close" />
+            </button>
+          </div>
+        </Tooltip>
+      </div>
 
-    <!-- ButtonArea  + TokenIndicator -->
-    <ButtonArea
-      :disabled="isSubmitDisabled"
-      :loading="isLoading"
-      :selected-model="selectedModel"
-      :selected-agent="selectedAgent"
-      :conversation-working="conversationWorking"
-      :has-input-content="!!content.trim()"
-      :show-progress="showProgress"
-      :progress-percentage="progressPercentage"
-      :context-tooltip="contextTooltip"
-      :effort-level="effortLevel"
-      :permission-mode="permissionMode"
-      @submit="handleSubmit"
-      @stop="handleStop"
-      @add-attachment="handleAddFiles"
-      @mention="handleMention"
-      @mode-select="(mode) => emit('modeSelect', mode)"
-      @model-select="(modelId) => emit('modelSelect', modelId)"
-      @effort-select="(level) => emit('effortSelect', level)"
-    />
+      <div class="input-row">
+        <div
+          ref="textareaRef"
+          contenteditable="true"
+          class="aislash-editor-input custom-scroll-container"
+          :data-placeholder="placeholder"
+          style="min-height: 20px; max-height: 240px; resize: none; overflow-y: hidden; word-wrap: break-word; white-space: pre-wrap;"
+          @input="handleInput"
+          @keydown="handleKeydown"
+          @paste="handlePaste"
+          @dragover="handleDragOver"
+          @drop="handleDrop"
+        />
+
+        <!-- Attach + Send buttons -->
+        <ButtonArea
+          :disabled="isSubmitDisabled"
+          :loading="isLoading"
+          :conversation-working="conversationWorking"
+          :has-input-content="!!content.trim()"
+          @submit="handleSubmit"
+          @stop="handleStop"
+          @add-attachment="handleAddFiles"
+        />
+      </div>
+
+    </div><!-- /.full-input-box -->
+
+    <!-- Controls row: mode/model/context below the border -->
+    <div class="controls-row">
+      <div class="controls-left">
+        <ModeSelect
+          :permission-mode="permissionMode"
+          @mode-select="(mode) => emit('modeSelect', mode)"
+        />
+      </div>
+      <div class="controls-right">
+        <Tooltip v-if="selectedAgent" :content="`Agent: ${selectedAgent}`">
+          <span class="agent-chip">{{ selectedAgent }}</span>
+        </Tooltip>
+        <ModelEffortSelect
+          :selected-model="selectedModel"
+          :effort-level="effortLevel"
+          @model-select="(modelId) => emit('modelSelect', modelId)"
+          @effort-select="(level) => emit('effortSelect', level)"
+        />
+        <TokenIndicator
+          v-if="showProgress"
+          :percentage="progressPercentage"
+          :context-tooltip="contextTooltip"
+          :size="19"
+        />
+      </div>
+    </div>
 
     <!-- Slash Command Dropdown -->
     <Teleport to="body">
@@ -158,6 +179,9 @@ import { ref, computed, nextTick, inject, onMounted, onUnmounted } from 'vue'
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import FileIcon from './FileIcon.vue'
 import ButtonArea from './ButtonArea.vue'
+import ModeSelect from './ModeSelect.vue'
+import ModelEffortSelect from './ModelEffortSelect.vue'
+import TokenIndicator from './TokenIndicator.vue'
 import type { AttachmentItem } from '../types/attachment'
 import { Dropdown, DropdownItem } from './Dropdown'
 import { RuntimeKey } from '../composables/runtimeContext'
@@ -1029,8 +1053,60 @@ defineExpose({
 </script>
 
 <style scoped>
+.chat-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px;
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 2px;
+}
+
+.agent-chip {
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  margin-right: 4px;
+  margin-bottom: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vscode-foreground) 25%, transparent);
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.input-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
 /* - caret */
 .aislash-editor-input {
+  flex: 1;
+  min-width: 0;
   line-height: 18px;
 }
 
