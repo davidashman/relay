@@ -36,9 +36,9 @@
           ],
           "default": "default",
           "enumItemLabels": [
-            "Ask",
-            "Agent",
-            "Plan"
+            "Ask Permissions",
+            "Accept Edits",
+            "Plan Mode"
           ],
           "enumDescriptions": [
             "Prompt for permission on first use of each operation",

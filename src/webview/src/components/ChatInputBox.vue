@@ -42,7 +42,7 @@
       contenteditable="true"
       class="aislash-editor-input custom-scroll-container"
       :data-placeholder="placeholder"
-      style="min-height: 34px; max-height: 240px; resize: none; overflow-y: hidden; word-wrap: break-word; white-space: pre-wrap; width: 100%; height: 34px;"
+      style="min-height: 24px; max-height: 240px; resize: none; overflow-y: hidden; word-wrap: break-word; white-space: pre-wrap; width: 100%; height: 26px;"
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste"
@@ -199,18 +199,7 @@ const props = withDefaults(defineProps<Props>(), {
   showProgress: true,
   progressPercentage: 48.7,
   contextTooltip: '',
-  // Enter: send (interleaves mid-turn). Cmd/Ctrl+Enter: interrupt then send.
-  // IIFE-wrapped so defineProps defaults don't reference a setup-local binding.
-  placeholder: (() => {
-    const isMac = typeof navigator !== 'undefined'
-      && /Mac|iPhone|iPad|iPod/i.test(
-        (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
-          || navigator.platform
-          || navigator.userAgent
-      )
-    const modifierKey = isMac ? 'Cmd' : 'Ctrl'
-    return `Plan, @ for context, / for commands`
-  })(),
+  placeholder: 'Describe a task, @ for context, / for commands',
   readonly: false,
   showSearch: false,
   conversationWorking: false,
@@ -1054,21 +1043,21 @@ defineExpose({
 /* */
 .full-input-box:focus-within {
   border-color: var(--mode-border-color) !important;
-  background: color-mix(in srgb, var(--vscode-input-background) 50%, transparent);
+  background: color-mix(in srgb, var(--vscode-input-background) 40%, transparent);
   outline: none !important;
 }
 
 /* Placeholder */
 .aislash-editor-input:empty::before {
   content: attr(data-placeholder);
-  color: var(--vscode-input-placeholderForeground);
+  color: color-mix(in srgb, var(--vscode-input-placeholderForeground) 60%, transparent);
   pointer-events: none;
   position: absolute;
 }
 
 .aislash-editor-input:focus:empty::before {
   content: attr(data-placeholder);
-  color: var(--vscode-input-placeholderForeground);
+  color: color-mix(in srgb, var(--vscode-input-placeholderForeground) 60%, transparent);
   pointer-events: none;
 }
 

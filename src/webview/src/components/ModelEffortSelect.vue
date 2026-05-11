@@ -198,7 +198,7 @@ function handleEffortSelect(item: DropdownItemData, close: () => void) {
 
 .model-effort-dropdown:hover,
 .model-effort-dropdown.is-open {
-  background: color-mix(in srgb, var(--vscode-foreground) 15%, transparent);
+  background: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
 }
 
 </style>

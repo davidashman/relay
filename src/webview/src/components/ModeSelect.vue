@@ -19,7 +19,7 @@
       <DropdownItem
         :item="{
           id: 'default',
-          label: 'Ask',
+          label: 'Ask Permissions',
           icon: 'codicon-question text-[14px]!',
           checked: permissionMode === 'default',
           type: 'default-mode'
@@ -31,7 +31,7 @@
       <DropdownItem
         :item="{
           id: 'acceptEdits',
-          label: 'Agent',
+          label: 'Accept Edits',
           icon: 'codicon-infinity text-[14px]!',
           checked: permissionMode === 'acceptEdits',
           type: 'agent-mode'
@@ -43,7 +43,7 @@
       <DropdownItem
         :item="{
           id: 'plan',
-          label: 'Plan',
+          label: 'Plan Mode',
           icon: 'codicon-todos text-[14px]!',
           checked: permissionMode === 'plan',
           type: 'plan-mode'
@@ -78,13 +78,11 @@ const emit = defineEmits<Emits>()
 const selectedModeLabel = computed(() => {
   switch (props.permissionMode) {
     case 'acceptEdits':
-      return 'Agent'
+      return 'Accept Edits'
     case 'plan':
-      return 'Plan'
-    case 'default':
-      return 'Ask'
+      return 'Plan Mode'
     default:
-      return 'Ask'
+      return 'Ask Permissions'
   }
 })
 
