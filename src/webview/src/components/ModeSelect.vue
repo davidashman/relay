@@ -1,6 +1,7 @@
 <template>
   <DropdownTrigger
     align="left"
+    :width="150"
     :close-on-click-outside="true"
   >
     <template #trigger="{ isOpen }">

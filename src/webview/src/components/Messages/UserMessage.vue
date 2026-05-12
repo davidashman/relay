@@ -217,6 +217,8 @@ function handleReplay() {
   gap: 4px;
   padding: 6px 8px;
   box-sizing: border-box;
+  max-height: calc(var(--thread-height, 300px) / 3);
+  overflow-y: auto;
 }
 
 /* Attachments — matches input box style */
@@ -317,10 +319,6 @@ function handleReplay() {
   user-select: text;
   white-space: pre-wrap;
   flex: 1;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 8;
-  -webkit-box-orient: vertical;
 }
 
 /* restore checkpoint */

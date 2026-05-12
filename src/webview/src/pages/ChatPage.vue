@@ -5,6 +5,7 @@
         <div
           ref="containerEl"
           :class="['messagesContainer', 'custom-scroll-container']"
+          :style="containerHeight > 0 ? { '--thread-height': containerHeight + 'px' } : {}"
         >
           <div class="messages-inner">
           <template v-if="sessionLoading || isSessionLoading || messages.length === 0">

@@ -1,5 +1,5 @@
 <template>
-  <DropdownTrigger align="left" :close-on-click-outside="true">
+  <DropdownTrigger align="right" :width="145" :close-on-click-outside="true">
     <template #trigger="{ isOpen }">
       <div class="model-effort-dropdown" :class="{ 'is-open': isOpen }">
         <div class="dropdown-content">

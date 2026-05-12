@@ -140,6 +140,7 @@ const dropdownStyle = computed(() => {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   const triggerRect = triggerRef.value.getBoundingClientRect()
+  console.log('Trigger rect: ', JSON.stringify(triggerRect), JSON.stringify(triggerRef.value))
 
   // dropdown
   const searchHeight = props.showSearch ? 32 : 0
@@ -190,6 +191,7 @@ const dropdownStyle = computed(() => {
     leftPosition = padding
   }
 
+  console.log(leftPosition, dropdownWidth, viewportWidth, padding)
   if (leftPosition + dropdownWidth > viewportWidth - padding) {
     leftPosition = viewportWidth - dropdownWidth - padding
   }
