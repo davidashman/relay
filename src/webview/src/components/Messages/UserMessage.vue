@@ -191,9 +191,9 @@ function handleReplay() {
   align-items: flex-start;
   gap: 8px;
   width: 100%;
-  background-color: color-mix(in srgb, var(--vscode-input-background) 30%, transparent);
+  background-color: color-mix(in srgb, var(--vscode-input-background) 50%, transparent);
   outline: none;
-  border: 1px solid var(--vscode-editorWidget-border);
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 30%, transparent);
   border-radius: 6px;
   position: relative;
   transition: all 0.2s ease;
