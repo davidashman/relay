@@ -23,9 +23,15 @@
       "properties": {
         "relay.defaultMode": {
           "type": "string",
-          "enum": ["panel", "terminal"],
+          "enum": [
+            "panel",
+            "terminal"
+          ],
           "default": "terminal",
-          "enumItemLabels": ["Chat Panel", "Terminal"],
+          "enumItemLabels": [
+            "Chat Panel",
+            "Terminal"
+          ],
           "description": "How new sessions are opened: in a Relay chat panel or a VSCode terminal running Claude Code.",
           "order": 0
         },
@@ -76,12 +82,6 @@
           "default": false,
           "description": "Show Claude's internal thinking blocks in the chat. When disabled, thinking is hidden and only the final response is shown.",
           "order": 8
-        },
-        "relay.autoInterruptOnRoaming": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically interrupt Claude if it makes more than 15 tool calls in a single turn. When disabled, a warning banner is shown instead so you can interrupt manually.",
-          "order": 10
         },
         "relay.autoCompaction": {
           "type": "boolean",
@@ -267,12 +267,15 @@
     "@modelcontextprotocol/sdk": "^1.25.1",
     "@vscode/codicons": "^0.0.44",
     "@vueuse/core": "^14.1.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "alien-signals": "^3.1.2",
     "fuse.js": "^7.1.0",
     "lexical": "^0.39.0",
     "lexical-vue": "^0.14.1",
     "marked": "^17.0.1",
     "motion-v": "^1.7.4",
+    "node-pty": "^1.1.0",
     "path-browserify-esm": "^1.0.6",
     "pinia": "^3.0.4",
     "reka-ui": "^2.9.7",

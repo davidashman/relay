@@ -99,7 +99,6 @@ export async function handleInit(
     const defaultPermissionMode = vscodeConfig.get<string>('defaultPermissionMode') ?? 'default';
     const expandToolOutput = vscodeConfig.get<boolean>('expandToolOutput') ?? true;
     const showThinking = vscodeConfig.get<boolean>('showThinking') ?? false;
-    const autoInterruptOnRoaming = vscodeConfig.get<boolean>('autoInterruptOnRoaming') ?? false;
     const autoCompaction = vscodeConfig.get<boolean>('autoCompaction') ?? false;
     const autoCompactionTurns = vscodeConfig.get<number>('autoCompactionTurns') ?? 15;
 
@@ -118,7 +117,6 @@ export async function handleInit(
             permissionMode,
             expandToolOutput,
             showThinking,
-            autoInterruptOnRoaming,
             autoCompaction,
             autoCompactionTurns
         }

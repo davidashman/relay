@@ -67,7 +67,7 @@
     </div><!-- /.full-input-box -->
 
     <!-- Controls row: mode/model/context below the border -->
-    <div class="controls-row">
+    <div v-if="!hideControls" class="controls-row">
       <div class="controls-left">
         <ModeSelect
           :permission-mode="permissionMode"
@@ -92,6 +92,7 @@
         />
       </div>
     </div>
+    <div v-else style="height: 12px"></div>
 
     <!-- Slash Command Dropdown -->
     <Teleport to="body">
@@ -204,6 +205,7 @@ interface Props {
   attachments?: AttachmentItem[]
   effortLevel?: string
   permissionMode?: PermissionMode
+  hideControls?: boolean
 }
 
 interface Emits {
@@ -229,7 +231,8 @@ const props = withDefaults(defineProps<Props>(), {
   conversationWorking: false,
   attachments: () => [],
   effortLevel: undefined,
-  permissionMode: 'default'
+  permissionMode: 'default',
+  hideControls: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -250,6 +253,7 @@ const isSubmitDisabled = computed(() => {
 })
 
 const modeBorderColor = computed(() => {
+  if (props.hideControls) return 'color-mix(in srgb, var(--vscode-foreground) 25%, transparent)'
   switch (props.permissionMode) {
     case 'acceptEdits':
       return 'color-mix(in srgb, #a855f7 45%, transparent)'

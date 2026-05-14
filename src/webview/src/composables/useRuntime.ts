@@ -301,6 +301,16 @@ export function useRuntime(): RuntimeInstance {
         if (activeSession) void activeSession.send('/compact', [], false);
       });
 
+      let sessionsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+      connection.sessionsChangedEvents.add(() => {
+        if (disposed) return;
+        if (sessionsRefreshTimer) clearTimeout(sessionsRefreshTimer);
+        sessionsRefreshTimer = setTimeout(() => {
+          sessionsRefreshTimer = null;
+          if (!disposed) void sessionStore.listSessions();
+        }, 300);
+      });
+
       try {
         const selection = await connection.getCurrentSelection();
         if (!disposed) appContext.currentSelection(selection?.selection ?? undefined);

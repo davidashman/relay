@@ -2,7 +2,14 @@
   <div class="chat-page">
     <div class="main">
       <!-- <div class="chatContainer"> -->
+        <TerminalView
+          v-if="isTerminalMode && activeSessionRaw && session?.connection.value"
+          :session="activeSessionRaw"
+          :connection="session!.connection.value!"
+          class="terminalContainer"
+        />
         <div
+          v-else
           ref="containerEl"
           :class="['messagesContainer', 'custom-scroll-container']"
           :style="containerHeight > 0 ? { '--thread-height': containerHeight + 'px' } : {}"
@@ -103,25 +110,18 @@
             @remove="handleQueueRemove"
             @send-now="handleQueueSendNow"
           />
-          <Transition name="roaming-warning">
-            <div v-if="roamingWarning" class="roaming-warning">
-              <span class="codicon codicon-warning roaming-warning-icon"></span>
-              <span class="roaming-warning-text">{{ currentTurnToolCallCount }} tool calls this turn — Claude may be stuck in a loop.</span>
-              <button class="roaming-btn roaming-btn-interrupt" @click="handleStop">Interrupt</button>
-              <button class="roaming-btn roaming-btn-dismiss" @click="handleDismissRoaming">Dismiss</button>
-            </div>
-          </Transition>
           <ChatInputBox
             ref="chatInputRef"
             :show-progress="true"
             :progress-percentage="progressPercentage"
             :context-tooltip="contextTooltip"
-:conversation-working="isBusy"
+            :conversation-working="isBusy"
             :attachments="attachments"
             :effort-level="session?.effortLevel.value"
             :permission-mode="session?.permissionMode.value"
             :selected-model="session?.modelSelection.value"
             :selected-agent="session?.agentSelection.value"
+            :hide-controls="isTerminalMode"
             @submit="handleSubmit"
             @stop="handleStop"
             @add-attachment="handleAddAttachment"
@@ -150,6 +150,7 @@
   import PermissionRequestModal from '../components/PermissionRequestModal.vue';
   import AskUserQuestionModal from '../components/AskUserQuestionModal.vue';
   import RelayIcon from '@/components/RelayIcon.vue';
+  import TerminalView from '../components/TerminalView.vue';
   import MessageRenderer from '../components/Messages/MessageRenderer.vue';
   import StreamingMessage from '../components/Messages/StreamingMessage.vue';
   import UserMessage from '../components/Messages/UserMessage.vue';
@@ -160,6 +161,8 @@
   import { useSignal } from '@gn8/alien-signals-vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
   import { prepareSendAnimation, captureQueueItemSnapshot, type SendSnapshot } from '../composables/useSendAnimation';
+
+  const isTerminalMode = (window as any).RELAY_BOOTSTRAP?.terminalMode === true;
 
   const runtime = inject(RuntimeKey);
   if (!runtime) throw new Error('[ChatPage] runtime not provided');
@@ -342,8 +345,6 @@
     if (panelEverConnected.value) keepAnimating.value = false;
   }
   const sessionError = computed(() => session.value?.error.value ?? null);
-  const roamingWarning = computed(() => session.value?.roamingWarning.value ?? false);
-  const currentTurnToolCallCount = computed(() => session.value?.currentTurnToolCallCount.value ?? 0);
   const isCompacting = computed(() => session.value?.compactingMode.value ?? false);
   const currentThinking = computed(() => session.value?.currentThinking.value);
   const streamingText = computed(() => session.value?.streamingText.value);
@@ -634,6 +635,12 @@
       return;
     }
 
+    // In terminal mode, forward input directly to the PTY
+    if (isTerminalMode) {
+      if (trimmed) activeSessionRaw.value?.sendPtyInput(trimmed + '\r');
+      return;
+    }
+
     const s = session.value;
     if (!s || (!trimmed && attachments.value.length === 0)) return;
 
@@ -722,6 +729,23 @@
 
 
   async function handleModeSelect(mode: PermissionMode) {
+    if (isTerminalMode) {
+      const rawSession = activeSessionRaw.value;
+      if (rawSession) {
+        const order: PermissionMode[] = ['default', 'acceptEdits', 'plan'];
+        const cur = rawSession.permissionMode() ?? 'default';
+        const curIdx = Math.max(0, order.indexOf(cur));
+        const targetIdx = order.indexOf(mode);
+        if (targetIdx >= 0) {
+          const steps = (targetIdx - curIdx + order.length) % order.length;
+          for (let i = 0; i < steps; i++) {
+            rawSession.sendPtyInput('\x1b[Z');
+          }
+          rawSession.permissionMode(mode);
+        }
+      }
+      return;
+    }
     const s = session.value;
     if (!s) return;
 
@@ -753,15 +777,29 @@
     }
   );
 
-  // shift+tab → permissionMode.toggle
+  // shift+tab → permissionMode.toggle (or forward to PTY in terminal mode)
   useKeybinding({
     keys: 'shift+tab',
-    handler: togglePermissionMode,
+    handler: () => {
+      if (isTerminalMode) {
+        activeSessionRaw.value?.sendPtyInput('\x1b[Z');
+      } else {
+        togglePermissionMode();
+      }
+    },
     allowInEditable: true,
     priority: 100,
   });
 
   async function handleModelSelect(modelId: string) {
+    if (isTerminalMode) {
+      const rawSession = activeSessionRaw.value;
+      if (rawSession) {
+        rawSession.sendPtyInput(`/model ${modelId}\r`);
+        rawSession.modelSelection(modelId);
+      }
+      return;
+    }
     const s = session.value;
     if (!s) return;
 
@@ -770,6 +808,14 @@
   }
 
   async function handleEffortSelect(level: string | undefined) {
+    if (isTerminalMode) {
+      const rawSession = activeSessionRaw.value;
+      if (rawSession) {
+        if (level) rawSession.sendPtyInput(`/effort ${level}\r`);
+        rawSession.effortLevel(level);
+      }
+      return;
+    }
     const s = session.value;
     if (!s) return;
 
@@ -787,10 +833,6 @@
 
   function handleTurnInterrupt() {
     void session.value?.interrupt();
-  }
-
-  function handleDismissRoaming() {
-    session.value?.dismissRoamingWarning();
   }
 
   // Esc-Esc interrupts the current turn, matching the stop button. Any Esc
@@ -883,6 +925,14 @@
     display: flex;
     flex-direction: column;
   }
+  .terminalContainer {
+    flex: 1;
+    min-height: 0;
+    max-width: 1380px;
+    width: 100%;
+    align-self: center;
+  }
+
   .messagesContainer {
     flex: 1;
     overflow-y: auto;
@@ -967,70 +1017,6 @@
     font-size: var(--app-monospace-font-size, 12px);
     line-height: 1.5;
     color: var(--vscode-editor-foreground);
-  }
-
-  /* */
-
-  .roaming-warning {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    margin-bottom: 6px;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--vscode-editorWarning-foreground) 12%, var(--vscode-editor-background));
-    border: 1px solid color-mix(in srgb, var(--vscode-editorWarning-foreground) 40%, transparent);
-    font-size: 12px;
-    color: var(--vscode-editor-foreground);
-  }
-
-  .roaming-warning-icon {
-    color: var(--vscode-editorWarning-foreground);
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .roaming-warning-text {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .roaming-btn {
-    flex-shrink: 0;
-    padding: 3px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    border: 1px solid var(--vscode-button-border, transparent);
-  }
-
-  .roaming-btn-interrupt {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-  }
-
-  .roaming-btn-interrupt:hover {
-    background: var(--vscode-button-hoverBackground);
-  }
-
-  .roaming-btn-dismiss {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-  }
-
-  .roaming-btn-dismiss:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
-  }
-
-  .roaming-warning-enter-active,
-  .roaming-warning-leave-active {
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-
-  .roaming-warning-enter-from,
-  .roaming-warning-leave-to {
-    opacity: 0;
-    transform: translateY(4px);
   }
 
   /* */

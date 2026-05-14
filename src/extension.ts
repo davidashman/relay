@@ -175,7 +175,7 @@ export function activate(context: vscode.ExtensionContext) {
 					const sessionId: string | null = req.sessionId || null;
 					const title: string = req.title || (sessionId ? 'Chat' : 'New Chat');
 					if (isTerminalMode() && sessionId) {
-						terminalService.openClaudeSession({ sessionId, sessionTitle: title, cwd: getSessionCwd() });
+						webViewService.openChatPanel(sessionId, title, undefined, { terminalMode: true });
 					} else {
 						webViewService.openChatPanel(sessionId, title);
 					}
@@ -277,13 +277,12 @@ export function activate(context: vscode.ExtensionContext) {
 			    e.affectsConfiguration('relay.defaultThinkingLevel') ||
 			    e.affectsConfiguration('relay.expandToolOutput') ||
 			    e.affectsConfiguration('relay.showThinking') ||
-			    			    e.affectsConfiguration('relay.autoInterruptOnRoaming')) {
+			    			    e.affectsConfiguration('relay.showThinking')) {
 				const config = vscode.workspace.getConfiguration('relay');
 				const permissionMode = config.get<string>('defaultPermissionMode') ?? 'default';
 				const thinkingLevel = config.get<string>('defaultThinkingLevel') ?? 'on';
 				const expandToolOutput = config.get<boolean>('expandToolOutput') ?? true;
 				const showThinking = config.get<boolean>('showThinking') ?? false;
-				const autoInterruptOnRoaming = config.get<boolean>('autoInterruptOnRoaming') ?? false;
 
 				// Send update_state message to webview
 				webViewService.postMessage({
@@ -295,13 +294,12 @@ export function activate(context: vscode.ExtensionContext) {
 							permissionMode,
 							thinkingLevel,
 							expandToolOutput,
-							showThinking,
-							autoInterruptOnRoaming
+							showThinking
 						}
 					}
 				});
 
-				logService.info(`VSCode configuration updated: permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}, autoInterruptOnRoaming=${autoInterruptOnRoaming}`);
+				logService.info(`VSCode configuration updated: permissionMode=${permissionMode}, thinkingLevel=${thinkingLevel}, expandToolOutput=${expandToolOutput}, showThinking=${showThinking}`);
 			}
 		});
 
@@ -349,7 +347,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const agentName = selected.label === 'Default (no agent)' ? undefined : selected.label;
 			if (isTerminalMode()) {
-				terminalService.openClaudeSession({ agent: agentName, cwd: getSessionCwd() });
+				webViewService.openChatPanel(null, 'New Chat', agentName, { terminalMode: true });
 			} else {
 				webViewService.openChatPanel(null, 'New Chat', agentName);
 			}
@@ -371,7 +369,7 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('relay.newSessionDefault', async () => {
 				const defaultAgentName = vscode.workspace.getConfiguration('relay').get<string>('defaultAgent', '');
 				if (isTerminalMode()) {
-					terminalService.openClaudeSession({ agent: defaultAgentName || undefined, cwd: getSessionCwd() });
+					webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined, { terminalMode: true });
 				} else {
 					webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined);
 				}

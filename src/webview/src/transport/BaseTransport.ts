@@ -56,6 +56,12 @@ export abstract class BaseTransport {
   readonly compactSessionEvents = new EventEmitter<void>();
   readonly panelFocusedEvents = new EventEmitter<void>();
 
+  // PTY terminal events (extension → webview)
+  readonly ptyDataEvents = new EventEmitter<{ channelId: string; data: string }>();
+  readonly ptyExitEvents = new EventEmitter<{ channelId: string; exitCode: number }>();
+  readonly ptySessionIdEvents = new EventEmitter<{ channelId: string; sessionId: string; summary: string }>();
+  readonly sessionsChangedEvents = new EventEmitter<void>();
+
   protected readonly fromHost = new AsyncQueue<ExtensionToWebViewMessage>();
   protected readonly streams = new Map<string, AsyncQueue<any>>();
   protected readonly outstandingRequests = new Map<string, RequestHandler>();
@@ -341,6 +347,27 @@ export abstract class BaseTransport {
     this.send({ type: "cancel_request", targetRequestId: requestId });
   }
 
+  launchPty(channelId: string, opts: {
+    resume?: string | null;
+    agent?: string | null;
+    permissionMode?: string;
+    model?: string | null;
+    effortLevel?: string | null;
+    cwd?: string;
+    cols: number;
+    rows: number;
+  }): void {
+    this.send({ type: "launch_pty", channelId, ...opts });
+  }
+
+  sendPtyInput(channelId: string, data: string): void {
+    this.send({ type: "pty_input", channelId, data });
+  }
+
+  sendPtyResize(channelId: string, cols: number, rows: number): void {
+    this.send({ type: "pty_resize", channelId, cols, rows });
+  }
+
   private async readMessages(): Promise<void> {
     try {
       for await (const message of this.fromHost) {
@@ -400,6 +427,18 @@ export abstract class BaseTransport {
             this.outstandingRequests.delete(message.requestId);
             break;
           }
+          case "pty_data":
+            this.ptyDataEvents.emit({ channelId: message.channelId, data: message.data });
+            break;
+          case "pty_exit":
+            this.ptyExitEvents.emit({ channelId: message.channelId, exitCode: message.exitCode });
+            break;
+          case "pty_session_id":
+            this.ptySessionIdEvents.emit({ channelId: message.channelId, sessionId: message.sessionId, summary: message.summary });
+            break;
+          case "sessions_changed":
+            this.sessionsChangedEvents.emit();
+            break;
           default:
             console.warn(
               `[BaseTransport] Unknown message type ${(message as any).type}`

@@ -13,6 +13,10 @@
  * -
  */
 
+import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { createDecorator } from '../../di/instantiation';
 import { ILogService } from '../logService';
 import { IConfigurationService } from '../configurationService';
@@ -23,6 +27,7 @@ import { ITerminalService } from '../terminalService';
 import { ITabsAndEditorsService } from '../tabsAndEditorsService';
 import { IClaudeSdkService, type SdkQueryParams } from './ClaudeSdkService';
 import { IClaudeSessionService } from './ClaudeSessionService';
+import { IClaudeTerminalService } from './ClaudeTerminalService';
 import { AsyncStream, ITransport } from './transport';
 import { HandlerContext } from './handlers/types';
 import { IWebViewService } from '../webViewService';
@@ -196,6 +201,13 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
     private fromClientStream = new AsyncStream<WebViewToExtensionMessage>();
 
+    // PTY channel → webviewId + cwd, for directing session-id updates
+    private readonly _ptyMeta = new Map<string, { webviewId: string; cwd: string }>();
+    // cwd → active FSWatcher (one per unique cwd)
+    private readonly _cwdWatchers = new Map<string, fs.FSWatcher>();
+    // cwd → reference count (number of active PTY channels for that cwd)
+    private readonly _cwdRefCounts = new Map<string, number>();
+
     private outstandingRequests = new Map<string, RequestHandler>();
 
     private abortControllers = new Map<string, AbortController>();
@@ -219,6 +231,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         @ITabsAndEditorsService private readonly tabsAndEditorsService: ITabsAndEditorsService,
         @IClaudeSdkService private readonly sdkService: IClaudeSdkService,
         @IClaudeSessionService private readonly sessionService: IClaudeSessionService,
+        @IClaudeTerminalService private readonly claudeTerminalService: IClaudeTerminalService,
         @IWebViewService private readonly webViewService: IWebViewService
     ) {
         //  Handler
@@ -235,6 +248,15 @@ export class ClaudeAgentService implements IClaudeAgentService {
             agentService: this,  //
             webViewService: this.webViewService,
         };
+
+        // Wire PTY I/O callbacks
+        this.claudeTerminalService.onData((channelId, data) => {
+            this.transport?.send({ type: 'pty_data', channelId, data });
+        });
+        this.claudeTerminalService.onExit((channelId, exitCode) => {
+            this.transport?.send({ type: 'pty_exit', channelId, exitCode });
+            this._stopProjectDirWatch(channelId);
+        });
     }
 
     /**
@@ -309,6 +331,35 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
                     case "response":
                         this.handleResponse(message);
+                        break;
+
+                    case "launch_pty": {
+                        const ptyCwd = message.cwd || this.getCwd();
+                        void this.claudeTerminalService.spawn({
+                            channelId: message.channelId,
+                            resume: message.resume,
+                            agent: message.agent,
+                            permissionMode: message.permissionMode,
+                            model: message.model,
+                            effortLevel: message.effortLevel,
+                            cwd: ptyCwd,
+                            cols: message.cols,
+                            rows: message.rows,
+                        }).catch(err => {
+                            this.logService.error(`[ClaudeAgentService] launch_pty error: ${err}`);
+                        });
+                        if (message.webviewId && ptyCwd) {
+                            void this._startProjectDirWatch(message.channelId, message.webviewId, ptyCwd);
+                        }
+                        break;
+                    }
+
+                    case "pty_input":
+                        this.claudeTerminalService.write(message.channelId, message.data);
+                        break;
+
+                    case "pty_resize":
+                        this.claudeTerminalService.resize(message.channelId, message.cols, message.rows);
                         break;
 
                     case "cancel_request":
@@ -905,6 +956,113 @@ export class ClaudeAgentService implements IClaudeAgentService {
      */
     private getCwd(): string {
         return this.workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
+    }
+
+    // ── Project directory watcher (for terminal PTY sessions) ─────────────────
+
+    private async _startProjectDirWatch(channelId: string, webviewId: string, cwd: string): Promise<void> {
+        this._ptyMeta.set(channelId, { webviewId, cwd });
+
+        const refCount = (this._cwdRefCounts.get(cwd) ?? 0) + 1;
+        this._cwdRefCounts.set(cwd, refCount);
+        if (refCount > 1) return; // watcher already running for this cwd
+
+        const configDir = (await this.configService.getConfigurationDirectory())
+            ?? process.env.CLAUDE_CONFIG_DIR
+            ?? path.join(os.homedir(), '.claude');
+        const projectDir = path.join(configDir, 'projects', cwd.replace(/[^a-zA-Z0-9]/g, '-'));
+
+        try {
+            await fsPromises.mkdir(projectDir, { recursive: true });
+        } catch { /* ignore */ }
+
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jsonl$/i;
+        const notifiedIds = new Set<string>();
+
+        const processFile = async (filename: string) => {
+            if (!UUID_RE.test(filename)) return;
+            const sessionId = filename.slice(0, -6);
+            const filePath = path.join(projectDir, filename);
+
+            let summary = '';
+            try {
+                const content = await fsPromises.readFile(filePath, 'utf8');
+                for (const line of content.split('\n')) {
+                    if (!line.trim()) continue;
+                    try {
+                        const msg = JSON.parse(line);
+                        if (msg.type !== 'user' || msg.isMeta) continue;
+                        const c = msg.message?.content;
+                        let text = typeof c === 'string' ? c
+                            : Array.isArray(c) ? (c.filter((b: any) => b?.type === 'text').pop()?.text ?? '') : '';
+                        text = text.trim();
+                        if (text && !text.startsWith('/')) {
+                            summary = text.length > 45 ? text.slice(0, 45) + '...' : text;
+                            break;
+                        }
+                    } catch { /* malformed line */ }
+                }
+            } catch { return; }
+
+            if (!summary) return;
+
+            // Notify all PTY channels watching this cwd
+            for (const [chId, meta] of this._ptyMeta.entries()) {
+                if (meta.cwd !== cwd) continue;
+                this.transport?.send({ type: 'pty_session_id', channelId: chId, sessionId, summary });
+                // Also update the VS Code panel title directly
+                if (!notifiedIds.has(sessionId)) {
+                    const truncated = summary.length > 25 ? `${summary.slice(0, 24)}…` : summary;
+                    this.webViewService.updateChatPanelTitle(meta.webviewId, truncated);
+                }
+            }
+
+            if (!notifiedIds.has(sessionId)) {
+                notifiedIds.add(sessionId);
+                // Broadcast to all webviews so sessions pages refresh
+                this.transport?.send({ type: 'sessions_changed' });
+            }
+        };
+
+        let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+        try {
+            const watcher = fs.watch(projectDir, (_, filename) => {
+                if (!filename) return;
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    debounceTimer = null;
+                    void processFile(filename);
+                }, 300);
+            });
+            watcher.on('error', (err) => {
+                this.logService.warn(`[ClaudeAgentService] dir watcher error cwd=${cwd}: ${err}`);
+            });
+            this._cwdWatchers.set(cwd, watcher);
+            this.logService.info(`[ClaudeAgentService] watching ${projectDir}`);
+        } catch (err) {
+            this.logService.warn(`[ClaudeAgentService] failed to watch ${projectDir}: ${err}`);
+        }
+    }
+
+    private _stopProjectDirWatch(channelId: string): void {
+        const meta = this._ptyMeta.get(channelId);
+        if (!meta) return;
+        this._ptyMeta.delete(channelId);
+
+        const { cwd } = meta;
+        const refCount = (this._cwdRefCounts.get(cwd) ?? 1) - 1;
+        if (refCount <= 0) {
+            this._cwdRefCounts.delete(cwd);
+            const watcher = this._cwdWatchers.get(cwd);
+            if (watcher) {
+                watcher.close();
+                this._cwdWatchers.delete(cwd);
+                this.logService.info(`[ClaudeAgentService] stopped watching cwd=${cwd}`);
+            }
+        } else {
+            this._cwdRefCounts.set(cwd, refCount);
+        }
     }
 
     private getThinkingConfig(level: string, model: string | null): ThinkingConfig {

@@ -52,8 +52,6 @@ export interface UseSessionReturn {
   worktree: Ref<{ name: string; path: string } | undefined>;
   selection: Ref<SelectionRange | undefined>;
   compactingMode: Ref<boolean>;
-  currentTurnToolCallCount: Ref<number>;
-  roamingWarning: Ref<boolean>;
 
   usageData: Ref<{
     contextTokens: number;
@@ -90,8 +88,6 @@ export interface UseSessionReturn {
   removeFromQueue: (id: string) => void;
   sendQueuedNow: (id: string) => void;
   interruptAndSendNow: (id: string) => Promise<void>;
-  isSessionRoaming: () => boolean;
-  dismissRoamingWarning: () => void;
   dispose: () => void;
 
   __session: Session;
@@ -130,9 +126,6 @@ export function useSession(session: Session): UseSessionReturn {
   const selection = useSignal(session.selection);
   const usageData = useSignal(session.usageData);
   const compactingMode = useSignal(session.compactingMode);
-  const currentTurnToolCallCount = useSignal(session.currentTurnToolCallCount);
-  const roamingWarning = useSignal(session.roamingWarning as any) as Ref<boolean>;
-
   // useSignal alien computed-only setter
   const claudeConfig = useSignal(session.claudeConfig as any);
   const config = useSignal(session.config as any);
@@ -162,8 +155,6 @@ export function useSession(session: Session): UseSessionReturn {
   const removeFromQueue = session.removeFromQueue.bind(session);
   const sendQueuedNow = session.sendQueuedNow.bind(session);
   const interruptAndSendNow = session.interruptAndSendNow.bind(session);
-  const isSessionRoaming = session.isSessionRoaming.bind(session);
-  const dismissRoamingWarning = session.dismissRoamingWarning.bind(session);
   const dispose = session.dispose.bind(session);
 
   return {
@@ -192,8 +183,6 @@ export function useSession(session: Session): UseSessionReturn {
     selection,
     usageData,
     compactingMode,
-    currentTurnToolCallCount,
-    roamingWarning,
 
     claudeConfig,
     config,
@@ -220,8 +209,6 @@ export function useSession(session: Session): UseSessionReturn {
     removeFromQueue,
     sendQueuedNow,
     interruptAndSendNow,
-    isSessionRoaming,
-    dismissRoamingWarning,
     dispose,
 
     __session: session,

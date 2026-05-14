@@ -27,6 +27,8 @@ export interface WebviewBootstrapConfig {
 	title?: string;
 	/** Agent definition name to use for this panel's first session (from ~/.claude/agents/) */
 	initialAgent?: string;
+	/** When true, the panel renders an integrated xterm.js terminal instead of the chat message list */
+	terminalMode?: boolean;
 }
 
 export interface IWebViewService extends vscode.WebviewViewProvider {
@@ -61,7 +63,7 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 	 * @param title
 	 * @param agentName Optional agent definition name (from ~/.claude/agents/)
 	 */
-	openChatPanel(sessionId: string | null, title: string, agentName?: string): void;
+	openChatPanel(sessionId: string | null, title: string, agentName?: string, options?: { terminalMode?: boolean }): void;
 
 	/**
 	 *  webviewId
@@ -290,7 +292,7 @@ export class WebViewService implements IWebViewService {
 
 	/**
 	 */
-	openChatPanel(sessionId: string | null, title: string, agentName?: string): void {
+	openChatPanel(sessionId: string | null, title: string, agentName?: string, options?: { terminalMode?: boolean }): void {
 		// If this session is already open in a panel, just reveal that panel.
 		if (sessionId) {
 			const existingModel = this.findModelBySessionId(sessionId);
@@ -312,7 +314,7 @@ export class WebViewService implements IWebViewService {
 
 		// Each panel gets a stable key that is independent of which session it currently shows.
 		const key = `panel-${crypto.randomUUID()}`;
-		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, sessionId: sessionId || '', title, initialAgent: agentName || undefined };
+		const bootstrap: WebviewBootstrapConfig = { host: 'panel', page: 'chat', id: key, sessionId: sessionId || '', title, initialAgent: agentName || undefined, terminalMode: options?.terminalMode };
 		const webviewId = this.getWebviewId(bootstrap);
 
 		this.logService.info(`[WebViewService] : sessionId=${sessionId}, title=${title}`);

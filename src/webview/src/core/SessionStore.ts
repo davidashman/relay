@@ -162,6 +162,8 @@ export class SessionStore {
             .map((session) => [session.sessionId() as string, session])
         );
 
+        const newSessions: Session[] = [];
+
         for (const summary of response.sessions ?? []) {
           if (!summary.isCurrentWorkspace) {
             console.log(`[SessionStore.listSessions] skipping non-workspace session ${summary.id}`);
@@ -187,12 +189,14 @@ export class SessionStore {
           );
 
           this.attachPermissionListener(session);
-          this.sessions([...this.sessions(), session]);
+          newSessions.push(session);
         }
 
-        this.sessions(
-          [...this.sessions()].sort((a, b) => b.lastModifiedTime() - a.lastModifiedTime())
-        );
+        // Batch all new sessions into a single signal write, then sort once.
+        const combined = newSessions.length > 0
+          ? [...this.sessions(), ...newSessions]
+          : [...this.sessions()];
+        this.sessions(combined.sort((a, b) => b.lastModifiedTime() - a.lastModifiedTime()));
         console.log(`[SessionStore.listSessions] done, store now has ${this.sessions().length} sessions`);
       } catch (e) {
         console.error('[SessionStore.listSessions] error:', e);

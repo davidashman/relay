@@ -5,7 +5,6 @@ import type { ModelOption } from '../../../shared/messages';
 import type { SessionSummary } from './types';
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
 import { processAndAttachMessage, findToolUseBlock /*, mergeConsecutiveReadMessages */ } from '../utils/messageUtils';
-import { isGroupableTool } from '../utils/toolGroups';
 import { parseMessageContent } from '../models/contentParsers';
 import { normalizeModelId, contextWindowForModel } from '../utils/modelUtils';
 import { Message as MessageModel } from '../models/Message';
@@ -68,13 +67,11 @@ export interface SessionContext {
 }
 
 export class Session {
-  static readonly ROAMING_TOOL_CALL_THRESHOLD = 30;
-
   private readonly claudeChannelId = signal<string | undefined>(undefined);
+  private readonly ptyChannelId = signal<string | undefined>(undefined);
   private currentConnectionPromise?: Promise<BaseTransport>;
   private lastSentSelection?: SelectionRange;
   private effectCleanup?: () => void;
-  private autoInterruptTriggered = false;
   private completedTurnCount = 0;
   // The session ID that the CLI assigned on the most recent resume. The CLI
   // forks a new branch (new session_id) on every resume, but that branch has
@@ -153,15 +150,6 @@ export class Session {
   readonly currentThinking = signal<string | undefined>(undefined);
   readonly hasActiveTool = signal(false);
   readonly streamingText = signal<string | undefined>(undefined);
-  readonly currentTurnToolCallCount = signal(0);
-  readonly roamingWarningDismissed = signal(false);
-  readonly roamingWarning = computed(
-    () =>
-      this.currentTurnToolCallCount() > Session.ROAMING_TOOL_CALL_THRESHOLD &&
-      this.busy() &&
-      !this.roamingWarningDismissed()
-  );
-
   readonly claudeConfig = computed(() => {
     const conn = this.connection();
     return conn?.claudeConfig?.();
@@ -193,20 +181,9 @@ export class Session {
     );
   }
 
-  isSessionRoaming(): boolean {
-    return this.currentTurnToolCallCount() > Session.ROAMING_TOOL_CALL_THRESHOLD;
-  }
-
-  dismissRoamingWarning(): void {
-    this.roamingWarningDismissed(true);
-  }
-
   /** Mark a new user turn as in-flight. */
   private incrementOutstandingTurns(): void {
     this.outstandingTurns(this.outstandingTurns() + 1);
-    this.currentTurnToolCallCount(0);
-    this.roamingWarningDismissed(false);
-    this.autoInterruptTriggered = false;
   }
 
   /** Mark a turn as finished. Floors at 0 and warns on underflow. */
@@ -312,6 +289,7 @@ export class Session {
 
   async preloadConnection(): Promise<void> {
     await this.getConnection();
+    if ((window as any).RELAY_BOOTSTRAP?.terminalMode) return;
     await this.launchClaude();
   }
 
@@ -634,6 +612,53 @@ export class Session {
     return channelId;
   }
 
+  async launchPty(cols: number, rows: number): Promise<string> {
+    const existing = this.ptyChannelId();
+    if (existing) return existing;
+
+    const channelId = Math.random().toString(36).slice(2);
+    this.ptyChannelId(channelId);
+
+    const connection = await this.getConnection();
+    if (!this.cwd()) this.cwd(connection.config()?.defaultCwd);
+
+    const resumeId = this._sdkSessionId ?? this.sessionId();
+    connection.launchPty(channelId, {
+      resume: resumeId ?? null,
+      agent: this.agentSelection() ?? null,
+      permissionMode: this.permissionMode() ?? undefined,
+      model: this.modelSelection() ?? null,
+      effortLevel: this.effortLevel() ?? null,
+      cwd: this.cwd() ?? undefined,
+      cols,
+      rows,
+    });
+
+    // When the extension discovers the session file on disk, update our signals.
+    // Unsubscribe after the first match since the ID won't change.
+    const unsub = connection.ptySessionIdEvents.add(({ channelId: cid, sessionId, summary }) => {
+      if (cid !== channelId) return;
+      this.sessionId(sessionId);
+      if (!this.summary()) this.summary(summary);
+      this.lastModifiedTime(Date.now());
+      unsub();
+    });
+
+    return channelId;
+  }
+
+  sendPtyInput(data: string): void {
+    const channelId = this.ptyChannelId();
+    if (!channelId) return;
+    void this.getConnection().then(c => c.sendPtyInput(channelId, data));
+  }
+
+  sendPtyResize(cols: number, rows: number): void {
+    const channelId = this.ptyChannelId();
+    if (!channelId) return;
+    void this.getConnection().then(c => c.sendPtyResize(channelId, cols, rows));
+  }
+
   async interruptAll(): Promise<void> {
     this.interrupt();
     this.outboundQueue([]);
@@ -653,9 +678,6 @@ export class Session {
     this.pendingReplayMessage = undefined;
     this.hasActiveTool(false);
     this.streamingText(undefined);
-    this.currentTurnToolCallCount(0);
-    this.roamingWarningDismissed(false);
-    this.autoInterruptTriggered = false;
     this.completedTurnCount = 0;
   }
 
@@ -1096,11 +1118,6 @@ export class Session {
       const hasToolUse = event.message.content.some((b: any) => b?.type === 'tool_use');
       if (hasToolUse) {
         this.hasActiveTool(true);
-        const passiveToolCount = event.message.content.filter(
-          (b: any) => b?.type === 'tool_use' && isGroupableTool(b.name)
-        ).length;
-        this.currentTurnToolCallCount(this.currentTurnToolCallCount() + passiveToolCount);
-        this.checkRoaming();
       }
     }
 
@@ -1176,15 +1193,6 @@ export class Session {
           }
         }
       }
-    }
-  }
-
-  private checkRoaming(): void {
-    if (!this.isSessionRoaming() || this.autoInterruptTriggered) return;
-    const autoInterrupt = (this.config() as any)?.autoInterruptOnRoaming ?? false;
-    if (autoInterrupt) {
-      this.autoInterruptTriggered = true;
-      void this.interrupt();
     }
   }
 
