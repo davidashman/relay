@@ -45,7 +45,7 @@ export function registerServices(
 	// Workspace services
 	builder.define(IWorkspaceService, new SyncDescriptor(WorkspaceService));
 	builder.define(ITabsAndEditorsService, new SyncDescriptor(TabsAndEditorsService));
-	builder.define(ITerminalService, new SyncDescriptor(TerminalService));
+	builder.define(ITerminalService, new SyncDescriptor(TerminalService, [context]));
 
 	// Extension services
 	// Use Null implementation in test mode

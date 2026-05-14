@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { InstantiationServiceBuilder } from './di/instantiationServiceBuilder';
-import { registerServices, ILogService, IClaudeAgentService, IWebViewService, IConfigurationService } from './services/serviceRegistry';
+import { registerServices, ILogService, IClaudeAgentService, IWebViewService, IConfigurationService, ITerminalService } from './services/serviceRegistry';
 import { VSCodeTransport } from './services/claude/transport/VSCodeTransport';
 
 let _webViewService: IWebViewService | undefined;
@@ -125,7 +125,16 @@ export function activate(context: vscode.ExtensionContext) {
 		_webViewService = webViewService;
 		const claudeAgentService = accessor.get(IClaudeAgentService);
 		const configService = accessor.get(IConfigurationService);
+		const terminalService = accessor.get(ITerminalService);
 		const subscriptions = context.subscriptions;
+
+		function isTerminalMode(): boolean {
+			return vscode.workspace.getConfiguration('relay').get<string>('defaultMode', 'panel') === 'terminal';
+		}
+
+		function getSessionCwd(): string {
+			return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? os.homedir();
+		}
 
 		// Initialize relayFocused context (will be updated by webview focus events)
 		vscode.commands.executeCommand('setContext', 'relayFocused', false);
@@ -165,7 +174,11 @@ export function activate(context: vscode.ExtensionContext) {
 				if (req.type === 'open_session_panel') {
 					const sessionId: string | null = req.sessionId || null;
 					const title: string = req.title || (sessionId ? 'Chat' : 'New Chat');
-					webViewService.openChatPanel(sessionId, title);
+					if (isTerminalMode() && sessionId) {
+						terminalService.openClaudeSession({ sessionId, sessionTitle: title, cwd: getSessionCwd() });
+					} else {
+						webViewService.openChatPanel(sessionId, title);
+					}
 					// Send response back to the requesting webview
 					webViewService.postMessage({
 						type: 'response',
@@ -335,7 +348,11 @@ export function activate(context: vscode.ExtensionContext) {
 			if (selected === undefined) return; // cancelled
 
 			const agentName = selected.label === 'Default (no agent)' ? undefined : selected.label;
-			webViewService.openChatPanel(null, 'New Chat', agentName);
+			if (isTerminalMode()) {
+				terminalService.openClaudeSession({ agent: agentName, cwd: getSessionCwd() });
+			} else {
+				webViewService.openChatPanel(null, 'New Chat', agentName);
+			}
 		}
 
 		// Register disposables
@@ -353,7 +370,11 @@ export function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(
 			vscode.commands.registerCommand('relay.newSessionDefault', async () => {
 				const defaultAgentName = vscode.workspace.getConfiguration('relay').get<string>('defaultAgent', '');
-				webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined);
+				if (isTerminalMode()) {
+					terminalService.openClaudeSession({ agent: defaultAgentName || undefined, cwd: getSessionCwd() });
+				} else {
+					webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined);
+				}
 			})
 		);
 

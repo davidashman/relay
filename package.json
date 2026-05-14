@@ -21,28 +21,39 @@
     "configuration": {
       "title": "Relay",
       "properties": {
+        "relay.defaultMode": {
+          "type": "string",
+          "enum": ["panel", "terminal"],
+          "default": "terminal",
+          "enumItemLabels": ["Chat Panel", "Terminal"],
+          "description": "How new sessions are opened: in a Relay chat panel or a VSCode terminal running Claude Code.",
+          "order": 0
+        },
         "relay.defaultAgent": {
           "type": "string",
           "default": "",
           "description": "Name of the agent definition to use for new sessions. Leave empty for no agent.",
-          "order": 0
+          "order": 1
         },
         "relay.defaultPermissionMode": {
           "type": "string",
           "enum": [
             "default",
             "acceptEdits",
+            "auto",
             "plan"
           ],
           "default": "default",
           "enumItemLabels": [
             "Ask Permissions",
             "Accept Edits",
+            "Auto",
             "Plan Mode"
           ],
           "enumDescriptions": [
             "Prompt for permission on first use of each operation",
             "Automatically accept file edits and common operations",
+            "Automatically determine permissions based on context",
             "Read-only mode, Claude can explore but not modify files"
           ],
           "description": "Default permission mode for new sessions",
