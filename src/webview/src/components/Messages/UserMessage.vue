@@ -5,10 +5,11 @@
         :class="['message-content', { 'active': isActive }]"
       >
         <div
-          class="message-view"
+          ref="messageViewRef"
+          :class="['message-view', { 'collapsed': isOverflowing && !isExpanded }]"
         >
           <div v-if="displayAttachments.length > 0" class="attachments-list">
-            <Tooltip 
+            <Tooltip
                 v-for="attachment in displayAttachments"
                 :key="attachment.id"
                 :content="attachment.fileName"
@@ -40,6 +41,13 @@
             <div>{{ displayContent }}</div>
           </div>
         </div>
+        <button
+          v-if="isOverflowing"
+          :class="['expand-button', { 'is-collapsed': !isExpanded }]"
+          @click.stop="toggleExpand"
+        >
+          <span :class="['codicon', isExpanded ? 'codicon-chevron-up' : 'codicon-chevron-down']"></span>
+        </button>
         <Tooltip v-if="isActive" content="Cancel prompt" side="top">
           <button
             class="restore-button interrupt-button"
@@ -62,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import type { Message } from '../../models/Message';
 import type { ToolContext } from '../../types/tool';
 import type { AttachmentItem } from '../../types/attachment';
@@ -80,6 +88,31 @@ interface Props {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{ interrupt: [] }>();
+
+const messageViewRef = ref<HTMLElement | null>(null);
+const isExpanded = ref(false);
+const isOverflowing = ref(false);
+
+function checkOverflow() {
+  if (!messageViewRef.value) return;
+  isOverflowing.value = messageViewRef.value.scrollHeight > window.innerHeight / 3;
+}
+
+function toggleExpand() {
+  isExpanded.value = !isExpanded.value;
+}
+
+let resizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  checkOverflow();
+  resizeObserver = new ResizeObserver(checkOverflow);
+  if (messageViewRef.value) resizeObserver.observe(messageViewRef.value);
+});
+
+onUnmounted(() => {
+  resizeObserver?.disconnect();
+});
 
 const modeBorderColor = computed(() => {
   if (props.isActive) {
@@ -185,11 +218,10 @@ function handleReplay() {
   cursor: pointer;
 }
 
-/* - */
 .message-content {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
   background-color: color-mix(in srgb, var(--vscode-input-background) 50%, transparent);
   outline: none;
@@ -202,23 +234,25 @@ function handleReplay() {
 .message-content.active {
   overflow: hidden;
   transition: none;
-  /* border-color: var(--mode-border-color) !important; */
   border-color: color-mix(in srgb, #D97757 50%, transparent) !important;
   background-color: color-mix(in srgb, #D97757 20%, transparent);
 }
 
-/* */
 .message-view {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  transition: all 0.2s ease;
   gap: 4px;
   padding: 6px 8px;
   box-sizing: border-box;
-  max-height: calc(var(--thread-height, 300px) / 3);
-  overflow-y: auto;
+}
+
+.message-view.collapsed {
+  max-height: 33.33vh;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 52px), color-mix(in srgb, black 5%, transparent) calc(100% - 12px), transparent 100%);
+  mask-image: linear-gradient(to bottom, black calc(100% - 52px), color-mix(in srgb, black 5%, transparent) calc(100% - 12px), transparent 100%);
 }
 
 /* Attachments — matches input box style */
@@ -241,7 +275,6 @@ function handleReplay() {
   justify-content: center;
   gap: 2px;
   padding: 4px;
-  /* border: 1px solid var(--vscode-editorWidget-border); */
   border-radius: 6px;
   flex-shrink: 0;
   width: 48px;
@@ -257,7 +290,6 @@ function handleReplay() {
 
 .attachment-item:hover {
   background-color: var(--vscode-list-hoverBackground);
-  /* border-color: var(--vscode-focusBorder); */
 }
 
 .attachment-thumbnail {
@@ -303,7 +335,6 @@ function handleReplay() {
   gap: 8px;
 }
 
-
 .message-text > div:first-child {
   min-width: 0;
   line-height: 1.5;
@@ -321,7 +352,38 @@ function handleReplay() {
   flex: 1;
 }
 
-/* restore checkpoint */
+.expand-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0px;
+  cursor: pointer;
+  color: var(--vscode-foreground);
+  opacity: 0.75;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  border-radius: 0 0 5px 5px;
+}
+
+.expand-button.is-collapsed {
+  margin-top: -26px;
+  position: relative;
+  z-index: 1;
+  border-top: none;
+}
+
+.expand-button:hover {
+  opacity: 1;
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.expand-button .codicon {
+  font-size: 22px;
+}
+
+/* restore / interrupt */
 .restore-button {
   position: absolute;
   right: 4px;
@@ -358,5 +420,4 @@ function handleReplay() {
 .interrupt-button:hover .codicon {
   color: var(--vscode-errorForeground);
 }
-
 </style>
