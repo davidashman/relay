@@ -128,8 +128,17 @@ export function activate(context: vscode.ExtensionContext) {
 		const terminalService = accessor.get(ITerminalService);
 		const subscriptions = context.subscriptions;
 
+		function getDefaultMode(): string {
+			return vscode.workspace.getConfiguration('relay').get<string>('defaultMode', 'panel');
+		}
+
 		function isTerminalMode(): boolean {
-			return vscode.workspace.getConfiguration('relay').get<string>('defaultMode', 'panel') === 'terminal';
+			const mode = getDefaultMode();
+			return mode === 'terminal' || mode === 'terminalWithInput';
+		}
+
+		function getTerminalOptions(): { terminalMode: boolean; terminalInputHidden: boolean } {
+			return { terminalMode: true, terminalInputHidden: getDefaultMode() === 'terminal' };
 		}
 
 		function getSessionCwd(): string {
@@ -175,7 +184,7 @@ export function activate(context: vscode.ExtensionContext) {
 					const sessionId: string | null = req.sessionId || null;
 					const title: string = req.title || (sessionId ? 'Chat' : 'New Chat');
 					if (isTerminalMode() && sessionId) {
-						webViewService.openChatPanel(sessionId, title, undefined, { terminalMode: true });
+						webViewService.openChatPanel(sessionId, title, undefined, getTerminalOptions());
 					} else {
 						webViewService.openChatPanel(sessionId, title);
 					}
@@ -269,7 +278,7 @@ export function activate(context: vscode.ExtensionContext) {
 		claudeAgentService.start();
 
 		// Restore chat panels that were open when the workspace was last closed
-		webViewService.restoreOpenSessions();
+		webViewService.restoreOpenSessions(isTerminalMode() ? getTerminalOptions() : undefined);
 
 		// Listen for VSCode configuration changes and notify webview
 		const configChangeListener = vscode.workspace.onDidChangeConfiguration(e => {
@@ -347,7 +356,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const agentName = selected.label === 'Default (no agent)' ? undefined : selected.label;
 			if (isTerminalMode()) {
-				webViewService.openChatPanel(null, 'New Chat', agentName, { terminalMode: true });
+				webViewService.openChatPanel(null, 'New Chat', agentName, getTerminalOptions());
 			} else {
 				webViewService.openChatPanel(null, 'New Chat', agentName);
 			}
@@ -369,7 +378,7 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('relay.newSessionDefault', async () => {
 				const defaultAgentName = vscode.workspace.getConfiguration('relay').get<string>('defaultAgent', '');
 				if (isTerminalMode()) {
-					webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined, { terminalMode: true });
+					webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined, getTerminalOptions());
 				} else {
 					webViewService.openChatPanel(null, 'New Chat', defaultAgentName || undefined);
 				}

@@ -29,6 +29,28 @@ const esbuildProblemMatcherPlugin = {
 
 
 /**
+ * Copy node-pty and its prebuilt native binaries into resources/node-pty/ so
+ * they are bundled in the VSIX without relying on node_modules being present.
+ * ClaudeTerminalService resolves the path via context.extensionPath at runtime.
+ */
+const copyNodePtyPlugin = {
+    name: 'copy-node-pty',
+    setup(build: { onEnd: (arg0: () => Promise<void>) => void }) {
+        build.onEnd(async () => {
+            try {
+                const src = path.resolve(process.cwd(), 'node_modules', 'node-pty');
+                const dst = path.resolve(process.cwd(), 'resources', 'node-pty');
+                await fs.cp(src, dst, { recursive: true, force: true });
+                console.log('[build] Copied node-pty -> resources/node-pty');
+            } catch (err: any) {
+                console.warn('[build] copy-node-pty failed:', err?.message || err);
+            }
+        });
+    },
+};
+
+
+/**
  * After build, copy the Claude native binaries from the platform-specific SDK
  * packages into resources/native-binaries/{platform}-{arch}/ so they are
  * bundled in the VSIX without being committed to the repository.
@@ -111,11 +133,12 @@ async function main() {
 		sourcesContent: false,
 		platform: 'node',
     outfile: 'dist/extension.cjs',
-		external: ['vscode', 'node-pty'],
+		external: ['vscode'],
 		logLevel: 'silent',
 		plugins: [
 			/* add to the end of plugins array */
 			esbuildProblemMatcherPlugin,
+			copyNodePtyPlugin,
 			copyClaudeCliPlugin,
 		],
 	});

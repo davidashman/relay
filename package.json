@@ -2,8 +2,8 @@
   "name": "relay-vscode",
   "displayName": "Relay",
   "description": "Bring the power of Claude AI directly into your coding environment.",
-  "version": "1.0.0",
-  "publisher": "Haleclipse",
+  "version": "2.0.0",
+  "publisher": "davidashman",
   "engines": {
     "vscode": "^1.98.0",
     "node": ">=18.0.0"
@@ -25,12 +25,14 @@
           "type": "string",
           "enum": [
             "panel",
-            "terminal"
+            "terminal",
+            "terminalWithInput"
           ],
           "default": "terminal",
           "enumItemLabels": [
             "Chat Panel",
-            "Terminal"
+            "Terminal",
+            "Terminal + Input"
           ],
           "description": "How new sessions are opened: in a Relay chat panel or a VSCode terminal running Claude Code.",
           "order": 0
@@ -218,6 +220,7 @@
     }
   },
   "scripts": {
+    "rebuild-native": "electron-rebuild -w node-pty -v 39.8.7",
     "dev": "concurrently \"pnpm run dev:webview\" \"pnpm run watch:extension\"",
     "dev:webview": "vite --config src/webview/vite.config.ts --port 5173 --strictPort",
     "build:extension": "tsx esbuild.ts --production",
@@ -239,6 +242,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,vue}\" && eslint src --ext ts,tsx,vue --fix"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^25.0.3",
     "@types/vscode": "^1.98.0",
@@ -290,7 +294,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Haleclipse/Relay"
+    "url": "https://github.com/davidashman/Relay"
   },
   "license": "AGPL-3.0"
 }

@@ -23,7 +23,6 @@ export class VSCodeTransport extends BaseTransport {
         @ILogService private readonly logService: ILogService
     ) {
         super();
-        this.logService.info('[VSCodeTransport] ');
     }
 
     /**
@@ -31,7 +30,7 @@ export class VSCodeTransport extends BaseTransport {
      */
     send(message: any): void {
         try {
-            this.logService.info(`[VSCodeTransport] : ${message.type}`);
+            this.logService.debug(`[VSCodeTransport] : ${message.type}`);
             this.webViewService.postMessage(message);
         } catch (error) {
             this.logService.error('[VSCodeTransport] :', error);

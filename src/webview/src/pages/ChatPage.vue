@@ -4,6 +4,7 @@
       <!-- <div class="chatContainer"> -->
         <TerminalView
           v-if="isTerminalMode && activeSessionRaw && session?.connection.value"
+          ref="terminalViewRef"
           :session="activeSessionRaw"
           :connection="session!.connection.value!"
           class="terminalContainer"
@@ -104,32 +105,34 @@
             :on-resolve="handleResolvePermission"
             data-permission-panel="1"
           />
-          <MessageQueueList
-            :queued-messages="outboundQueue"
-            :visible="outboundQueue.length > 0"
-            @remove="handleQueueRemove"
-            @send-now="handleQueueSendNow"
-          />
-          <ChatInputBox
-            ref="chatInputRef"
-            :show-progress="true"
-            :progress-percentage="progressPercentage"
-            :context-tooltip="contextTooltip"
-            :conversation-working="isBusy"
-            :attachments="attachments"
-            :effort-level="session?.effortLevel.value"
-            :permission-mode="session?.permissionMode.value"
-            :selected-model="session?.modelSelection.value"
-            :selected-agent="session?.agentSelection.value"
-            :hide-controls="isTerminalMode"
-            @submit="handleSubmit"
-            @stop="handleStop"
-            @add-attachment="handleAddAttachment"
-            @remove-attachment="handleRemoveAttachment"
-            @mode-select="handleModeSelect"
-            @model-select="handleModelSelect"
-            @effort-select="handleEffortSelect"
-          />
+          <template v-if="!terminalInputHidden">
+            <MessageQueueList
+              :queued-messages="outboundQueue"
+              :visible="outboundQueue.length > 0"
+              @remove="handleQueueRemove"
+              @send-now="handleQueueSendNow"
+            />
+            <ChatInputBox
+              ref="chatInputRef"
+              :show-progress="true"
+              :progress-percentage="progressPercentage"
+              :context-tooltip="contextTooltip"
+              :conversation-working="isBusy"
+              :attachments="attachments"
+              :effort-level="session?.effortLevel.value"
+              :permission-mode="session?.permissionMode.value"
+              :selected-model="session?.modelSelection.value"
+              :selected-agent="session?.agentSelection.value"
+              :hide-controls="isTerminalMode"
+              @submit="handleSubmit"
+              @stop="handleStop"
+              @add-attachment="handleAddAttachment"
+              @remove-attachment="handleRemoveAttachment"
+              @mode-select="handleModeSelect"
+              @model-select="handleModelSelect"
+              @effort-select="handleEffortSelect"
+            />
+          </template>
         </div>
       <!-- </div> -->
     </div>
@@ -157,12 +160,14 @@
   import ToolGroup from '../components/Messages/blocks/ToolGroup.vue';
   import type { ContentBlockWrapper } from '../models/ContentBlockWrapper';
   import { useKeybinding } from '../utils/useKeybinding';
+  import { isEditableTarget } from '../utils/keyNormalize';
   import { isGroupableTool } from '../utils/toolGroups';
   import { useSignal } from '@gn8/alien-signals-vue';
   import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
   import { prepareSendAnimation, captureQueueItemSnapshot, type SendSnapshot } from '../composables/useSendAnimation';
 
   const isTerminalMode = (window as any).RELAY_BOOTSTRAP?.terminalMode === true;
+  const terminalInputHidden = isTerminalMode && (window as any).RELAY_BOOTSTRAP?.terminalInputHidden === true;
 
   const runtime = inject(RuntimeKey);
   if (!runtime) throw new Error('[ChatPage] runtime not provided');
@@ -393,6 +398,7 @@
   const containerEl = ref<HTMLDivElement | null>(null);
   const endEl = ref<HTMLDivElement | null>(null);
   const chatInputRef = ref<InstanceType<typeof ChatInputBox> | null>(null);
+  const terminalViewRef = ref<InstanceType<typeof TerminalView> | null>(null);
   let unsubPanelFocus: (() => void) | undefined;
   const containerHeight = ref(0);
   let resizeObserver: ResizeObserver | null = null;
@@ -550,20 +556,24 @@
     scrollToBottom(); // Only auto-scroll if near bottom
     // Restore focus to input after last permission modal is dismissed
     if (newLen === 0) {
-      chatInputRef.value?.focus();
+      focusActiveInput();
     }
   });
 
-  function handleWindowFocus() {
-    if (!pendingPermission.value) {
+  function focusActiveInput() {
+    if (isTerminalMode) {
+      terminalViewRef.value?.focus();
+    } else if (!pendingPermission.value) {
       chatInputRef.value?.focus();
     }
   }
 
+  function handleWindowFocus() {
+    if (!pendingPermission.value) focusActiveInput();
+  }
+
   function handleVisibilityChange() {
-    if (document.visibilityState === 'visible' && !pendingPermission.value) {
-      chatInputRef.value?.focus();
-    }
+    if (document.visibilityState === 'visible' && !pendingPermission.value) focusActiveInput();
   }
 
   function handleEditCancelled() {
@@ -602,7 +612,7 @@
 
     const conn = await runtime.connectionManager.get();
     unsubPanelFocus = conn.panelFocusedEvents.add(() => {
-      if (!pendingPermission.value) chatInputRef.value?.focus();
+      if (!pendingPermission.value) focusActiveInput();
     });
   });
 

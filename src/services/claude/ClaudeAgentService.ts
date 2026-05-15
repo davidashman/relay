@@ -28,6 +28,7 @@ import { ITabsAndEditorsService } from '../tabsAndEditorsService';
 import { IClaudeSdkService, type SdkQueryParams } from './ClaudeSdkService';
 import { IClaudeSessionService } from './ClaudeSessionService';
 import { IClaudeTerminalService } from './ClaudeTerminalService';
+import { RelayMcpServer } from './RelayMcpServer';
 import { AsyncStream, ITransport } from './transport';
 import { HandlerContext } from './handlers/types';
 import { IWebViewService } from '../webViewService';
@@ -221,6 +222,10 @@ export class ClaudeAgentService implements IClaudeAgentService {
     // Effort Level Opus 4.6+ adaptive reasoning
     private effortLevel: string | null = null;
 
+    // HTTP MCP server for terminal-mode PTY permission prompts
+    private permissionServer: RelayMcpServer | null = null;
+    private permissionServerStarting: Promise<void> | null = null;
+
     constructor(
         @ILogService private readonly logService: ILogService,
         @IConfigurationService private readonly configService: IConfigurationService,
@@ -256,6 +261,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         this.claudeTerminalService.onExit((channelId, exitCode) => {
             this.transport?.send({ type: 'pty_exit', channelId, exitCode });
             this._stopProjectDirWatch(channelId);
+            this.permissionServer?.cleanupChannel(channelId).catch(() => {});
         });
     }
 
@@ -335,17 +341,33 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
                     case "launch_pty": {
                         const ptyCwd = message.cwd || this.getCwd();
-                        void this.claudeTerminalService.spawn({
-                            channelId: message.channelId,
-                            resume: message.resume,
-                            agent: message.agent,
-                            permissionMode: message.permissionMode,
-                            model: message.model,
-                            effortLevel: message.effortLevel,
-                            cwd: ptyCwd,
-                            cols: message.cols,
-                            rows: message.rows,
-                        }).catch(err => {
+                        void (async () => {
+                            let mcpConfigPath: string | undefined;
+                            if (message.withInput) {
+                                try {
+                                    const server = await this.ensurePermissionServer();
+                                    mcpConfigPath = await server.writeMcpConfig(message.channelId);
+                                    this.logService.info(`[ClaudeAgentService] MCP config written: ${mcpConfigPath}`);
+                                } catch (err) {
+                                    this.logService.warn(`[ClaudeAgentService] permission MCP server unavailable, falling back to CLI prompts: ${err}`);
+                                }
+                            } else {
+                                this.logService.info(`[ClaudeAgentService] Terminal mode (no input): skipping permission/question hooks`);
+                            }
+                            this.logService.info(`[ClaudeAgentService] spawning PTY channel=${message.channelId} mcpConfigPath=${mcpConfigPath ?? 'none'}`);
+                            await this.claudeTerminalService.spawn({
+                                channelId: message.channelId,
+                                resume: message.resume,
+                                agent: message.agent,
+                                permissionMode: message.permissionMode,
+                                model: message.model,
+                                effortLevel: message.effortLevel,
+                                cwd: ptyCwd,
+                                cols: message.cols,
+                                rows: message.rows,
+                                mcpConfigPath,
+                            });
+                        })().catch(err => {
                             this.logService.error(`[ClaudeAgentService] launch_pty error: ${err}`);
                         });
                         if (message.webviewId && ptyCwd) {
@@ -940,6 +962,42 @@ export class ClaudeAgentService implements IClaudeAgentService {
     async shutdown(): Promise<void> {
         await this.closeAllChannels();
         this.fromClientStream.done();
+        this.permissionServer?.dispose();
+        this.permissionServer = null;
+    }
+
+    /**
+     * Lazily start the HTTP MCP permission server (shared across all PTY channels).
+     */
+    private async ensurePermissionServer(): Promise<RelayMcpServer> {
+        if (!this.permissionServer) {
+            this.logService.info('[ClaudeAgentService] starting RelayMcpServer');
+            this.permissionServer = new RelayMcpServer(
+                (channelId, toolName, inputs) => {
+                    this.logService.info(`[ClaudeAgentService] permission request from MCP: channel=${channelId} tool=${toolName}`);
+                    return this.requestToolPermission(channelId, toolName, inputs, [], undefined);
+                },
+                async (channelId, inputs) => {
+                    this.logService.info(`[ClaudeAgentService] AskUserQuestion hook: channel=${channelId}`);
+                    const result = await this.requestToolPermission(channelId, 'AskUserQuestion', inputs, [], undefined);
+                    if (result.behavior === 'allow' && result.updatedInput) {
+                        return result.updatedInput as Record<string, unknown>;
+                    }
+                    throw new Error('AskUserQuestion denied');
+                },
+                (msg) => this.logService.info(msg),
+            );
+            this.permissionServerStarting = this.permissionServer.start().then(() => {
+                this.logService.info(`[ClaudeAgentService] RelayMcpServer started on port ${this.permissionServer!.port}`);
+            }).catch(err => {
+                this.logService.error(`[ClaudeAgentService] RelayMcpServer start failed: ${err}`);
+                this.permissionServer = null;
+                this.permissionServerStarting = null;
+                throw err;
+            });
+        }
+        await this.permissionServerStarting;
+        return this.permissionServer!;
     }
 
     // ========================================================================

@@ -6,6 +6,8 @@
 # Claude CLI bundled from SDK at build time - not committed to repo
 /resources/claude-code/
 /resources/native-binaries/
+/resources/node-pty/
+/resources/pty-bridge.cjs
 
 # Dependencies
 /node_modules

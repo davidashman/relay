@@ -163,13 +163,14 @@ export class Session {
   readonly permissionRequests = computed<PermissionRequest[]>(() => {
     const conn = this.connection();
     const channelId = this.claudeChannelId();
-    if (!conn || !channelId) {
+    const ptyChannelId = this.ptyChannelId();
+    if (!conn || (!channelId && !ptyChannelId)) {
       return [];
     }
 
     return conn
       .permissionRequests()
-      .filter((request) => request.channelId === channelId);
+      .filter((request) => request.channelId === channelId || request.channelId === ptyChannelId);
   });
 
   isOffline(): boolean {
@@ -548,6 +549,10 @@ export class Session {
   }
 
   async launchClaude(): Promise<string> {
+    if ((window as any).RELAY_BOOTSTRAP?.terminalMode) {
+      return this.ptyChannelId() ?? '';
+    }
+
     const existingChannel = this.claudeChannelId();
     if (existingChannel) {
       return existingChannel;
@@ -623,6 +628,7 @@ export class Session {
     if (!this.cwd()) this.cwd(connection.config()?.defaultCwd);
 
     const resumeId = this._sdkSessionId ?? this.sessionId();
+    const terminalInputHidden = (window as any).RELAY_BOOTSTRAP?.terminalInputHidden === true;
     connection.launchPty(channelId, {
       resume: resumeId ?? null,
       agent: this.agentSelection() ?? null,
@@ -632,6 +638,7 @@ export class Session {
       cwd: this.cwd() ?? undefined,
       cols,
       rows,
+      withInput: !terminalInputHidden,
     });
 
     // When the extension discovers the session file on disk, update our signals.

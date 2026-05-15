@@ -356,6 +356,7 @@ export abstract class BaseTransport {
     cwd?: string;
     cols: number;
     rows: number;
+    withInput?: boolean;
   }): void {
     this.send({ type: "launch_pty", channelId, ...opts });
   }

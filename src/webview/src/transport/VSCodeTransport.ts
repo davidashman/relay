@@ -21,7 +21,7 @@ export class VSCodeTransport extends BaseTransport {
         }
 
         // 🔍 Extension
-        console.log('📨 [From Extension]', data.message);
+        // console.log('📨 [From Extension]', data.message);
 
         this.fromHost.enqueue(data.message);
     };

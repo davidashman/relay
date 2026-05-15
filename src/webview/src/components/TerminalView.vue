@@ -74,6 +74,8 @@ onMounted(async () => {
   const channelId = await props.session.launchPty(cols, rows);
   launched = true;
 
+  terminal.focus();
+
   // Route PTY output to xterm
   props.connection.ptyDataEvents.add(({ channelId: cid, data }) => {
     if (cid === channelId) {
@@ -107,6 +109,8 @@ onUnmounted(() => {
   terminal = null;
   fitAddon = null;
 });
+
+defineExpose({ focus: () => terminal?.focus() });
 </script>
 
 <style scoped>
@@ -120,7 +124,7 @@ onUnmounted(() => {
 
 .terminal-view :deep(.xterm) {
   height: 100%;
-  padding: 6px 8px;
+  padding: 6px 24px 0px;
   border: none !important;
   outline: none !important;
 }
