@@ -246,13 +246,12 @@ export function activate(context: vscode.ExtensionContext) {
 					return;
 				}
 
-				// Update the chat panel badge when permission requests change
+				// Update the chat panel badge when session state changes
 				if (req.type === 'set_panel_badge') {
-					const count: number = req.count ?? 0;
-					const iconState: string | undefined = req.iconState;
+					const iconState: 'idle' | 'working' | 'pending' = req.iconState ?? 'idle';
 					const webviewId: string | undefined = message.webviewId;
 					if (webviewId && webviewId.startsWith('panel:chat:')) {
-						webViewService.updateChatPanelBadge(webviewId, count, iconState);
+						webViewService.updateChatPanelBadge(webviewId, iconState);
 					}
 					webViewService.postMessage({
 						type: 'response',

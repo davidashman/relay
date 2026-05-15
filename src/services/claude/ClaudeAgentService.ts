@@ -375,6 +375,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
                     case "pty_input":
                         this.claudeTerminalService.write(message.channelId, message.data);
+                        if (message.data.includes('\r')) {
+                            this.transport?.send({ type: 'pty_turn_start', channelId: message.channelId });
+                        }
                         break;
 
                     case "pty_resize":

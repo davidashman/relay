@@ -80,6 +80,9 @@ export class Session {
   // first `result` proves the fork's JSONL was written to disk.
   private _sdkSessionId?: string;
 
+  // Incremented each time a pty_turn_start event arrives (Enter sent to PTY), capped at
+  // ptyTurnDone+1 so multiple Enter presses don't inflate the counter beyond one pending turn.
+  readonly ptyTurnStart = signal(0);
   // Incremented each time a pty_turn_done event arrives for this session's PTY channel.
   // Used by the panel badge effect to show green "done" icon after turn completion.
   readonly ptyTurnDone = signal(0);
@@ -655,7 +658,12 @@ export class Session {
       unsub();
     });
 
-    // Track turn completion for tab icon (green = done, blue = permission/question pending).
+    // Track turn start/completion for tab icon (orange = working, green = done).
+    connection.ptyTurnStartEvents.add(({ channelId: cid }) => {
+      if (cid === channelId && this.ptyTurnStart() <= this.ptyTurnDone()) {
+        this.ptyTurnStart(this.ptyTurnStart() + 1);
+      }
+    });
     connection.ptyTurnDoneEvents.add(({ channelId: cid }) => {
       if (cid === channelId) this.ptyTurnDone(this.ptyTurnDone() + 1);
     });

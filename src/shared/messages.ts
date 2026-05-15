@@ -799,6 +799,12 @@ export interface PtyTurnDoneMessage extends BaseMessage {
     channelId: string;
 }
 
+/** Extension → Webview: the PTY Claude turn has started (fires when Enter is sent to the PTY) */
+export interface PtyTurnStartMessage extends BaseMessage {
+    type: "pty_turn_start";
+    channelId: string;
+}
+
 export type WebViewToExtensionMessage =
     | LaunchClaudeMessage
     | IOMessage
@@ -823,6 +829,7 @@ export type ExtensionToWebViewMessage =
     | PtyExitMessage
     | PtySessionIdMessage
     | PtyTurnDoneMessage
+    | PtyTurnStartMessage
     | SessionsChangedMessage
     | RequestMessage
     | ResponseMessage;

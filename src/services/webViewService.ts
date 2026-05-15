@@ -85,9 +85,9 @@ export interface IWebViewService extends vscode.WebviewViewProvider {
 
 	/**
 	 * Update the tab icon state for a chat panel.
-	 * iconState: 'pending' = blue (permission waiting), 'done' = green (turn complete), 'working' = orange (active turn), 'default' = grey (idle)
+	 * iconState: 'pending' = blue (permission waiting), 'working' = orange (active turn), 'idle' = grey (resting)
 	 */
-	updateChatPanelBadge(webviewId: string, count: number, iconState?: string): void;
+	updateChatPanelBadge(webviewId: string, iconState: 'idle' | 'working' | 'pending'): void;
 
 	/**
 	 * Re-open chat panels that were open when the workspace was last closed.
@@ -109,7 +109,7 @@ interface PanelModel {
 	readonly panel: vscode.WebviewPanel;
 	sessionId: string | null;   // null = no real session yet (new session loading)
 	title: string;              // current base title (without the pending '●' prefix)
-	iconState: 'default' | 'working' | 'done' | 'pending';
+	iconState: 'idle' | 'working' | 'pending';
 }
 
 /**
@@ -341,7 +341,7 @@ export class WebViewService implements IWebViewService {
 			panel,
 			sessionId,
 			title,
-			iconState: 'default',
+			iconState: 'idle',
 		};
 
 		this.panels.set(key, model);
@@ -397,21 +397,9 @@ export class WebViewService implements IWebViewService {
 		this.logService.info(`[WebViewService] : webviewId=${webviewId}, title=${title}`);
 	}
 
-	/**
-	 * Apply the current title + icon state to the panel's `title` and `iconPath`.
-	 * - pending: '● ' prefix + blue Claude logo (permission waiting)
-	 * - done:    green Claude logo (turn completed)
-	 * - working: orange Claude logo (active turn)
-	 * - default: grey Claude logo (idle)
-	 */
 	private applyPanelPresentation(model: PanelModel): void {
-		const pending = model.iconState === 'pending';
-		model.panel.title = pending ? WebViewService.PENDING_PREFIX + model.title : model.title;
-		const iconFile = model.iconState === 'pending' ? 'relay-logo-pending.svg'
-		               : model.iconState === 'done'    ? 'relay-logo-done.svg'
-		               : model.iconState === 'working' ? 'relay-logo.svg'
-		               :                                 'relay-logo.svg';
-		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', iconFile));
+		model.panel.title = model.title;
+		const iconUri = vscode.Uri.file(path.join(this.context.extensionPath, 'resources', `relay-logo-${model.iconState}.svg`));
 		model.panel.iconPath = { light: iconUri, dark: iconUri };
 	}
 
@@ -446,20 +434,11 @@ export class WebViewService implements IWebViewService {
 		}
 	}
 
-	updateChatPanelBadge(webviewId: string, count: number, iconState?: string): void {
+	updateChatPanelBadge(webviewId: string, iconState: 'idle' | 'working' | 'pending'): void {
 		const model = this.findModelByWebviewId(webviewId);
 		if (!model) return;
-		// Note: vscode.WebviewPanel has no `badge` property (that exists only on WebviewView/TreeView),
-		// so we signal state by toggling a '●' title prefix and swapping the tab icon.
-		const newState: 'default' | 'working' | 'done' | 'pending' =
-			iconState === 'pending' ? 'pending' :
-			iconState === 'done'    ? 'done' :
-			iconState === 'working' ? 'working' :
-			iconState === 'default' ? 'default' :
-			// Legacy fallback: derive from count if iconState not provided
-			count > 0               ? 'pending' : 'default';
-		if (model.iconState !== newState) {
-			model.iconState = newState;
+		if (model.iconState !== iconState) {
+			model.iconState = iconState;
 			this.applyPanelPresentation(model);
 		}
 	}

@@ -61,6 +61,7 @@ export abstract class BaseTransport {
   readonly ptyExitEvents = new EventEmitter<{ channelId: string; exitCode: number }>();
   readonly ptySessionIdEvents = new EventEmitter<{ channelId: string; sessionId: string; summary: string }>();
   readonly ptyTurnDoneEvents = new EventEmitter<{ channelId: string }>();
+  readonly ptyTurnStartEvents = new EventEmitter<{ channelId: string }>();
   readonly sessionsChangedEvents = new EventEmitter<void>();
 
   protected readonly fromHost = new AsyncQueue<ExtensionToWebViewMessage>();
@@ -270,8 +271,8 @@ export abstract class BaseTransport {
   updatePanelSession(sessionId: string | null): Promise<any> {
     return this.sendRequest({ type: "update_panel_session", sessionId } as any);
   }
-  setPanelBadge(count: number, iconState?: 'default' | 'working' | 'done' | 'pending'): Promise<any> {
-    return this.sendRequest({ type: "set_panel_badge", count, iconState } as any);
+  setIconState(iconState: 'idle' | 'working' | 'pending'): Promise<any> {
+    return this.sendRequest({ type: "set_panel_badge", iconState } as any);
   }
   openClaudeInTerminal(): Promise<any> {
     return this.sendRequest({ type: "open_claude_in_terminal" });
@@ -444,6 +445,9 @@ export abstract class BaseTransport {
             break;
           case "pty_turn_done":
             this.ptyTurnDoneEvents.emit({ channelId: message.channelId });
+            break;
+          case "pty_turn_start":
+            this.ptyTurnStartEvents.emit({ channelId: message.channelId });
             break;
           case "sessions_changed":
             this.sessionsChangedEvents.emit();
