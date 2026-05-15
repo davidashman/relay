@@ -747,8 +747,6 @@ export interface LaunchPtyMessage extends BaseMessage {
     effortLevel?: string | null;
     cols: number;
     rows: number;
-    /** True when the webview input bar is visible (Terminal+Input mode). Hooks are only enabled when true. */
-    withInput?: boolean;
 }
 
 /** Webview → Extension: raw keystroke/paste data */

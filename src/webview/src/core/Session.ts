@@ -635,7 +635,6 @@ export class Session {
     if (!this.cwd()) this.cwd(connection.config()?.defaultCwd);
 
     const resumeId = this._sdkSessionId ?? this.sessionId();
-    const terminalInputHidden = (window as any).RELAY_BOOTSTRAP?.terminalInputHidden === true;
     connection.launchPty(channelId, {
       resume: resumeId ?? null,
       agent: this.agentSelection() ?? null,
@@ -645,7 +644,6 @@ export class Session {
       cwd: this.cwd() ?? undefined,
       cols,
       rows,
-      withInput: !terminalInputHidden,
     });
 
     // When the extension discovers the session file on disk, update our signals.

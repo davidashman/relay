@@ -16,6 +16,7 @@
 import * as fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import * as os from 'os';
 import { createDecorator } from '../../di/instantiation';
 import { ILogService } from '../logService';
@@ -975,12 +976,12 @@ export class ClaudeAgentService implements IClaudeAgentService {
     private async ensurePermissionServer(): Promise<RelayMcpServer> {
         if (!this.permissionServer) {
             this.logService.info('[ClaudeAgentService] starting RelayMcpServer');
-            this.permissionServer = new RelayMcpServer(
-                (channelId, toolName, inputs) => {
+            this.permissionServer = new RelayMcpServer({
+                onPermission: (channelId, toolName, inputs) => {
                     this.logService.info(`[ClaudeAgentService] permission request from MCP: channel=${channelId} tool=${toolName}`);
                     return this.requestToolPermission(channelId, toolName, inputs, [], undefined);
                 },
-                async (channelId, inputs) => {
+                onQuestion: async (channelId, inputs) => {
                     this.logService.info(`[ClaudeAgentService] AskUserQuestion hook: channel=${channelId}`);
                     const result = await this.requestToolPermission(channelId, 'AskUserQuestion', inputs, [], undefined);
                     if (result.behavior === 'allow' && result.updatedInput) {
@@ -988,12 +989,83 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     }
                     throw new Error('AskUserQuestion denied');
                 },
-                (channelId) => {
+                onTurnDone: (channelId) => {
                     this.logService.info(`[ClaudeAgentService] Turn done: channel=${channelId}`);
                     this.transport?.send({ type: 'pty_turn_done', channelId });
                 },
-                (msg) => this.logService.info(msg),
-            );
+                onGetDiagnostics: async (uri?: string) => {
+                    const severityMap = ['error', 'warning', 'information', 'hint'] as const;
+                    if (uri) {
+                        const fileUri = vscode.Uri.file(uri);
+                        return vscode.languages.getDiagnostics(fileUri).map(d => ({
+                            uri,
+                            severity: severityMap[d.severity] ?? 'error',
+                            message: d.message,
+                            range: {
+                                startLine: d.range.start.line + 1,
+                                startColumn: d.range.start.character,
+                                endLine: d.range.end.line + 1,
+                                endColumn: d.range.end.character,
+                            },
+                            source: d.source,
+                            code: typeof d.code === 'object' ? String(d.code.value) : d.code,
+                        }));
+                    }
+                    return vscode.languages.getDiagnostics().flatMap(([fileUri, diagnostics]) =>
+                        diagnostics.map(d => ({
+                            uri: fileUri.fsPath,
+                            severity: severityMap[d.severity] ?? 'error',
+                            message: d.message,
+                            range: {
+                                startLine: d.range.start.line + 1,
+                                startColumn: d.range.start.character,
+                                endLine: d.range.end.line + 1,
+                                endColumn: d.range.end.character,
+                            },
+                            source: d.source,
+                            code: typeof d.code === 'object' ? String(d.code.value) : d.code,
+                        }))
+                    );
+                },
+                onOpenFile: async (filePath: string, startLine?: number, endLine?: number) => {
+                    const uri = vscode.Uri.file(filePath);
+                    const doc = await vscode.workspace.openTextDocument(uri);
+                    const editor = await vscode.window.showTextDocument(doc, { preview: false });
+                    if (startLine !== undefined) {
+                        const start = Math.max(startLine - 1, 0);
+                        const end = endLine !== undefined ? Math.max(endLine - 1, start) : start;
+                        const range = new vscode.Range(start, 0, end, 0);
+                        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+                        editor.selection = new vscode.Selection(range.start, range.end);
+                    }
+                },
+                onGetCurrentSelection: async () => {
+                    const editor = vscode.window.activeTextEditor;
+                    if (!editor || editor.selection.isEmpty || editor.document.uri.scheme !== 'file') {
+                        return null;
+                    }
+                    const { document, selection } = editor;
+                    return {
+                        filePath: document.uri.fsPath,
+                        content: document.getText(selection),
+                        startLine: selection.start.line + 1,
+                        endLine: selection.end.line + 1,
+                        startColumn: selection.start.character,
+                        endColumn: selection.end.character,
+                    };
+                },
+                onShowDiff: async (filePath: string, newContent: string, description?: string) => {
+                    const tempPath = await this.fileSystemService.createTempFile(
+                        path.basename(filePath),
+                        newContent
+                    );
+                    const leftUri = vscode.Uri.file(filePath);
+                    const rightUri = vscode.Uri.file(tempPath);
+                    const title = description ?? `${path.basename(filePath)} (Claude)`;
+                    await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, title, { preview: true });
+                },
+                log: (msg) => this.logService.info(msg),
+            });
             this.permissionServerStarting = this.permissionServer.start().then(() => {
                 this.logService.info(`[ClaudeAgentService] RelayMcpServer started on port ${this.permissionServer!.port}`);
             }).catch(err => {

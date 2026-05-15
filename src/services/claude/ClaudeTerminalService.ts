@@ -62,13 +62,18 @@ export class ClaudeTerminalService implements IClaudeTerminalService {
     async spawn(opts: PtySpawnOptions): Promise<void> {
         const { channelId, resume, agent, permissionMode, model, effortLevel, cwd, cols, rows, mcpConfigPath } = opts;
 
-        // Write a temporary Claude settings file that registers a PreToolUse hook
-        // for AskUserQuestion. The hook calls the ask_user_question tool on the
-        // already-connected relay MCP server, which shows the AskUserQuestionModal
-        // in the webview and returns the user's answers without any TTY prompting.
-        let hookSettingsPath: string | undefined;
+        // Write a temporary Claude settings file with PreToolUse hooks for
+        // AskUserQuestion and ExitPlanMode plus a Stop hook for turn-done
+        // detection. All three route through the relay MCP server so the webview
+        // can show interactive modals instead of raw TTY prompts.
+        let settingsPath: string | undefined;
         if (mcpConfigPath) {
-            const hookSettings = {
+            const settings = {
+                spinnerTipsEnabled: false,
+                spinnerVerbs: {
+                    mode: 'replace',
+                    verbs: ['Working']
+                },
                 hooks: {
                     PreToolUse: [
                         {
@@ -102,11 +107,11 @@ export class ClaudeTerminalService implements IClaudeTerminalService {
                     ],
                 },
             };
-            hookSettingsPath = path.join(os.tmpdir(), `relay-hook-settings-${channelId}.json`);
-            await fs.promises.writeFile(hookSettingsPath, JSON.stringify(hookSettings), 'utf8');
+            settingsPath = path.join(os.tmpdir(), `relay-hook-settings-${channelId}.json`);
+            await fs.promises.writeFile(settingsPath, JSON.stringify(settings), 'utf8');
         }
 
-        const { shellPath, shellArgs } = await this._buildCommand({ resume, agent, permissionMode, model, effortLevel, mcpConfigPath, hookSettingsPath });
+        const { shellPath, shellArgs } = await this._buildCommand({ resume, agent, permissionMode, model, effortLevel, mcpConfigPath, settingsPath });
 
         const configDir = await this.configService.getConfigurationDirectory();
         const customVars = await this.configService.getEnvironmentVariables();
@@ -264,7 +269,7 @@ export class ClaudeTerminalService implements IClaudeTerminalService {
         model?: string | null;
         effortLevel?: string | null;
         mcpConfigPath?: string;
-        hookSettingsPath?: string;
+        settingsPath?: string;
     }): Promise<{ shellPath: string; shellArgs: string[] }> {
         const args: string[] = [];
 
@@ -291,11 +296,12 @@ export class ClaudeTerminalService implements IClaudeTerminalService {
         if (opts.mcpConfigPath) {
             args.push('--allowedTools', 'mcp__relay');
             args.push('--permission-prompt-tool', 'mcp__relay__permission_prompt');
+            args.push('--append-system-prompt', 'Always use the mcp__relay__permission_prompt tool for permission requests.');
             args.push('--mcp-config', opts.mcpConfigPath);
         }
 
-        if (opts.hookSettingsPath) {
-            args.push('--settings', opts.hookSettingsPath);
+        if (opts.settingsPath) {
+            args.push('--settings', opts.settingsPath);
         }
 
         const binaryName = process.platform === 'win32' ? 'claude.exe' : 'claude';

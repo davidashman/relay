@@ -14,6 +14,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import type { Session } from '../core/Session';
 import type { BaseTransport } from '../transport/BaseTransport';
+import { detectLinks } from '../terminal/terminalLinkParsing';
 
 const props = defineProps<{
   session: Session;
@@ -69,6 +70,34 @@ onMounted(async () => {
   terminal.loadAddon(fitAddon);
   terminal.open(container.value);
   fitAddon.fit();
+
+  // File path link detection: Cmd+click to open in editor (mirrors VS Code native terminal)
+  terminal.registerLinkProvider({
+    provideLinks(bufferLineNumber, callback) {
+      const bufLine = terminal!.buffer.active.getLine(bufferLineNumber - 1);
+      if (!bufLine) { callback(undefined); return; }
+      const text = bufLine.translateToString(true);
+      if (!text.trim()) { callback(undefined); return; }
+
+      const parsed = detectLinks(text);
+      if (!parsed.length) { callback(undefined); return; }
+
+      callback(parsed.map(link => ({
+        range: {
+          start: { x: (link.prefix?.index ?? link.path.index) + 1, y: bufferLineNumber },
+          end: { x: link.path.index + link.path.text.length + (link.suffix?.suffix.text.length ?? 0) + 1, y: bufferLineNumber },
+        },
+        text: link.path.text,
+        activate(event: MouseEvent) {
+          if (!event.metaKey && !event.ctrlKey) return;
+          const location = link.suffix?.row !== undefined
+            ? { startLine: link.suffix.row, startColumn: link.suffix.col }
+            : undefined;
+          props.connection.openFile(link.path.text, location).catch(() => {});
+        },
+      })));
+    },
+  });
 
   // Capture Shift+Enter before xterm's textarea sees it: block the keystroke and
   // send \u001b\r (Meta+Enter) so Claude CLI inserts a newline without submitting.

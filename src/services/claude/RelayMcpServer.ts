@@ -40,6 +40,40 @@ export type QuestionCallback = (
 
 export type TurnDoneCallback = (channelId: string) => void;
 
+export interface DiagnosticEntry {
+    uri: string;
+    severity: 'error' | 'warning' | 'information' | 'hint';
+    message: string;
+    range: { startLine: number; startColumn: number; endLine: number; endColumn: number };
+    source?: string;
+    code?: string | number;
+}
+
+export interface SelectionEntry {
+    filePath: string;
+    content: string;
+    startLine: number;
+    endLine: number;
+    startColumn: number;
+    endColumn: number;
+}
+
+export type GetDiagnosticsCallback = (uri?: string) => Promise<DiagnosticEntry[]>;
+export type OpenFileCallback = (filePath: string, startLine?: number, endLine?: number) => Promise<void>;
+export type GetSelectionCallback = () => Promise<SelectionEntry | null>;
+export type ShowDiffCallback = (filePath: string, newContent: string, description?: string) => Promise<void>;
+
+export interface RelayMcpServerOptions {
+    onPermission: PermissionCallback;
+    onQuestion: QuestionCallback;
+    onTurnDone?: TurnDoneCallback;
+    onGetDiagnostics?: GetDiagnosticsCallback;
+    onOpenFile?: OpenFileCallback;
+    onGetCurrentSelection?: GetSelectionCallback;
+    onShowDiff?: ShowDiffCallback;
+    log?: (msg: string) => void;
+}
+
 const PERMISSION_TOOL = {
     name: 'permission_prompt',
     description: 'Request user permission before a tool is executed',
@@ -84,6 +118,54 @@ const NOTIFY_TURN_DONE_TOOL = {
     inputSchema: { type: 'object', properties: {} },
 };
 
+const GET_DIAGNOSTICS_TOOL = {
+    name: 'getDiagnostics',
+    description: 'Get diagnostics (errors and warnings) from VS Code for the workspace or a specific file',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            uri: {
+                type: 'string',
+                description: 'Optional absolute file path to scope diagnostics. Omit to return all workspace diagnostics.',
+            },
+        },
+    },
+};
+
+const OPEN_FILE_TOOL = {
+    name: 'openFile',
+    description: 'Open a file in the VS Code editor, optionally scrolling to a specific line range',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            filePath: { type: 'string', description: 'Absolute or workspace-relative path to the file' },
+            startLine: { type: 'number', description: '1-based line number to reveal and start selection' },
+            endLine: { type: 'number', description: '1-based line number to end selection (defaults to startLine)' },
+        },
+        required: ['filePath'],
+    },
+};
+
+const GET_CURRENT_SELECTION_TOOL = {
+    name: 'getCurrentSelection',
+    description: 'Return the text currently selected in the active VS Code editor, along with its file path and line range',
+    inputSchema: { type: 'object', properties: {} },
+};
+
+const SHOW_DIFF_TOOL = {
+    name: 'showDiff',
+    description: 'Open VS Code\'s diff viewer comparing the current file on disk with proposed new content',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            filePath: { type: 'string', description: 'Absolute path to the file to compare' },
+            newContent: { type: 'string', description: 'Proposed new content to show on the right side of the diff' },
+            description: { type: 'string', description: 'Optional title for the diff tab' },
+        },
+        required: ['filePath', 'newContent'],
+    },
+};
+
 export class RelayMcpServer {
     private server: http.Server | null = null;
     private _port = 0;
@@ -91,12 +173,25 @@ export class RelayMcpServer {
     private readonly activeChannels = new Set<string>();
     private readonly tempFiles = new Set<string>();
 
-    constructor(
-        private readonly onPermission: PermissionCallback,
-        private readonly onQuestion: QuestionCallback,
-        private readonly onTurnDone: TurnDoneCallback | undefined,
-        private readonly log: (msg: string) => void = () => {},
-    ) {}
+    private readonly onPermission: PermissionCallback;
+    private readonly onQuestion: QuestionCallback;
+    private readonly onTurnDone: TurnDoneCallback | undefined;
+    private readonly onGetDiagnostics: GetDiagnosticsCallback | undefined;
+    private readonly onOpenFile: OpenFileCallback | undefined;
+    private readonly onGetCurrentSelection: GetSelectionCallback | undefined;
+    private readonly onShowDiff: ShowDiffCallback | undefined;
+    private readonly log: (msg: string) => void;
+
+    constructor(options: RelayMcpServerOptions) {
+        this.onPermission = options.onPermission;
+        this.onQuestion = options.onQuestion;
+        this.onTurnDone = options.onTurnDone;
+        this.onGetDiagnostics = options.onGetDiagnostics;
+        this.onOpenFile = options.onOpenFile;
+        this.onGetCurrentSelection = options.onGetCurrentSelection;
+        this.onShowDiff = options.onShowDiff;
+        this.log = options.log ?? (() => {});
+    }
 
     get port(): number { return this._port; }
 
@@ -211,6 +306,9 @@ export class RelayMcpServer {
             res.writeHead(200, { 'Content-Type': 'application/json' }).end(body);
         };
 
+        const toolOk = (data: unknown) => ok({ content: [{ type: 'text', text: JSON.stringify(data) }], isError: false });
+        const toolErr = (message: string) => ok({ content: [{ type: 'text', text: message }], isError: true });
+
         // Notifications have no id — just acknowledge.
         if (id === undefined || id === null) {
             this.log(`[RelayMcpServer] notification (no id), method=${msg['method']}`);
@@ -231,7 +329,17 @@ export class RelayMcpServer {
         }
 
         if (method === 'tools/list') {
-            ok({ tools: [PERMISSION_TOOL, ASK_USER_QUESTION_TOOL, EXIT_PLAN_MODE_TOOL, NOTIFY_TURN_DONE_TOOL] });
+            const tools = [
+                PERMISSION_TOOL,
+                ASK_USER_QUESTION_TOOL,
+                EXIT_PLAN_MODE_TOOL,
+                NOTIFY_TURN_DONE_TOOL,
+                GET_DIAGNOSTICS_TOOL,
+                OPEN_FILE_TOOL,
+                GET_CURRENT_SELECTION_TOOL,
+                SHOW_DIFF_TOOL,
+            ];
+            ok({ tools });
             return;
         }
 
@@ -288,6 +396,61 @@ export class RelayMcpServer {
                 this.log(`[RelayMcpServer] notify_turn_done channel=${channelId}`);
                 if (this.onTurnDone) this.onTurnDone(channelId);
                 ok({ content: [{ type: 'text', text: '{"status":"ok"}' }], isError: false });
+                return;
+            }
+
+            if (toolName === 'getDiagnostics') {
+                this.log(`[RelayMcpServer] getDiagnostics channel=${channelId}`);
+                if (!this.onGetDiagnostics) { toolErr('getDiagnostics not supported'); return; }
+                try {
+                    const uri = args['uri'] as string | undefined;
+                    const diagnostics = await this.onGetDiagnostics(uri);
+                    toolOk(diagnostics);
+                } catch (e) {
+                    toolErr(String(e));
+                }
+                return;
+            }
+
+            if (toolName === 'openFile') {
+                this.log(`[RelayMcpServer] openFile channel=${channelId}`);
+                if (!this.onOpenFile) { toolErr('openFile not supported'); return; }
+                try {
+                    const filePath = args['filePath'] as string;
+                    const startLine = args['startLine'] as number | undefined;
+                    const endLine = args['endLine'] as number | undefined;
+                    await this.onOpenFile(filePath, startLine, endLine);
+                    toolOk({ success: true });
+                } catch (e) {
+                    toolErr(String(e));
+                }
+                return;
+            }
+
+            if (toolName === 'getCurrentSelection') {
+                this.log(`[RelayMcpServer] getCurrentSelection channel=${channelId}`);
+                if (!this.onGetCurrentSelection) { toolErr('getCurrentSelection not supported'); return; }
+                try {
+                    const selection = await this.onGetCurrentSelection();
+                    toolOk(selection);
+                } catch (e) {
+                    toolErr(String(e));
+                }
+                return;
+            }
+
+            if (toolName === 'showDiff') {
+                this.log(`[RelayMcpServer] showDiff channel=${channelId}`);
+                if (!this.onShowDiff) { toolErr('showDiff not supported'); return; }
+                try {
+                    const filePath = args['filePath'] as string;
+                    const newContent = args['newContent'] as string;
+                    const description = args['description'] as string | undefined;
+                    await this.onShowDiff(filePath, newContent, description);
+                    toolOk({ success: true });
+                } catch (e) {
+                    toolErr(String(e));
+                }
                 return;
             }
 
