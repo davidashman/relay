@@ -1,5 +1,10 @@
 <template>
-  <div ref="container" class="terminal-view" />
+  <div
+    ref="container"
+    class="terminal-view"
+    @dragover="handleDragOver"
+    @drop="handleDrop"
+  />
 </template>
 
 <script setup lang="ts">
@@ -20,6 +25,7 @@ let terminal: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let launched = false;
+let shiftEnterBlocker: ((e: KeyboardEvent) => void) | null = null;
 
 onMounted(async () => {
   if (!container.value) return;
@@ -64,6 +70,17 @@ onMounted(async () => {
   terminal.open(container.value);
   fitAddon.fit();
 
+  // Capture Shift+Enter before xterm's textarea sees it: block the keystroke and
+  // send \u001b\r (Meta+Enter) so Claude CLI inserts a newline without submitting.
+  shiftEnterBlocker = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      props.session.sendPtyInput('\u001b\r');
+    }
+  };
+  container.value.addEventListener('keydown', shiftEnterBlocker, { capture: true });
+
   // Forward keystrokes and pastes to the PTY
   terminal.onData((data) => {
     props.session.sendPtyInput(data);
@@ -104,11 +121,74 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  if (shiftEnterBlocker && container.value) {
+    container.value.removeEventListener('keydown', shiftEnterBlocker, { capture: true } as EventListenerOptions);
+    shiftEnterBlocker = null;
+  }
   resizeObserver?.disconnect();
   terminal?.dispose();
   terminal = null;
   fitAddon = null;
 });
+
+function handleDragOver(event: DragEvent) {
+  const types = Array.from(event.dataTransfer?.types ?? []);
+  if (!types.includes('Files') && !types.includes('text/uri-list')) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+}
+
+async function handleDrop(event: DragEvent) {
+  const dataTransfer = event.dataTransfer;
+  if (!dataTransfer) return;
+
+  const types = Array.from(dataTransfer.types);
+  if (!types.includes('Files') && !types.includes('text/uri-list')) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  // Binary file drop (e.g. from Finder) — stage to temp dir then inject @path
+  const files = dataTransfer.files;
+  if (files && files.length > 0) {
+    for (const file of Array.from(files)) {
+      try {
+        const data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1] ?? '');
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const { filePath } = await props.connection.stageFile(file.name, data);
+        props.session.sendPtyInput(`@${filePath} `);
+      } catch (e) {
+        console.error('[TerminalView] Failed to stage dropped file:', e);
+      }
+    }
+    return;
+  }
+
+  // URI-list drop (e.g. dragged from VS Code explorer) — inject @path directly
+  const uriList = dataTransfer.getData('text/uri-list');
+  if (uriList) {
+    const paths = uriList
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'))
+      .map(uri => {
+        try {
+          const url = new URL(uri);
+          if (url.protocol === 'file:') return decodeURIComponent(url.pathname);
+        } catch { /* ignore */ }
+        return null;
+      })
+      .filter((p): p is string => p !== null);
+
+    for (const p of paths) {
+      props.session.sendPtyInput(`@${p} `);
+    }
+  }
+}
 
 defineExpose({ focus: () => terminal?.focus() });
 </script>

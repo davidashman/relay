@@ -60,6 +60,7 @@ export abstract class BaseTransport {
   readonly ptyDataEvents = new EventEmitter<{ channelId: string; data: string }>();
   readonly ptyExitEvents = new EventEmitter<{ channelId: string; exitCode: number }>();
   readonly ptySessionIdEvents = new EventEmitter<{ channelId: string; sessionId: string; summary: string }>();
+  readonly ptyTurnDoneEvents = new EventEmitter<{ channelId: string }>();
   readonly sessionsChangedEvents = new EventEmitter<void>();
 
   protected readonly fromHost = new AsyncQueue<ExtensionToWebViewMessage>();
@@ -188,6 +189,10 @@ export abstract class BaseTransport {
 
   openAttachment(fileName: string, mediaType: string, data: string): Promise<any> {
     return this.sendRequest({ type: "open_attachment", fileName, mediaType, data });
+  }
+
+  stageFile(fileName: string, data: string): Promise<{ filePath: string }> {
+    return this.sendRequest({ type: "stage_file", fileName, data });
   }
 
   async openDiff(
@@ -436,6 +441,9 @@ export abstract class BaseTransport {
             break;
           case "pty_session_id":
             this.ptySessionIdEvents.emit({ channelId: message.channelId, sessionId: message.sessionId, summary: message.summary });
+            break;
+          case "pty_turn_done":
+            this.ptyTurnDoneEvents.emit({ channelId: message.channelId });
             break;
           case "sessions_changed":
             this.sessionsChangedEvents.emit();

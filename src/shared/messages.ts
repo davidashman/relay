@@ -453,6 +453,20 @@ export interface OpenAttachmentResponse {
 }
 
 /**
+ * Stage a file to a temp directory and return its path (used by terminal mode)
+ */
+export interface StageFileRequest {
+    type: "stage_file";
+    fileName: string;
+    data: string; // base64
+}
+
+export interface StageFileResponse {
+    type: "stage_file_response";
+    filePath: string;
+}
+
+/**
  */
 export interface SelectionRange {
     filePath: string;
@@ -779,6 +793,12 @@ export interface SessionsChangedMessage extends BaseMessage {
     type: "sessions_changed";
 }
 
+/** Extension → Webview: the PTY Claude turn has completed (fires via Stop hook) */
+export interface PtyTurnDoneMessage extends BaseMessage {
+    type: "pty_turn_done";
+    channelId: string;
+}
+
 export type WebViewToExtensionMessage =
     | LaunchClaudeMessage
     | IOMessage
@@ -802,6 +822,7 @@ export type ExtensionToWebViewMessage =
     | PtyDataMessage
     | PtyExitMessage
     | PtySessionIdMessage
+    | PtyTurnDoneMessage
     | SessionsChangedMessage
     | RequestMessage
     | ResponseMessage;
@@ -826,6 +847,7 @@ export type WebViewRequest =
     | OpenDiffRequest
     | OpenContentRequest
     | OpenAttachmentRequest
+    | StageFileRequest
     | SetPermissionModeRequest
     | SetModelRequest
     | SetThinkingLevelRequest
@@ -866,6 +888,7 @@ export type WebViewRequestResponse =
     | OpenDiffResponse
     | OpenContentResponse
     | OpenAttachmentResponse
+    | StageFileResponse
     | SetPermissionModeResponse
     | SetModelResponse
     | SetThinkingLevelResponse

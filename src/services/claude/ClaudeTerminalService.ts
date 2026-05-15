@@ -90,6 +90,16 @@ export class ClaudeTerminalService implements IClaudeTerminalService {
                             }],
                         },
                     ],
+                    Stop: [
+                        {
+                            hooks: [{
+                                type: 'mcp_tool',
+                                server: 'relay',
+                                tool: 'notify_turn_done',
+                                input: {},
+                            }],
+                        },
+                    ],
                 },
             };
             hookSettingsPath = path.join(os.tmpdir(), `relay-hook-settings-${channelId}.json`);

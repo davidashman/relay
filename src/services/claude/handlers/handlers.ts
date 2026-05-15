@@ -43,6 +43,8 @@ import type {
     OpenContentResponse,
     OpenAttachmentRequest,
     OpenAttachmentResponse,
+    StageFileRequest,
+    StageFileResponse,
     OpenURLRequest,
     OpenURLResponse,
     // GetAuthStatusRequest,
@@ -669,6 +671,28 @@ export async function handleOpenAttachment(
     return {
         type: "open_attachment_response"
     };
+}
+
+/**
+ * Stage a file to a temp directory for terminal mode @-reference injection
+ */
+export async function handleStageFile(
+    request: StageFileRequest,
+    context: HandlerContext
+): Promise<StageFileResponse> {
+    const { logService, fileSystemService } = context;
+    const { fileName, data } = request;
+
+    logService.info(`Staging file for terminal: ${fileName}`);
+
+    const sanitized = fileSystemService.sanitizeFileName(fileName || 'attachment');
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'relay-staged-'));
+    const filePath = path.join(tempDir, sanitized);
+
+    const buffer = Buffer.from(data, 'base64');
+    await fs.promises.writeFile(filePath, buffer);
+
+    return { type: 'stage_file_response', filePath };
 }
 
 /**

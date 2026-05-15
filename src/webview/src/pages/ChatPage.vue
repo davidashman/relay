@@ -872,6 +872,31 @@
   async function handleAddAttachment(files: FileList) {
     if (!files || files.length === 0) return;
 
+    if (isTerminalMode) {
+      // Stage files to disk and inject @path references into the input
+      try {
+        const connection = await runtime.connectionManager.get();
+        for (const file of Array.from(files)) {
+          const data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              // Strip the data:...;base64, prefix
+              resolve(result.split(',')[1] ?? '');
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          const { filePath } = await connection.stageFile(file.name, data);
+          chatInputRef.value?.appendText(`@${filePath}`);
+        }
+      } catch (e) {
+        console.error('[ChatPage] Failed to stage file for terminal:', e);
+      }
+      chatInputRef.value?.focus();
+      return;
+    }
+
     try {
       // AttachmentItem
       const conversions = await Promise.all(

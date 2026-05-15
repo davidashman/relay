@@ -74,6 +74,7 @@ import {
     handleStatPath,
     handleOpenContent,
     handleOpenAttachment,
+    handleStageFile,
     handleOpenURL,
     handleOpenConfigFile,
     // handleOpenClaudeInTerminal,
@@ -343,16 +344,12 @@ export class ClaudeAgentService implements IClaudeAgentService {
                         const ptyCwd = message.cwd || this.getCwd();
                         void (async () => {
                             let mcpConfigPath: string | undefined;
-                            if (message.withInput) {
-                                try {
-                                    const server = await this.ensurePermissionServer();
-                                    mcpConfigPath = await server.writeMcpConfig(message.channelId);
-                                    this.logService.info(`[ClaudeAgentService] MCP config written: ${mcpConfigPath}`);
-                                } catch (err) {
-                                    this.logService.warn(`[ClaudeAgentService] permission MCP server unavailable, falling back to CLI prompts: ${err}`);
-                                }
-                            } else {
-                                this.logService.info(`[ClaudeAgentService] Terminal mode (no input): skipping permission/question hooks`);
+                            try {
+                                const server = await this.ensurePermissionServer();
+                                mcpConfigPath = await server.writeMcpConfig(message.channelId);
+                                this.logService.info(`[ClaudeAgentService] MCP config written: ${mcpConfigPath}`);
+                            } catch (err) {
+                                this.logService.warn(`[ClaudeAgentService] MCP server unavailable, falling back to CLI prompts: ${err}`);
                             }
                             this.logService.info(`[ClaudeAgentService] spawning PTY channel=${message.channelId} mcpConfigPath=${mcpConfigPath ?? 'none'}`);
                             await this.claudeTerminalService.spawn({
@@ -768,6 +765,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
             case "open_attachment":
                 return handleOpenAttachment(request, this.handlerContext);
 
+            case "stage_file":
+                return handleStageFile(request, this.handlerContext);
+
             // UI
             case "show_notification":
                 return handleShowNotification(request, this.handlerContext);
@@ -985,6 +985,10 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     }
                     throw new Error('AskUserQuestion denied');
                 },
+                (channelId) => {
+                    this.logService.info(`[ClaudeAgentService] Turn done: channel=${channelId}`);
+                    this.transport?.send({ type: 'pty_turn_done', channelId });
+                },
                 (msg) => this.logService.info(msg),
             );
             this.permissionServerStarting = this.permissionServer.start().then(() => {
@@ -1064,15 +1068,11 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
             if (!summary) return;
 
-            // Notify all PTY channels watching this cwd
+            // Notify all PTY channels watching this cwd; the webview side filters
+            // by channelId and drives the rename_tab roundtrip for the correct tab.
             for (const [chId, meta] of this._ptyMeta.entries()) {
                 if (meta.cwd !== cwd) continue;
                 this.transport?.send({ type: 'pty_session_id', channelId: chId, sessionId, summary });
-                // Also update the VS Code panel title directly
-                if (!notifiedIds.has(sessionId)) {
-                    const truncated = summary.length > 25 ? `${summary.slice(0, 24)}…` : summary;
-                    this.webViewService.updateChatPanelTitle(meta.webviewId, truncated);
-                }
             }
 
             if (!notifiedIds.has(sessionId)) {

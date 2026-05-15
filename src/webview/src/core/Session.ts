@@ -80,6 +80,10 @@ export class Session {
   // first `result` proves the fork's JSONL was written to disk.
   private _sdkSessionId?: string;
 
+  // Incremented each time a pty_turn_done event arrives for this session's PTY channel.
+  // Used by the panel badge effect to show green "done" icon after turn completion.
+  readonly ptyTurnDone = signal(0);
+
   // Context-compaction interception state. When the SDK streams a compacting
   // window, we buffer the summary assistant output here and surface it as a
   // single collapsible "compaction" message once `compact_boundary` arrives.
@@ -649,6 +653,11 @@ export class Session {
       if (!this.summary()) this.summary(summary);
       this.lastModifiedTime(Date.now());
       unsub();
+    });
+
+    // Track turn completion for tab icon (green = done, blue = permission/question pending).
+    connection.ptyTurnDoneEvents.add(({ channelId: cid }) => {
+      if (cid === channelId) this.ptyTurnDone(this.ptyTurnDone() + 1);
     });
 
     return channelId;

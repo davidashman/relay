@@ -1041,6 +1041,18 @@ defineExpose({
     }
     autoResizeTextarea()
   },
+  /** Append text to current content (used for terminal mode @-file injection) */
+  appendText(text: string) {
+    const base = content.value.trimEnd()
+    const updated = base ? `${base} ${text}` : text
+    content.value = updated
+    if (textareaRef.value) {
+      textareaRef.value.textContent = updated
+      placeCaretAtEnd(textareaRef.value)
+    }
+    emit('input', updated)
+    autoResizeTextarea()
+  },
   /** */
   focus() {
     nextTick(() => {

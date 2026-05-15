@@ -38,6 +38,8 @@ export type QuestionCallback = (
     inputs: Record<string, unknown>
 ) => Promise<Record<string, unknown>>;
 
+export type TurnDoneCallback = (channelId: string) => void;
+
 const PERMISSION_TOOL = {
     name: 'permission_prompt',
     description: 'Request user permission before a tool is executed',
@@ -76,6 +78,12 @@ const EXIT_PLAN_MODE_TOOL = {
     },
 };
 
+const NOTIFY_TURN_DONE_TOOL = {
+    name: 'notify_turn_done',
+    description: 'Notify Relay that the current Claude response turn has completed',
+    inputSchema: { type: 'object', properties: {} },
+};
+
 export class RelayMcpServer {
     private server: http.Server | null = null;
     private _port = 0;
@@ -86,6 +94,7 @@ export class RelayMcpServer {
     constructor(
         private readonly onPermission: PermissionCallback,
         private readonly onQuestion: QuestionCallback,
+        private readonly onTurnDone: TurnDoneCallback | undefined,
         private readonly log: (msg: string) => void = () => {},
     ) {}
 
@@ -222,7 +231,7 @@ export class RelayMcpServer {
         }
 
         if (method === 'tools/list') {
-            ok({ tools: [PERMISSION_TOOL, ASK_USER_QUESTION_TOOL, EXIT_PLAN_MODE_TOOL] });
+            ok({ tools: [PERMISSION_TOOL, ASK_USER_QUESTION_TOOL, EXIT_PLAN_MODE_TOOL, NOTIFY_TURN_DONE_TOOL] });
             return;
         }
 
@@ -272,6 +281,13 @@ export class RelayMcpServer {
                 } catch {
                     ok({ content: [{ type: 'text', text: '{"permissionDecision":"deny"}' }], isError: false });
                 }
+                return;
+            }
+
+            if (toolName === 'notify_turn_done') {
+                this.log(`[RelayMcpServer] notify_turn_done channel=${channelId}`);
+                if (this.onTurnDone) this.onTurnDone(channelId);
+                ok({ content: [{ type: 'text', text: '{"status":"ok"}' }], isError: false });
                 return;
             }
 

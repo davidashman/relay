@@ -135,13 +135,14 @@ export function useRuntime(): RuntimeInstance {
 
         const permCount = activeSession.permissionRequests().length;
         const busy = activeSession.busy();
+        const ptyDone = activeSession.ptyTurnDone();
 
         if (busy) _panelIconEverBusy = true;
 
         let iconState: 'default' | 'working' | 'done' | 'pending';
         if (permCount > 0) iconState = 'pending';
         else if (busy) iconState = 'working';
-        else if (_panelIconEverBusy) iconState = 'done';
+        else if (_panelIconEverBusy || ptyDone > 0) iconState = 'done';
         else iconState = 'default';
 
         void conn.setPanelBadge(permCount, iconState);
@@ -300,6 +301,7 @@ export function useRuntime(): RuntimeInstance {
         const activeSession = sessionStore.activeSession();
         if (activeSession) void activeSession.send('/compact', [], false);
       });
+
 
       let sessionsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
       connection.sessionsChangedEvents.add(() => {
