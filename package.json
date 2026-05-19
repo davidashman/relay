@@ -28,7 +28,7 @@
             "terminal",
             "terminalWithInput"
           ],
-          "default": "terminal",
+          "default": "panel",
           "enumItemLabels": [
             "Chat Panel",
             "Terminal",
