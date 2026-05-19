@@ -1097,6 +1097,7 @@ defineExpose({
 .controls-left {
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 .controls-right {

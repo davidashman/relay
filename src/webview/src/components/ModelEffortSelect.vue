@@ -158,7 +158,7 @@ function handleEffortSelect(item: DropdownItemData, close: () => void) {
   line-height: 24px;
   min-width: 0;
   max-width: 100%;
-  padding: 2px 12px 2px 6px;
+  padding: 2px 6px;
   border-radius: 24px;
   flex-shrink: 1;
   cursor: pointer;
