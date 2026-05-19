@@ -1,61 +1,53 @@
 /**
- * ClaudeSdkService - Claude Agent SDK
+ * ClaudeProcessService - Direct Claude CLI process integration
  *
- * 1.  @anthropic-ai/claude-agent-sdk  query()
- * 2.  SDK Options
- * 3.
- * 4.  interrupt()
+ * Replaces the @anthropic-ai/claude-agent-sdk by spawning the Claude CLI
+ * directly with --output-format stream-json --input-format stream-json.
  *
- * - ILogService:
- * - IConfigurationService:
+ * Wire protocol (JSON Lines on stdio):
+ *   stdout: SDKMessage | {type:'control_request', request_id, request} | {type:'keep_alive'}
+ *   stdin:  SDKUserMessage | {type:'control_request', request_id, request} | {type:'control_response', response}
  */
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
+import * as readline from 'readline';
+import { spawn, type ChildProcess } from 'child_process';
 import { createDecorator } from '../../di/instantiation';
 import { ILogService } from '../logService';
 import { IConfigurationService } from '../configurationService';
 import { IFileSystemService } from '../fileSystemService';
 import { AsyncStream } from './transport';
-
-// SDK
 import type {
-    Options,
-    Query,
     CanUseTool,
     PermissionMode,
+    PermissionResult,
+    SDKMessage,
     SDKUserMessage,
-    HookCallbackMatcher,
     ThinkingConfig,
 } from '@anthropic-ai/claude-agent-sdk';
+import type { Query } from './claudeTypes';
 
 export const IClaudeSdkService = createDecorator<IClaudeSdkService>('claudeSdkService');
 
-/**
- * SDK
- */
-/**
- * stderr
- */
 export interface LLMRequestError {
-    statusCode: string;    // HTTP  (e.g. 401, 503)
-    message: string;       //
-    type: string;          //  (e.g. authentication_error, new_api_error)
-    raw: string;           //  stderr
+    statusCode: string;
+    message: string;
+    type: string;
+    raw: string;
 }
 
 export interface SdkQueryParams {
     inputStream: AsyncStream<SDKUserMessage>;
     resume: string | null;
     canUseTool: CanUseTool;
-    model: string | null;  // ←  null
-    agent?: string | null; // Agent definition name from ~/.claude/agents/
+    model: string | null;
+    agent?: string | null;
     cwd: string;
-    permissionMode: PermissionMode | string;  // ←
+    permissionMode: PermissionMode | string;
     thinking?: ThinkingConfig;
-    effortLevel?: string | null; // ← Opus 4.6+ adaptive reasoning effort (low | medium | high)
-    /**  stderr  */
+    effortLevel?: string | null;
     onStderrError?: (error: LLMRequestError) => void;
 }
 
@@ -66,28 +58,14 @@ export interface SdkProbeParams {
 }
 
 export interface SdkProbeResult {
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     errors?: Record<string, string>;
 }
 
-/**
- * SDK
- */
 export interface IClaudeSdkService {
     readonly _serviceBrand: undefined;
-
-    /**
-     *  Claude SDK
-     */
     query(params: SdkQueryParams): Promise<Query>;
-
-    /**
-     *  SDK
-     */
     probe(params: SdkProbeParams): Promise<SdkProbeResult>;
-
-    /**
-     */
     interrupt(query: Query): Promise<void>;
 }
 
@@ -108,16 +86,295 @@ const VS_CODE_APPEND_PROMPT = `
   ## User Selection Context
   The user's IDE selection (if any) is included in the conversation context and marked with ide_selection tags. This represents code or text the user has highlighted in their editor and may or may not be relevant to their request.`;
 
-const SDK_PROBE_CAPABILITIES: Record<string, (query: Query) => Promise<any>> = {
-    supportedCommands: (query) => query.supportedCommands?.(),
-    supportedModels: (query) => query.supportedModels?.(),
-    mcpServerStatus: (query) => query.mcpServerStatus?.(),
-    accountInfo: (query) => query.accountInfo?.()
-};
+// ---------------------------------------------------------------------------
+// ProcessQuery — wraps a spawned CLI child process as a Query
+// ---------------------------------------------------------------------------
 
-/**
- * ClaudeSdkService
- */
+class ProcessQuery implements Query {
+    private readonly messageQueue: Array<SDKMessage | Error | null> = [];
+    private readonly waiters: Array<{
+        resolve: (v: IteratorResult<SDKMessage, void>) => void;
+        reject: (e: unknown) => void;
+    }> = [];
+    private isDone = false;
+    private initResponse: Record<string, unknown> | null = null;
+    private initWaiters: Array<() => void> = [];
+    private readonly pendingControl = new Map<string, {
+        resolve: (v: unknown) => void;
+        reject: (e: Error) => void;
+    }>();
+
+    constructor(
+        private readonly proc: ChildProcess,
+        private readonly canUseTool: CanUseTool | undefined,
+        private readonly logService: ILogService
+    ) {
+        this.setupReaders();
+    }
+
+    // ── stdout / stdin wiring ──────────────────────────────────────────────
+
+    private setupReaders(): void {
+        const rl = readline.createInterface({ input: this.proc.stdout! });
+        rl.on('line', (line: string) => {
+            if (!line.trim()) return;
+            let parsed: Record<string, unknown>;
+            try { parsed = JSON.parse(line); }
+            catch { return; }
+            this.handleStdoutMessage(parsed);
+        });
+        rl.on('close', () => this.signalDone());
+        this.proc.on('error', (err: Error) => this.signalError(err));
+        // process exit without readline close (edge case)
+        this.proc.on('close', () => this.signalDone());
+    }
+
+    private handleStdoutMessage(msg: Record<string, unknown>): void {
+        const type = msg.type as string;
+
+        if (type === 'control_request') {
+            void this.handleInboundControlRequest(
+                msg as { type: string; request_id: string; request: Record<string, unknown> }
+            );
+        } else if (type === 'control_response') {
+            // The CLI is acking one of our outbound control requests
+            const response = msg.response as Record<string, unknown> | undefined;
+            const requestId = response?.request_id as string | undefined;
+            if (requestId && this.pendingControl.has(requestId)) {
+                const handler = this.pendingControl.get(requestId)!;
+                this.pendingControl.delete(requestId);
+                handler.resolve(response);
+            }
+        } else if (type === 'keep_alive') {
+            // nothing
+        } else {
+            // Capture the system init message for probe methods
+            if (type === 'system' && (msg.subtype as string) === 'init' && !this.initResponse) {
+                this.initResponse = msg;
+                this.initWaiters.forEach(r => r());
+                this.initWaiters = [];
+            }
+            this.enqueueMessage(msg as unknown as SDKMessage);
+        }
+    }
+
+    private async handleInboundControlRequest(msg: {
+        type: string;
+        request_id: string;
+        request: Record<string, unknown>;
+    }): Promise<void> {
+        const { request_id, request } = msg;
+
+        if (request.subtype === 'can_use_tool' && this.canUseTool) {
+            try {
+                const result: PermissionResult = await this.canUseTool(
+                    request.tool_name as string,
+                    (request.input ?? {}) as Record<string, unknown>,
+                    {
+                        signal: new AbortController().signal,
+                        suggestions: request.permission_suggestions as any,
+                        blockedPath: request.blocked_path as string | undefined,
+                        decisionReason: request.decision_reason as string | undefined,
+                        title: request.title as string | undefined,
+                        displayName: request.display_name as string | undefined,
+                        description: request.description as string | undefined,
+                        toolUseID: (request.tool_use_id ?? '') as string,
+                        agentID: request.agent_id as string | undefined,
+                    }
+                );
+                this.writeStdin({
+                    type: 'control_response',
+                    response: { subtype: 'success', request_id, response: result }
+                });
+            } catch (err) {
+                this.writeStdin({
+                    type: 'control_response',
+                    response: {
+                        subtype: 'success',
+                        request_id,
+                        response: { behavior: 'deny', message: String(err) }
+                    }
+                });
+            }
+        } else {
+            // Ack unrecognised control requests so the CLI doesn't stall
+            this.writeStdin({
+                type: 'control_response',
+                response: { subtype: 'success', request_id }
+            });
+        }
+    }
+
+    private writeStdin(msg: object): void {
+        if (this.proc.stdin && !this.proc.stdin.destroyed) {
+            this.proc.stdin.write(JSON.stringify(msg) + '\n');
+        }
+    }
+
+    // ── Public API ─────────────────────────────────────────────────────────
+
+    /** Write a user message to the CLI via stdin. */
+    send(msg: SDKUserMessage): void {
+        this.writeStdin(msg);
+    }
+
+    async interrupt(): Promise<void> {
+        if (!this.proc.killed) {
+            this.proc.kill('SIGINT');
+        }
+    }
+
+    async setPermissionMode(mode: PermissionMode): Promise<void> {
+        await this.sendControl({ subtype: 'set_permission_mode', mode });
+    }
+
+    async setModel(model: string): Promise<void> {
+        await this.sendControl({ subtype: 'set_model', model });
+    }
+
+    async setMaxThinkingTokens(max: number | null): Promise<void> {
+        await this.sendControl({ subtype: 'set_max_thinking_tokens', max_thinking_tokens: max });
+    }
+
+    /** Wait up to timeoutMs for the CLI system init message, then return initResponse. */
+    private waitForInit(timeoutMs = 5_000): Promise<Record<string, unknown> | null> {
+        if (this.initResponse || this.isDone) return Promise.resolve(this.initResponse);
+        return new Promise<Record<string, unknown> | null>((resolve) => {
+            const timer = setTimeout(() => {
+                this.initWaiters = this.initWaiters.filter(r => r !== done);
+                resolve(null);
+            }, timeoutMs);
+            const done = () => { clearTimeout(timer); resolve(this.initResponse); };
+            this.initWaiters.push(done);
+        });
+    }
+
+    // Methods used by loadConfig() in handlers.ts via (query as any).xxx?.()
+    async supportedCommands(): Promise<unknown[]> {
+        const init = await this.waitForInit();
+        return (init?.tools as unknown[]) ?? [];
+    }
+
+    async supportedModels(): Promise<unknown[]> {
+        const init = await this.waitForInit();
+        return (init?.models as unknown[]) ?? [];
+    }
+
+    async accountInfo(): Promise<unknown> {
+        const init = await this.waitForInit();
+        return init?.account_info ?? null;
+    }
+
+    async mcpServerStatus(): Promise<unknown[]> {
+        const init = await this.waitForInit();
+        return (init?.mcp_servers as unknown[]) ?? [];
+    }
+
+    // ── Control request/response ───────────────────────────────────────────
+
+    private sendControl(request: object): Promise<unknown> {
+        const requestId = `ctrl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        return new Promise<unknown>((resolve, reject) => {
+            const timer = setTimeout(() => {
+                if (this.pendingControl.has(requestId)) {
+                    this.pendingControl.delete(requestId);
+                    reject(new Error(`Control request timed out: ${JSON.stringify(request)}`));
+                }
+            }, 30_000);
+
+            this.pendingControl.set(requestId, {
+                resolve: (v) => { clearTimeout(timer); resolve(v); },
+                reject: (e) => { clearTimeout(timer); reject(e); },
+            });
+
+            this.writeStdin({ type: 'control_request', request_id: requestId, request });
+        });
+    }
+
+    // ── AsyncIterator implementation ───────────────────────────────────────
+
+    private enqueueMessage(msg: SDKMessage): void {
+        if (this.waiters.length > 0) {
+            const waiter = this.waiters.shift()!;
+            waiter.resolve({ done: false, value: msg });
+        } else {
+            this.messageQueue.push(msg);
+        }
+    }
+
+    private signalDone(): void {
+        if (this.isDone) return;
+        this.isDone = true;
+        this.initWaiters.forEach(r => r());
+        this.initWaiters = [];
+        this.messageQueue.push(null);
+        this.flushWaiters();
+    }
+
+    private signalError(err: Error): void {
+        if (this.isDone) return;
+        this.isDone = true;
+        this.initWaiters.forEach(r => r());
+        this.initWaiters = [];
+        this.messageQueue.push(err);
+        this.flushWaiters();
+    }
+
+    private flushWaiters(): void {
+        while (this.waiters.length > 0) {
+            const item = this.messageQueue.shift();
+            const waiter = this.waiters.shift()!;
+            if (item == null) {
+                waiter.resolve({ done: true, value: undefined });
+            } else if (item instanceof Error) {
+                waiter.reject(item);
+            } else {
+                waiter.resolve({ done: false, value: item });
+            }
+        }
+    }
+
+    async next(): Promise<IteratorResult<SDKMessage, void>> {
+        if (this.messageQueue.length > 0) {
+            const item = this.messageQueue.shift()!;
+            if (item === null) return { done: true, value: undefined };
+            if (item instanceof Error) throw item;
+            return { done: false, value: item };
+        }
+        if (this.isDone) return { done: true, value: undefined };
+        return new Promise<IteratorResult<SDKMessage, void>>((resolve, reject) => {
+            this.waiters.push({ resolve, reject });
+        });
+    }
+
+    async return(_value?: unknown): Promise<IteratorResult<SDKMessage, void>> {
+        if (!this.proc.killed) {
+            this.proc.kill('SIGTERM');
+        }
+        this.signalDone();
+        // Reject any pending outbound control requests
+        for (const handler of this.pendingControl.values()) {
+            handler.reject(new Error('Process terminated'));
+        }
+        this.pendingControl.clear();
+        return { done: true, value: undefined };
+    }
+
+    async throw(error: unknown): Promise<IteratorResult<SDKMessage, void>> {
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.signalError(err);
+        throw error;
+    }
+
+    [Symbol.asyncIterator](): AsyncIterator<SDKMessage, void> {
+        return this;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ClaudeSdkService — IClaudeSdkService implementation
+// ---------------------------------------------------------------------------
+
 export class ClaudeSdkService implements IClaudeSdkService {
     readonly _serviceBrand: undefined;
 
@@ -127,428 +384,246 @@ export class ClaudeSdkService implements IClaudeSdkService {
         @IConfigurationService private readonly configService: IConfigurationService,
         @IFileSystemService private readonly fileSystemService: IFileSystemService
     ) {
-        this.logService.info('[ClaudeSdkService] ');
+        this.logService.info('[ClaudeProcessService] initialised');
     }
 
-    /**
-     *  Claude SDK
-     */
     async query(params: SdkQueryParams): Promise<Query> {
-        const { inputStream, resume, canUseTool, model, agent, cwd, permissionMode, thinking, effortLevel, onStderrError } = params;
+        const {
+            inputStream, resume, canUseTool, model, agent, cwd,
+            permissionMode, thinking, effortLevel, onStderrError
+        } = params;
 
         this.logService.info('========================================');
-        this.logService.info('ClaudeSdkService.query() ');
+        this.logService.info('ClaudeProcessService.query()');
         this.logService.info('========================================');
-        this.logService.info(`📋 :`);
-        this.logService.info(`  - model: ${model}`);
-        this.logService.info(`  - agent: ${agent ?? 'none'}`);
-        this.logService.info(`  - cwd: ${cwd}`);
-        this.logService.info(`  - permissionMode: ${permissionMode}`);
-        this.logService.info(`  - resume: ${resume}`);
-        this.logService.info(`  - thinking: ${thinking ? JSON.stringify(thinking) : 'undefined'}`);
-        this.logService.info(`  - effortLevel: ${effortLevel ?? 'undefined'}`);
+        this.logService.info(`  model: ${model}, agent: ${agent ?? 'none'}, cwd: ${cwd}`);
+        this.logService.info(`  permissionMode: ${permissionMode}, resume: ${resume}`);
+        this.logService.info(`  thinking: ${JSON.stringify(thinking)}, effortLevel: ${effortLevel ?? 'none'}`);
 
-        const modelParam = model === null ? "default" : model;
-        const permissionModeParam = permissionMode as PermissionMode;
-        const cwdParam = cwd;
-
-        this.logService.info(`🔄 :`);
-        this.logService.info(`  - modelParam: ${modelParam}`);
-        this.logService.info(`  - permissionModeParam: ${permissionModeParam}`);
-        this.logService.info(`  - cwdParam: ${cwdParam}`);
-
-        //  CLI  TypeScript
         const cliPath = await this.getClaudeExecutablePath();
+        const env = await this.getMergedEnvironmentVariables();
 
-        const env = await this.getMergedEnvironmentVariables(modelParam);
-
-        // Resolve Claude config dir (honours relay.configurationDirectory > CLAUDE_CONFIG_DIR > default)
         const relayDir = env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
         const relayPath = path.join(relayDir, 'relay.json');
 
-        // Inject effort level for Opus 4.6+ adaptive reasoning. CLI reads
-        // CLAUDE_CODE_EFFORT_LEVEL at spawn time. If the user already set this
-        // env var explicitly via settings/env config, respect that.
         if (effortLevel && !env.CLAUDE_CODE_EFFORT_LEVEL) {
             env.CLAUDE_CODE_EFFORT_LEVEL = effortLevel;
         }
 
-        this.logService.info(`🌍  (env):`);
-        if (env && Object.keys(env).length > 0) {
-            for (const [key, value] of Object.entries(env)) {
-                this.logService.info(`  - ${key}: ${value}`);
-            }
+        // Only verify existence for absolute paths; bare command names (e.g. "claude") are
+        // resolved by the OS at spawn time.
+        if (path.isAbsolute(cliPath) && !(await this.fileSystemService.pathExists(cliPath))) {
+            throw new Error(`Claude CLI not found at: ${cliPath}`);
+        }
+
+        const modelParam = model === null ? 'default' : model;
+
+        const args: string[] = [
+            '--output-format', 'stream-json',
+            '--verbose',
+            '--input-format', 'stream-json',
+            '--model', modelParam,
+            '--permission-mode', permissionMode as string,
+            '--setting-sources=',
+            '--settings', relayPath,
+            '--debug-to-stderr',
+            '--include-partial-messages',
+        ];
+
+        if (resume) args.push('--resume', resume);
+        if (agent) args.push('--agent', agent);
+
+        if (thinking?.type === 'disabled') {
+            args.push('--thinking', 'disabled');
         } else {
-            this.logService.info(`  (empty)`);
+            args.push('--thinking', 'adaptive');
         }
 
-        //  CLI
-        this.logService.info(`📂 CLI :`);
-        this.logService.info(`  - CLI Path: ${cliPath}`);
-        this.logService.info(`  - Settings Path: ${relayPath}`);
-
-        //  CLI
-        if (!(await this.fileSystemService.pathExists(cliPath))) {
-          this.logService.error(`❌ Claude CLI not found at: ${cliPath}`);
-          throw new Error(`Claude CLI not found at: ${cliPath}`);
-        }
-        this.logService.info(`  ✓ CLI `);
-
-        try {
-          const stats = await this.fileSystemService.stat(vscode.Uri.file(cliPath));
-          const isExec = await this.fileSystemService.isExecutable(cliPath);
-          this.logService.info(`  - File size: ${stats.size} bytes`);
-          this.logService.info(`  - Is executable: ${isExec}`);
-        } catch (e) {
-          this.logService.warn(`  ⚠ Could not check file stats: ${e}`);
-        }
-
-        //  SDK Options
-        const options: Options = {
-            cwd: cwdParam,
-            resume: resume || undefined,
-            model: modelParam,
-            agent: agent || undefined,
-            permissionMode: permissionModeParam,
-            thinking,
-
-            // CanUseTool
-            canUseTool,
-
-            //  -  SDK
-            stderr: (data: string) => {
-                const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-                const lines = data.trim().split('\n');
-
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-
-                    const lowerLine = line.toLowerCase();
-                    let level = 'INFO';
-
-                    if (lowerLine.includes('error') || lowerLine.includes('failed') || lowerLine.includes('exception')) {
-                        level = 'ERROR';
-                    } else if (lowerLine.includes('warn') || lowerLine.includes('warning')) {
-                        level = 'WARN';
-                    } else if (lowerLine.includes('exit') || lowerLine.includes('terminated')) {
-                        level = 'EXIT';
-                    }
-
-                    this.logService.info(`[${timestamp}] [SDK ${level}] ${line}`);
-
-                    // "Error streaming, falling back to non-streaming mode: {statusCode} {json}"
-                    if (onStderrError) {
-                        const streamingErrorMatch = line.match(
-                            /Error streaming, falling back to non-streaming mode:\s*(\d+)\s*(.*)/
-                        );
-                        if (streamingErrorMatch) {
-                            const statusCode = streamingErrorMatch[1];
-                            const rest = streamingErrorMatch[2];
-
-                            let message = `HTTP ${statusCode}`;
-                            let errorType = 'unknown';
-                            try {
-                                const jsonMatch = rest.match(/(\{[\s\S]*\})/);
-                                if (jsonMatch) {
-                                    const parsed = JSON.parse(jsonMatch[1]);
-                                    const err = parsed.error || parsed;
-                                    message = err.message || err.msg || message;
-                                    errorType = err.type || err.code || errorType;
-                                }
-                            } catch { /* non-JSON tail, use statusCode as message */ }
-
-                            onStderrError({ statusCode, message, type: errorType, raw: line });
-                        }
-                    }
-                }
-            },
-
-            env,
-
-            systemPrompt: {
-                type: 'preset',
-                preset: 'claude_code',
-                append: VS_CODE_APPEND_PROMPT
-            },
-
-            // Hooks
-            hooks: {
-                // PreToolUse:
-                PreToolUse: [{
-                    matcher: "Edit|Write|MultiEdit",
-                    hooks: [async (input, toolUseID, options) => {
-                        if ('tool_name' in input) {
-                            this.logService.info(`[Hook] PreToolUse: ${input.tool_name}`);
-                        }
-                        return { continue: true };
-                    }]
-                }] as HookCallbackMatcher[],
-                // PostToolUse:
-                PostToolUse: [{
-                    matcher: "Edit|Write|MultiEdit",
-                    hooks: [async (input, toolUseID, options) => {
-                        if ('tool_name' in input) {
-                            this.logService.info(`[Hook] PostToolUse: ${input.tool_name}`);
-                        }
-                        return { continue: true };
-                    }]
-                }] as HookCallbackMatcher[]
-            },
-
-            // CLI
-            pathToClaudeCodeExecutable: cliPath,
-
-            // --settings  relay.jsonProfile  ConfigurationService
-            // CLI
-            extraArgs: {
-              'debug': null,
-              'debug-to-stderr': null,
-              // 'enable-auth-status': null,
-              'settings': relayPath,
-            } as Record<string, string | null>,
-
-            //  ( CLAUDE.md  settings.json )
-            // 'user': ~/.claude/settings.json, ~/.claude/CLAUDE.md
-            // 'project': .claude/settings.json, .claude/CLAUDE.md
-            // 'local': .claude/settings.local.json, CLAUDE.local.md
-            // : relay.json  extraArgs.settings  flagSettings
-            settingSources: ['user', 'project', 'local'],
-
-            includePartialMessages: true
-        };
-
-        //  SDK
-        this.logService.info('');
-        this.logService.info('🚀  Claude Agent SDK');
-        this.logService.info('----------------------------------------');
+        args.push('--append-system-prompt', VS_CODE_APPEND_PROMPT);
 
         process.env.CLAUDE_CODE_ENTRYPOINT = 'claude-vscode';
-        this.logService.info(`🔧 :`);
-        this.logService.info(`  - CLAUDE_CODE_ENTRYPOINT: ${process.env.CLAUDE_CODE_ENTRYPOINT}`);
-        const customEnvVars = await this.configService.getEnvironmentVariables();
-        for (const [key, value] of Object.entries(customEnvVars)) {
-            this.logService.info(`  - ${key}: ${value}`);
+
+        this.logService.info(`CLI: ${cliPath}`);
+        this.logService.info(`Args: ${args.join(' ')}`);
+
+        const isJs = cliPath.endsWith('.js');
+        const spawnCmd = isJs ? process.execPath : cliPath;
+        const spawnArgs = isJs ? [cliPath, ...args] : args;
+
+        const proc = spawn(spawnCmd, spawnArgs, {
+            cwd,
+            env,
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        this.logService.info(`Spawned CLI pid=${proc.pid}`);
+
+        // Pipe stderr through the same error parsing as before
+        if (proc.stderr) {
+            const stderrRl = readline.createInterface({ input: proc.stderr });
+            stderrRl.on('line', (line: string) => {
+                if (!line.trim()) return;
+                const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+                const lowerLine = line.toLowerCase();
+                let level = 'INFO';
+                if (lowerLine.includes('error') || lowerLine.includes('failed') || lowerLine.includes('exception')) {
+                    level = 'ERROR';
+                } else if (lowerLine.includes('warn') || lowerLine.includes('warning')) {
+                    level = 'WARN';
+                } else if (lowerLine.includes('exit') || lowerLine.includes('terminated')) {
+                    level = 'EXIT';
+                }
+                this.logService.info(`[${timestamp}] [CLI ${level}] ${line}`);
+
+                if (onStderrError) {
+                    const m = line.match(/Error streaming, falling back to non-streaming mode:\s*(\d+)\s*(.*)/);
+                    if (m) {
+                        const statusCode = m[1];
+                        const rest = m[2];
+                        let message = `HTTP ${statusCode}`;
+                        let errorType = 'unknown';
+                        try {
+                            const jsonMatch = rest.match(/(\{[\s\S]*\})/);
+                            if (jsonMatch) {
+                                const parsed = JSON.parse(jsonMatch[1]);
+                                const err = parsed.error || parsed;
+                                message = err.message || err.msg || message;
+                                errorType = err.type || err.code || errorType;
+                            }
+                        } catch { /* non-JSON tail */ }
+                        onStderrError({ statusCode, message, type: errorType, raw: line });
+                    }
+                }
+            });
         }
 
-        this.logService.info('');
-        this.logService.info('📦  SDK...');
+        const processQuery = new ProcessQuery(proc, canUseTool, this.logService);
 
-        try {
-            //  SDK query()
-            const { query } = await import('@anthropic-ai/claude-agent-sdk');
-
-            this.logService.info(`  - Options: [ ${Object.keys(options).join(', ')}]`);
-
-            const result = query({ prompt: inputStream, options });
-            return result;
-        } catch (error) {
-            this.logService.error('');
-            this.logService.error('❌❌❌ SDK  ❌❌❌');
-            this.logService.error(`Error: ${error}`);
-            if (error instanceof Error) {
-                this.logService.error(`Message: ${error.message}`);
-                this.logService.error(`Stack: ${error.stack}`);
+        // Drain inputStream → stdin
+        void (async () => {
+            for await (const msg of inputStream) {
+                processQuery.send(msg);
             }
-            this.logService.error('========================================');
-            throw error;
-        }
+        })();
+
+        return processQuery;
     }
 
-    /**
-     *  SDK
-     */
     async probe(params: SdkProbeParams): Promise<SdkProbeResult> {
         const capabilities = Array.from(new Set(params.capabilities ?? [])).filter(Boolean);
-        if (capabilities.length === 0) {
-            return { data: {} };
-        }
+        if (capabilities.length === 0) return { data: {} };
 
-        const timeoutMs = Math.max(1000, params.timeoutMs ?? 10000);
-        const data: Record<string, any> = {};
+        const timeoutMs = Math.max(1000, params.timeoutMs ?? 10_000);
+        const data: Record<string, unknown> = {};
         const errors: Record<string, string> = {};
 
-        let query: Query | undefined;
-        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        let processQuery: ProcessQuery | undefined;
 
         try {
             await Promise.race([
                 (async () => {
-                    query = await this.queryLite(params.cwd);
-
-                    for (const capability of capabilities) {
-                        const handler = SDK_PROBE_CAPABILITIES[capability];
-                        if (!handler) {
-                            errors[capability] = 'Unsupported capability';
-                            continue;
-                        }
-
+                    processQuery = await this.queryLite(params.cwd);
+                    for (const cap of capabilities) {
                         try {
-                            data[capability] = await handler(query);
-                        } catch (error) {
-                            errors[capability] = error instanceof Error ? error.message : String(error);
+                            switch (cap) {
+                                case 'supportedCommands':
+                                    data[cap] = await processQuery.supportedCommands();
+                                    break;
+                                case 'supportedModels':
+                                    data[cap] = await processQuery.supportedModels();
+                                    break;
+                                case 'mcpServerStatus':
+                                    data[cap] = await processQuery.mcpServerStatus();
+                                    break;
+                                case 'accountInfo':
+                                    data[cap] = await processQuery.accountInfo();
+                                    break;
+                                default:
+                                    errors[cap] = 'Unsupported capability';
+                            }
+                        } catch (err) {
+                            errors[cap] = err instanceof Error ? err.message : String(err);
                         }
                     }
                 })(),
-                new Promise<void>((_, reject) => {
-                    timeoutId = setTimeout(() => {
-                        reject(new Error('SDK probe timed out'));
-                    }, timeoutMs);
-                })
+                new Promise<void>((_, reject) =>
+                    setTimeout(() => reject(new Error('probe timed out')), timeoutMs)
+                )
             ]);
-        } catch (error) {
-            if (query) {
-                try {
-                    await this.interrupt(query);
-                } catch {
-                }
+        } catch (err) {
+            if (processQuery) {
+                try { await processQuery.return(); } catch { /* ignore */ }
             }
-            throw error;
+            throw err;
         } finally {
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-            }
-            if (query?.return) {
-                try {
-                    await query.return();
-                } catch {
-                }
+            if (processQuery) {
+                try { await processQuery.return(); } catch { /* ignore */ }
             }
         }
 
-        // this.logService.info(`[Probe] : ${JSON.stringify(data, null, 2)}`);
-
-        return {
-            data,
-            errors: Object.keys(errors).length ? errors : undefined
-        };
+        return { data, errors: Object.keys(errors).length ? errors : undefined };
     }
 
-    /**
-     *  SDK  probe
-     *  hooks
-     */
-    private async queryLite(cwd: string): Promise<Query> {
-        const inputStream = new AsyncStream<SDKUserMessage>();
-
-        // probe
-        inputStream.done();
-
-        const cliPath = await this.getClaudeExecutablePath();
-
-        const options: Options = {
-            cwd,
-            model: 'default',
-            permissionMode: 'default' as PermissionMode,
-            maxThinkingTokens: 0,
-
-            canUseTool: async () => ({
-                behavior: 'deny' as const,
-                message: 'SDK probe only'
-            }),
-
-            settingSources: [],
-
-            //  stderr
-            stderr: () => {},
-
-            // CLI
-            pathToClaudeCodeExecutable: cliPath,
-
-            //  debug
-            extraArgs: {},
-
-            //  partial messages
-            includePartialMessages: false,
-
-            //  hooks
-            hooks: {}
-        };
-
-        const { query } = await import('@anthropic-ai/claude-agent-sdk');
-        return query({ prompt: inputStream, options });
-    }
-
-    /**
-     */
     async interrupt(query: Query): Promise<void> {
         try {
-            this.logService.info('🛑  Claude SDK ');
+            this.logService.info('🛑 interrupt');
             await query.interrupt();
-            this.logService.info('✓ ');
-        } catch (error) {
-            this.logService.error(`❌ : ${error}`);
-            throw error;
+            this.logService.info('✓ interrupted');
+        } catch (err) {
+            this.logService.error(`interrupt failed: ${err}`);
+            throw err;
         }
     }
 
-    /**
-     *  (process.env + custom)
-     */
-    private async getMergedEnvironmentVariables(model?: string): Promise<Record<string, string>> {
+    // ── Private helpers ────────────────────────────────────────────────────
+
+    private async queryLite(cwd: string): Promise<ProcessQuery> {
+        const cliPath = await this.getClaudeExecutablePath();
+        const env = await this.getMergedEnvironmentVariables();
+        const relayDir = env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), '.claude');
+        const relayPath = path.join(relayDir, 'relay.json');
+
+        const args = [
+            '--output-format', 'stream-json',
+            '--verbose',
+            '--input-format', 'stream-json',
+            '--model', 'default',
+            '--permission-mode', 'default',
+            '--setting-sources=',
+            '--settings', relayPath,
+        ];
+
+        const isJs = cliPath.endsWith('.js');
+        const spawnCmd = isJs ? process.execPath : cliPath;
+        const spawnArgs = isJs ? [cliPath, ...args] : args;
+
+        const proc = spawn(spawnCmd, spawnArgs, { cwd, env, stdio: ['pipe', 'pipe', 'ignore'] });
+
+        return new ProcessQuery(proc, undefined, this.logService);
+    }
+
+    private async getMergedEnvironmentVariables(): Promise<Record<string, string>> {
         const customVars = await this.configService.getEnvironmentVariables();
         const configDir = await this.configService.getConfigurationDirectory();
 
-        //  process.env ( undefined)
-        const env: Record<string, string> = {
-          // CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL: '1'
-          // ANTHROPIC_BASE_URL: 'https://anyrouter.top',
-          // ANTHROPIC_AUTH_TOKEN: 'sk-PNPwKAii2iEHlPxERYW8zt4xMH60O9iHVFJRbg7z9rnur8HG',
-        };
-        Object.entries(process.env).forEach(([key, value]) => {
-            if (value !== undefined) {
-                env[key] = value;
-            }
-        });
+        const env: Record<string, string> = {};
+        for (const [k, v] of Object.entries(process.env)) {
+            if (v !== undefined) env[k] = v;
+        }
 
-        // If the user explicitly configured a custom configuration directory, inject
-        // it as CLAUDE_CONFIG_DIR so the CLI uses it. This wins over any shell-inherited
-        // value because the explicit setting should take precedence.
-        this.logService.info(`[ClaudeSdkService] configurationDirectory setting resolved to: ${configDir ?? '(not set)'}`);
+        this.logService.info(`[ClaudeProcessService] configDir: ${configDir ?? '(not set)'}`);
         if (configDir) {
             env.CLAUDE_CONFIG_DIR = configDir;
-            this.logService.info(`[ClaudeSdkService] CLAUDE_CONFIG_DIR overridden to: ${configDir}`);
-        } else {
-            this.logService.info(`[ClaudeSdkService] CLAUDE_CONFIG_DIR not overridden (inheriting: ${env.CLAUDE_CONFIG_DIR ?? '(unset)'})`);
         }
 
-      const merged = { ...env, ...customVars };
-
-      // The Anthropic API only enables 1M context when the request includes the
-      // context-1m-2025-08-07 beta header. The CLI sends it automatically only
-      // for models with "[1m]" in their name; for Sonnet 4.6 and Opus 4.x we
-      // inject it here via ANTHROPIC_BETAS so the CLI picks it up. We append
-      // rather than overwrite so any user-configured betas are preserved.
-    //   if (model && this.needs1MBeta(model)) {
-    //       const existing = merged.ANTHROPIC_BETAS ?? '';
-    //       const betas = new Set(existing.split(',').map(b => b.trim()).filter(Boolean));
-    //       betas.add('context-1m-2025-08-07');
-    //       merged.ANTHROPIC_BETAS = [...betas].join(',');
-    //       this.logService.info(`[ClaudeSdkService] Injected context-1m-2025-08-07 beta for model: ${model}`);
-    //   }
-
-      return merged;
+        return { ...env, ...customVars };
     }
 
-    private needs1MBeta(model: string): boolean {
-        const m = model.toLowerCase();
-        return m.includes('sonnet-4-6') || m.includes('opus-4-6') || m.includes('opus-4-7');
-    }
-
-    /**
-     *  Claude CLI
-     */
     private async getClaudeExecutablePath(): Promise<string> {
-        const binaryName = process.platform === 'win32' ? 'claude.exe' : 'claude';
-        const arch = process.arch;
-
-        const nativePath = this.context.asAbsolutePath(
-            `resources/native-binaries/${process.platform}-${arch}/${binaryName}`
-        );
-
-        if (await this.fileSystemService.pathExists(nativePath)) {
-            return nativePath;
+        const configured = vscode.workspace.getConfiguration('relay').get<string>('claudeExecutablePath', '').trim();
+        if (configured) {
+            return configured;
         }
-
-        return this.context.asAbsolutePath('resources/claude-code/cli.js');
+        return 'claude';
     }
 }

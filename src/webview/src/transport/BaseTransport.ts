@@ -120,11 +120,10 @@ export abstract class BaseTransport {
     } as InitResponse["state"]);
     console.log('[BaseTransport.init] Set config with modelSetting:', this.config()?.modelSetting);
 
-    const claudeState = await this.sendRequest<GetClaudeStateResponse>({
-      type: "get_claude_state",
-    });
-    this.claudeConfig(claudeState.config);
     this.state("connected");
+    void this.sendRequest<GetClaudeStateResponse>({ type: "get_claude_state" })
+      .then((claudeState) => this.claudeConfig(claudeState.config))
+      .catch(() => {});
   }
 
   launchClaude(
@@ -544,6 +543,9 @@ export abstract class BaseTransport {
   ): Promise<ExtensionRequestResponse> {
     let trackedRequest: PermissionRequest | undefined;
     return new Promise<ExtensionRequestResponse>((resolve) => {
+      if (request.toolName === 'Edit') {
+        console.log('[BaseTransport] Edit permission request inputs:', JSON.stringify(request.inputs));
+      }
       const permissionRequest = new PermissionRequest(
         channelId,
         request.toolName,

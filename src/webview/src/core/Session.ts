@@ -27,6 +27,13 @@ export interface UsageData {
   contextWindow: number;
 }
 
+export interface RateLimitInfo {
+  utilization: number;          // 0–1
+  rateLimitType: string;        // 'five_hour' | 'seven_day' | ...
+  resetsAt?: number;            // unix epoch seconds
+  status: string;               // 'allowed' | 'allowed_warning' | 'rejected'
+}
+
 export interface AttachmentPayload {
   fileName: string;
   mediaType: string;
@@ -147,6 +154,7 @@ export class Session {
     contextTokens: 0,
     contextWindow: 200000
   });
+  readonly rateLimitInfo = signal<RateLimitInfo | undefined>(undefined);
 
   // Local outbound queue: when the user submits while a turn is already in
   // flight we buffer the new message here instead of pushing it into the SDK
@@ -897,6 +905,19 @@ export class Session {
           void this.checkAutoCompaction();
         }
       }
+    }
+
+    if (event?.type === 'rate_limit_event' && event.rate_limit_info) {
+      const info = event.rate_limit_info;
+      if (typeof info.utilization === 'number' && info.rateLimitType) {
+        this.rateLimitInfo({
+          utilization: info.utilization,
+          rateLimitType: info.rateLimitType,
+          resetsAt: info.resetsAt,
+          status: info.status ?? 'allowed',
+        });
+      }
+      return;
     }
 
     // Streaming partial text deltas — accumulate into streamingText for live preview.

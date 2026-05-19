@@ -69,20 +69,28 @@
     <!-- Controls row: mode/model/context below the border -->
     <div v-if="!hideControls" class="controls-row">
       <div class="controls-left">
-        <ModeSelect
-          :permission-mode="permissionMode"
-          @mode-select="(mode) => emit('modeSelect', mode)"
-        />
-      </div>
-      <div class="controls-right">
-        <Tooltip v-if="selectedAgent" :content="`Agent: ${selectedAgent}`">
-          <span class="agent-chip">{{ selectedAgent }}</span>
-        </Tooltip>
         <ModelEffortSelect
           :selected-model="selectedModel"
           :effort-level="effortLevel"
           @model-select="(modelId) => emit('modelSelect', modelId)"
           @effort-select="(level) => emit('effortSelect', level)"
+        />
+        <ModeSelect
+          :permission-mode="permissionMode"
+          @mode-select="(mode) => emit('modeSelect', mode)"
+        />
+        <Tooltip v-if="selectedAgent" :content="`Agent: ${selectedAgent}`">
+          <span class="agent-chip">{{ selectedAgent }}</span>
+        </Tooltip>
+      </div>
+      <div class="controls-right">
+        <RateLimitIndicator
+          v-if="rateLimitInfo"
+          :utilization="rateLimitInfo.utilization"
+          :rate-limit-type="rateLimitInfo.rateLimitType"
+          :resets-at="rateLimitInfo.resetsAt"
+          :status="rateLimitInfo.status"
+          :size="19"
         />
         <TokenIndicator
           v-if="showProgress"
@@ -183,6 +191,8 @@ import ButtonArea from './ButtonArea.vue'
 import ModeSelect from './ModeSelect.vue'
 import ModelEffortSelect from './ModelEffortSelect.vue'
 import TokenIndicator from './TokenIndicator.vue'
+import RateLimitIndicator from './RateLimitIndicator.vue'
+import type { RateLimitInfo } from '../core/Session'
 import type { AttachmentItem } from '../types/attachment'
 import { Dropdown, DropdownItem } from './Dropdown'
 import { RuntimeKey } from '../composables/runtimeContext'
@@ -206,6 +216,7 @@ interface Props {
   effortLevel?: string
   permissionMode?: PermissionMode
   hideControls?: boolean
+  rateLimitInfo?: RateLimitInfo
 }
 
 interface Emits {
@@ -233,6 +244,7 @@ const props = withDefaults(defineProps<Props>(), {
   effortLevel: undefined,
   permissionMode: 'default',
   hideControls: false,
+  rateLimitInfo: undefined,
 })
 
 const emit = defineEmits<Emits>()

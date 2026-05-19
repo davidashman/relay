@@ -5,7 +5,7 @@
     :close-on-click-outside="true"
   >
     <template #trigger="{ isOpen }">
-      <div :class="['mode-dropdown', `mode-dropdown--${permissionMode}`, { 'is-open': isOpen }]">
+      <div :class="['mode-dropdown', `mode-dropdown--${effectiveMode}`, { 'is-open': isOpen }]">
         <div class="dropdown-content">
           <div :class="['codicon', selectedModeIcon, 'dropdown-icon', 'text-[14px]!']" />
           <div class="dropdown-text">
@@ -22,10 +22,10 @@
           id: 'default',
           label: 'Ask Permissions',
           icon: 'codicon-question text-[14px]!',
-          checked: permissionMode === 'default',
+          checked: effectiveMode === 'default',
           type: 'default-mode'
         }"
-        :is-selected="permissionMode === 'default'"
+        :is-selected="effectiveMode === 'default'"
         :index="0"
         @click="(item) => handleModeSelect(item, close)"
       />
@@ -34,10 +34,10 @@
           id: 'acceptEdits',
           label: 'Accept Edits',
           icon: 'codicon-infinity text-[14px]!',
-          checked: permissionMode === 'acceptEdits',
+          checked: effectiveMode === 'acceptEdits',
           type: 'agent-mode'
         }"
-        :is-selected="permissionMode === 'acceptEdits'"
+        :is-selected="effectiveMode === 'acceptEdits'"
         :index="1"
         @click="(item) => handleModeSelect(item, close)"
       />
@@ -46,10 +46,10 @@
           id: 'plan',
           label: 'Plan Mode',
           icon: 'codicon-todos text-[14px]!',
-          checked: permissionMode === 'plan',
+          checked: effectiveMode === 'plan',
           type: 'plan-mode'
         }"
-        :is-selected="permissionMode === 'plan'"
+        :is-selected="effectiveMode === 'plan'"
         :index="2"
         @click="(item) => handleModeSelect(item, close)"
       />
@@ -58,9 +58,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
+import { computed as alienComputed } from 'alien-signals'
+import { useSignal } from '@gn8/alien-signals-vue'
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import { DropdownTrigger, DropdownItem, DropdownSectionHeader, type DropdownItemData } from './Dropdown'
+import { RuntimeKey } from '../composables/runtimeContext'
 
 interface Props {
   permissionMode?: PermissionMode
@@ -71,13 +74,24 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  permissionMode: 'default'
+  permissionMode: undefined
 })
 
 const emit = defineEmits<Emits>()
 
+const runtime = inject(RuntimeKey)
+
+const settingsConfig = useSignal(alienComputed(() =>
+  runtime?.connectionManager.connection()?.config()
+))
+
+const effectiveMode = computed((): PermissionMode => {
+  if (props.permissionMode !== undefined) return props.permissionMode
+  return (settingsConfig.value?.permissionMode as PermissionMode) ?? 'default'
+})
+
 const selectedModeLabel = computed(() => {
-  switch (props.permissionMode) {
+  switch (effectiveMode.value) {
     case 'acceptEdits':
       return 'Accept Edits'
     case 'plan':
@@ -88,13 +102,11 @@ const selectedModeLabel = computed(() => {
 })
 
 const selectedModeIcon = computed(() => {
-  switch (props.permissionMode) {
+  switch (effectiveMode.value) {
     case 'acceptEdits':
       return 'codicon-infinity'
     case 'plan':
       return 'codicon-todos'
-    case 'default':
-      return 'codicon-question'
     default:
       return 'codicon-question'
   }

@@ -3,7 +3,6 @@
  * Extension ↔ WebView
  */
 
-//  SDK
 import type {
     SDKMessage,
     SDKUserMessage,

@@ -17,7 +17,7 @@ import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useSignal } from '@gn8/alien-signals-vue';
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk';
-import type { Session, SelectionRange } from '../core/Session';
+import type { Session, SelectionRange, RateLimitInfo } from '../core/Session';
 import type { PermissionRequest } from '../core/PermissionRequest';
 import type { BaseTransport } from '../transport/BaseTransport';
 import type { ModelOption } from '../../../shared/messages';
@@ -57,6 +57,7 @@ export interface UseSessionReturn {
     contextTokens: number;
     contextWindow: number;
   }>;
+  rateLimitInfo: Ref<RateLimitInfo | undefined>;
 
   claudeConfig: ComputedRef<any>;
   config: ComputedRef<any>;
@@ -125,6 +126,7 @@ export function useSession(session: Session): UseSessionReturn {
   const worktree = useSignal(session.worktree);
   const selection = useSignal(session.selection);
   const usageData = useSignal(session.usageData);
+  const rateLimitInfo = useSignal(session.rateLimitInfo);
   const compactingMode = useSignal(session.compactingMode);
   // useSignal alien computed-only setter
   const claudeConfig = useSignal(session.claudeConfig as any);
@@ -182,6 +184,7 @@ export function useSession(session: Session): UseSessionReturn {
     worktree,
     selection,
     usageData,
+    rateLimitInfo,
     compactingMode,
 
     claudeConfig,

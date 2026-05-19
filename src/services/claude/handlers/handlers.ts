@@ -848,11 +848,13 @@ async function loadConfig(context: HandlerContext): Promise<any> {
 
     inputStream.done();
 
-    const config = {
-        slashCommands: await (query as any).supportedCommands?.() || [],
-        models: await (query as any).supportedModels?.() || [],
-        accountInfo: await (query as any).accountInfo?.() || null
-    };
+    const [slashCommands, models, accountInfo] = await Promise.all([
+        (query as any).supportedCommands?.() ?? [],
+        (query as any).supportedModels?.() ?? [],
+        (query as any).accountInfo?.() ?? null,
+    ]);
+
+    const config = { slashCommands, models, accountInfo };
 
     logService.info(`  - Config: [${JSON.stringify(config)}]`);
     await query.return?.();

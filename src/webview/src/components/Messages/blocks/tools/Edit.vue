@@ -140,15 +140,18 @@ watch(
 
     // toolUseResult structuredPatch ( diff)
     if (props.toolUseResult?.structuredPatch) {
+      console.log('[Edit] using toolUseResult.structuredPatch:', JSON.stringify(props.toolUseResult.structuredPatch));
       structuredPatch.value = props.toolUseResult.structuredPatch;
     }
     // input, diff()
     else if (props.toolUse?.input?.old_string && props.toolUse?.input?.new_string) {
+      console.log('[Edit] generating patch from input, full input keys:', Object.keys(props.toolUse.input), '_oldStart:', props.toolUse.input._oldStart);
       structuredPatch.value = generatePatchFromInput(
         props.toolUse.input.old_string,
         props.toolUse.input.new_string,
         props.toolUse.input._oldStart || 1
       );
+      console.log('[Edit] generated structuredPatch:', JSON.stringify(structuredPatch.value));
     }
   },
   { immediate: true, deep: true }

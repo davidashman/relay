@@ -124,6 +124,7 @@
               :selected-model="session?.modelSelection.value"
               :selected-agent="session?.agentSelection.value"
               :hide-controls="isTerminalMode"
+              :rate-limit-info="rateLimitInfo"
               @submit="handleSubmit"
               @stop="handleStop"
               @add-attachment="handleAddAttachment"
@@ -383,6 +384,8 @@
   });
 
   const progressPercentage = computed(() => usageComputed.value.percentage);
+
+  const rateLimitInfo = computed(() => session.value?.rateLimitInfo.value);
 
   const contextTooltip = computed(() => {
     const { contextTokens, contextWindow } = usageComputed.value;

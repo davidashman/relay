@@ -44,17 +44,16 @@ import type {
     ToolPermissionResponse,
 } from '../../shared/messages';
 
-// SDK
 import type {
     SDKMessage,
     SDKUserMessage,
-    Query,
     PermissionResult,
     PermissionUpdate,
     CanUseTool,
     PermissionMode,
     ThinkingConfig,
 } from '@anthropic-ai/claude-agent-sdk';
+import type { Query } from './claudeTypes';
 
 // Handlers
 import {
@@ -526,6 +525,25 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     for await (const message of query) {
                         messageCount++;
                         this.logService.info(`  ←  #${messageCount}: ${message.type}`);
+
+                        // Inject _oldStart into Edit tool_use blocks so the webview
+                        // can show correct line numbers in the diff regardless of permission mode.
+                        if ((message as any).type === 'assistant' && Array.isArray((message as any).message?.content)) {
+                            const fs = require('fs') as typeof import('fs');
+                            for (const block of (message as any).message.content) {
+                                if (block.type === 'tool_use' && block.name === 'Edit' &&
+                                    typeof block.input?.file_path === 'string' &&
+                                    typeof block.input?.old_string === 'string') {
+                                    try {
+                                        const content = fs.readFileSync(block.input.file_path, 'utf8');
+                                        const idx = content.indexOf(block.input.old_string);
+                                        if (idx !== -1) {
+                                            block.input._oldStart = content.substring(0, idx).split('\n').length;
+                                        }
+                                    } catch {}
+                                }
+                            }
+                        }
 
                         this.transport!.send({
                             type: "io_message",

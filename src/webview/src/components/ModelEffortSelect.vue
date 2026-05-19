@@ -1,11 +1,11 @@
 <template>
-  <DropdownTrigger align="right" :width="145" :close-on-click-outside="true">
+  <DropdownTrigger align="left" :width="145" :close-on-click-outside="true">
     <template #trigger="{ isOpen }">
       <div class="model-effort-dropdown" :class="{ 'is-open': isOpen }">
         <div class="dropdown-content">
           <div class="dropdown-text">
             <span class="model-label">{{ selectedModelLabel }}</span>
-            <span v-if="supportsEffort(props.selectedModel)" class="effort-label">{{ selectedEffortLabel }}</span>
+            <span v-if="supportsEffort(effectiveModel)" class="effort-label">{{ selectedEffortLabel }}</span>
           </div>
         </div>
       </div>
@@ -30,7 +30,7 @@
         @click="(item) => handleModelSelect(item, close)"
       />
 
-      <template v-if="supportsEffort(props.selectedModel)">
+      <template v-if="supportsEffort(effectiveModel)">
         <DropdownSeparator />
         <DropdownSectionHeader text="Effort" />
         <DropdownItem
@@ -47,9 +47,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
+import { computed as alienComputed } from 'alien-signals'
+import { useSignal } from '@gn8/alien-signals-vue'
 import { DropdownTrigger, DropdownItem, DropdownSeparator, DropdownSectionHeader, type DropdownItemData } from './Dropdown'
-import { getEffortLevels, supportsEffort, parseModelInfo } from '../utils/modelUtils'
+import { getEffortLevels, supportsEffort, parseModelInfo, normalizeModelId } from '../utils/modelUtils'
+import { RuntimeKey } from '../composables/runtimeContext'
 
 interface Props {
   selectedModel?: string
@@ -64,6 +67,25 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   selectedModel: undefined,
   effortLevel: undefined,
+})
+
+const runtime = inject(RuntimeKey)
+
+// Bridge alien-signals → Vue reactivity by composing a single alien computed
+// that tracks both the connection signal and the config signal, then wrapping
+// it with useSignal so Vue's computed() below can track it.
+const settingsConfig = useSignal(alienComputed(() =>
+  runtime?.connectionManager.connection()?.config()
+))
+
+const effectiveModel = computed(() => {
+  if (props.selectedModel !== undefined) return props.selectedModel
+  return normalizeModelId(settingsConfig.value?.modelSetting)
+})
+
+const effectiveEffort = computed(() => {
+  if (props.effortLevel !== undefined) return props.effortLevel
+  return settingsConfig.value?.effortLevel
 })
 
 const emit = defineEmits<Emits>()
@@ -90,29 +112,29 @@ const EFFORT_LABELS: Record<string, string> = {
 }
 
 const selectedModelLabel = computed(() => {
-  const found = ALL_MODELS.find((m) => m.id === props.selectedModel)
+  const found = ALL_MODELS.find((m) => m.id === effectiveModel.value)
   if (found) return found.label
-  const parsed = parseModelInfo(props.selectedModel)
+  const parsed = parseModelInfo(effectiveModel.value)
   if (parsed.model) return parsed.label
   return ''
 })
 
 const selectedEffortLabel = computed(() => {
-  const level = props.effortLevel ?? 'default'
+  const level = effectiveEffort.value ?? 'default'
   return EFFORT_LABELS[level] ?? level
 })
 
 const effortOptions = computed(() => [
   { id: 'default', label: 'Adaptive' },
-  ...getEffortLevels(props.selectedModel).map((id) => ({ id, label: EFFORT_LABELS[id] ?? id })),
+  ...getEffortLevels(effectiveModel.value).map((id) => ({ id, label: EFFORT_LABELS[id] ?? id })),
 ])
 
 function isModelSelected(modelId: string): boolean {
-  return props.selectedModel === modelId
+  return effectiveModel.value === modelId
 }
 
 function isEffortSelected(effortId: string): boolean {
-  return (props.effortLevel ?? 'default') === effortId
+  return (effectiveEffort.value ?? 'default') === effortId
 }
 
 function handleModelSelect(item: DropdownItemData, close: () => void) {
@@ -136,7 +158,7 @@ function handleEffortSelect(item: DropdownItemData, close: () => void) {
   line-height: 24px;
   min-width: 0;
   max-width: 100%;
-  padding: 2px 6px;
+  padding: 2px 12px 2px 6px;
   border-radius: 24px;
   flex-shrink: 1;
   cursor: pointer;
